@@ -3,12 +3,1738 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>DQCT</title>
+    <title>DQCT | Data Quality Control Tower</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f7fb;
+        --bg-accent: #dde8f7;
+        --panel: rgba(255, 255, 255, 0.9);
+        --panel-border: rgba(20, 34, 58, 0.12);
+        --text: #102033;
+        --muted: #54657c;
+        --primary: #204a87;
+        --primary-strong: #163761;
+        --success: #0b7a4b;
+        --warning: #a15c00;
+        --danger: #a11f1f;
+        --shadow: 0 20px 55px rgba(14, 25, 41, 0.12);
+        --radius-xl: 28px;
+        --radius-lg: 20px;
+        --radius-md: 14px;
+        --radius-sm: 10px;
+        --space-1: 0.5rem;
+        --space-2: 0.75rem;
+        --space-3: 1rem;
+        --space-4: 1.5rem;
+        --space-5: 2rem;
+        --space-6: 2.75rem;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top left, rgba(32, 74, 135, 0.16), transparent 24%),
+          radial-gradient(circle at 90% 0%, rgba(11, 122, 75, 0.12), transparent 20%),
+          linear-gradient(180deg, var(--bg) 0%, #eef3f9 100%);
+        color: var(--text);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(16, 32, 51, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(16, 32, 51, 0.03) 1px, transparent 1px);
+        background-size: 36px 36px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent 85%);
+      }
+
+      body {
+        padding: var(--space-5);
+      }
+
+      .app {
+        max-width: 1440px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero,
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(14px);
+      }
+
+      .hero {
+        padding: var(--space-5);
+        display: grid;
+        gap: var(--space-4);
+        grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.9fr);
+        align-items: start;
+      }
+
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 0.72rem;
+        color: var(--primary);
+        font-weight: 800;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 4vw, 3.7rem);
+        line-height: 0.96;
+        margin: 0.35rem 0 0.95rem;
+      }
+
+      .hero p {
+        color: var(--muted);
+        max-width: 64ch;
+        line-height: 1.65;
+      }
+
+      .hero-stats {
+        display: grid;
+        gap: var(--space-3);
+      }
+
+      .stat-card,
+      .toolbar,
+      .section,
+      .profile-card,
+      .file-card,
+      .table-card,
+      .notice,
+      .empty-state {
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(20, 34, 58, 0.08);
+        border-radius: var(--radius-lg);
+      }
+
+      .stat-card {
+        padding: var(--space-3);
+      }
+
+      .stat-card .label {
+        font-size: 0.8rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .stat-card strong {
+        display: block;
+        margin-top: 0.35rem;
+        font-size: 1.75rem;
+      }
+
+      .stat-card span {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .toolbar {
+        margin-top: var(--space-4);
+        padding: var(--space-3);
+        display: flex;
+        gap: var(--space-3);
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .toolbar .group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        align-items: center;
+      }
+
+      label,
+      .field-label {
+        display: block;
+        font-size: 0.86rem;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+
+      select,
+      input[type="text"],
+      input[type="search"],
+      input[type="number"],
+      textarea {
+        width: 100%;
+        border: 1px solid rgba(20, 34, 58, 0.14);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 0.82rem 0.92rem;
+        color: var(--text);
+        font: inherit;
+      }
+
+      textarea {
+        min-height: 180px;
+        resize: vertical;
+      }
+
+      input[type="file"] {
+        width: 100%;
+      }
+
+      button,
+      .button {
+        border: 0;
+        border-radius: 999px;
+        padding: 0.82rem 1.1rem;
+        background: var(--primary);
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.16s ease, background 0.16s ease, opacity 0.16s ease;
+      }
+
+      button:hover,
+      .button:hover {
+        background: var(--primary-strong);
+        transform: translateY(-1px);
+      }
+
+      button.secondary,
+      .button.secondary {
+        background: rgba(32, 74, 135, 0.1);
+        color: var(--primary-strong);
+      }
+
+      button.ghost {
+        background: transparent;
+        color: var(--primary-strong);
+        border: 1px solid rgba(32, 74, 135, 0.18);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+        transform: none;
+      }
+
+      .grid {
+        display: grid;
+        gap: var(--space-4);
+        margin-top: var(--space-4);
+        grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+      }
+
+      .stack {
+        display: grid;
+        gap: var(--space-4);
+      }
+
+      .section,
+      .panel,
+      .profile-card,
+      .file-card,
+      .table-card,
+      .notice,
+      .empty-state {
+        padding: var(--space-4);
+      }
+
+      .section h2,
+      .profile-card h3,
+      .file-card h3,
+      .table-card h3 {
+        margin-bottom: 0.75rem;
+      }
+
+      .section p.helper,
+      .profile-card p.helper,
+      .file-card p.helper,
+      .table-card p.helper {
+        color: var(--muted);
+        line-height: 1.55;
+        margin-bottom: 1rem;
+      }
+
+      .dropzone {
+        border: 1.5px dashed rgba(32, 74, 135, 0.25);
+        border-radius: var(--radius-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(239, 245, 252, 0.9));
+        padding: var(--space-5);
+        display: grid;
+        gap: var(--space-3);
+        min-height: 220px;
+      }
+
+      .dropzone.dragging {
+        border-color: var(--primary);
+        background: linear-gradient(180deg, rgba(224, 234, 249, 0.95), rgba(255, 255, 255, 0.95));
+      }
+
+      .dropzone strong {
+        font-size: 1.05rem;
+      }
+
+      .dropzone small,
+      .meta,
+      .chip,
+      .subtle {
+        color: var(--muted);
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.42rem 0.72rem;
+        border-radius: 999px;
+        background: rgba(20, 34, 58, 0.06);
+        font-size: 0.82rem;
+      }
+
+      .chip[data-tone="high"] {
+        background: rgba(161, 31, 31, 0.12);
+        color: var(--danger);
+      }
+
+      .chip[data-tone="medium"] {
+        background: rgba(161, 92, 0, 0.12);
+        color: var(--warning);
+      }
+
+      .chip[data-tone="low"] {
+        background: rgba(11, 122, 75, 0.12);
+        color: var(--success);
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border-radius: var(--radius-md);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 920px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid rgba(20, 34, 58, 0.08);
+        text-align: left;
+        padding: 0.82rem 0.72rem;
+        vertical-align: top;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        background: #f8fbff;
+        z-index: 1;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+
+      td code,
+      .code {
+        font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+        font-size: 0.9rem;
+        background: rgba(20, 34, 58, 0.05);
+        padding: 0.16rem 0.4rem;
+        border-radius: 6px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        border-radius: 999px;
+        padding: 0.36rem 0.64rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
+      .pill.high {
+        background: rgba(161, 31, 31, 0.12);
+        color: var(--danger);
+      }
+
+      .pill.medium {
+        background: rgba(161, 92, 0, 0.12);
+        color: var(--warning);
+      }
+
+      .pill.low {
+        background: rgba(11, 122, 75, 0.12);
+        color: var(--success);
+      }
+
+      .pill.info {
+        background: rgba(32, 74, 135, 0.12);
+        color: var(--primary-strong);
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-3);
+      }
+
+      .fieldset {
+        display: grid;
+        gap: 0.35rem;
+      }
+
+      .profile-list,
+      .file-list,
+      .summary-list {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .profile-item,
+      .file-item,
+      .summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 0.85rem 0.92rem;
+        border-radius: 14px;
+        background: rgba(20, 34, 58, 0.04);
+      }
+
+      .profile-item strong,
+      .file-item strong,
+      .summary-item strong {
+        display: block;
+        margin-bottom: 0.2rem;
+      }
+
+      .rules-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+
+      .rules-toolbar .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        align-items: center;
+      }
+
+      .rules-grid {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .rule-card {
+        border-radius: var(--radius-md);
+        border: 1px solid rgba(20, 34, 58, 0.08);
+        background: rgba(255, 255, 255, 0.94);
+        padding: 0.9rem 1rem;
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .rule-top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      .rule-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .rule-meta .title {
+        font-weight: 800;
+      }
+
+      .switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .switch input {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
+
+      .rule-grid {
+        display: grid;
+        gap: 0.6rem;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .rule-grid .wide {
+        grid-column: span 2;
+      }
+
+      .rule-grid .full {
+        grid-column: 1 / -1;
+      }
+
+      .actions-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: flex-end;
+      }
+
+      .summary-layout {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+
+      .summary-box {
+        padding: 0.9rem;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(32, 74, 135, 0.08), rgba(255, 255, 255, 0.82));
+        border: 1px solid rgba(32, 74, 135, 0.08);
+      }
+
+      .summary-box strong {
+        display: block;
+        margin-top: 0.35rem;
+        font-size: 1.45rem;
+      }
+
+      .footer-note {
+        margin: 1rem 0 0.2rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 1180px) {
+        .hero,
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .summary-layout,
+        .rule-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 780px) {
+        body {
+          padding: 1rem;
+        }
+
+        .hero,
+        .section,
+        .panel,
+        .profile-card,
+        .file-card,
+        .table-card,
+        .notice,
+        .empty-state {
+          border-radius: 22px;
+        }
+
+        .split,
+        .summary-layout,
+        .rule-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .rule-grid .wide {
+          grid-column: auto;
+        }
+      }
+    </style>
   </head>
   <body>
-    <main>
-      <h1>DQCT</h1>
-      <p>Main build target placeholder.</p>
-    </main>
+    <div class="app">
+      <section class="hero">
+        <div>
+          <div class="eyebrow">Data Quality Control Tower</div>
+          <h1>Validate Ohio Buys JSON with a single-file control tower.</h1>
+          <p>
+            Upload one or more bid exports, select a profile, and review record-level failures,
+            rule coverage, and Trello-ready defect summaries in one place. This version keeps the
+            app self-contained: no build step, no framework, no backend.
+          </p>
+          <div class="toolbar" style="margin-top: 1.4rem;">
+            <div class="group">
+              <span class="chip" data-tone="high">Core validation</span>
+              <span class="chip" data-tone="medium">Profile-aware rules</span>
+              <span class="chip" data-tone="low">Run history ready</span>
+            </div>
+            <div class="group">
+              <button id="runButton" type="button">Run validation</button>
+              <button id="exportButton" type="button" class="secondary">Copy report</button>
+            </div>
+          </div>
+        </div>
+        <aside class="hero-stats" aria-label="Current run stats">
+          <div class="stat-card">
+            <div class="label">Loaded files</div>
+            <strong id="loadedFileCount">0</strong>
+            <span id="loadedFileMeta">Waiting for upload</span>
+          </div>
+          <div class="stat-card">
+            <div class="label">Active profile</div>
+            <strong id="activeProfileLabel">Ohio Buys</strong>
+            <span id="activeProfileMeta">Default rule set</span>
+          </div>
+          <div class="stat-card">
+            <div class="label">Failures</div>
+            <strong id="failureCount">0</strong>
+            <span id="failureMeta">No validation run yet</span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="grid">
+        <div class="stack">
+          <div class="section" id="uploadPanel">
+            <h2>Upload data</h2>
+            <p class="helper">
+              Accepts `.json` files with either a top-level <code>Export</code> wrapper or a bare
+              array. Up to 10 files per run, 50 MB each.
+            </p>
+            <div class="dropzone" id="dropzone">
+              <div>
+                <strong>Drop JSON files here</strong>
+                <p class="subtle">or use the picker below. Parsed records stay in memory until you run validation.</p>
+              </div>
+              <div class="split">
+                <div class="fieldset">
+                  <label for="fileInput">File picker</label>
+                  <input id="fileInput" type="file" accept=".json,application/json" multiple />
+                </div>
+                <div class="fieldset">
+                  <label for="profileSelect">Profile</label>
+                  <select id="profileSelect"></select>
+                </div>
+              </div>
+              <div class="split">
+                <div class="fieldset">
+                  <label for="runtimeOverrides">Runtime overrides</label>
+                  <input id="runtimeOverrides" type="text" placeholder="e.g. R25,R26" />
+                </div>
+                <div class="fieldset">
+                  <label for="searchRules">Rule filter</label>
+                  <input id="searchRules" type="search" placeholder="Filter rules by field, id, or type" />
+                </div>
+              </div>
+              <div class="actions-row">
+                <button id="clearFilesButton" type="button" class="ghost">Clear loaded files</button>
+                <button id="seedDemoButton" type="button" class="secondary">Load sample data</button>
+              </div>
+            </div>
+            <div class="footer-note">The selected profile is applied before validation so runtime overrides can disable rules per run.</div>
+          </div>
+
+          <div class="section">
+            <div class="rules-toolbar">
+              <div>
+                <h2>Rules</h2>
+                <p class="helper">Toggle rules, filter by layer, and inspect notes. This list is editable in-browser for the current session.</p>
+              </div>
+              <div class="controls">
+                <button type="button" id="showCore">Core</button>
+                <button type="button" id="showDomain" class="secondary">Domain</button>
+                <button type="button" id="showDiagnostic" class="secondary">Diagnostic</button>
+                <button type="button" id="showAll" class="ghost">All</button>
+              </div>
+            </div>
+            <div id="rulesList" class="rules-grid"></div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="panel">
+            <h2>Profile management</h2>
+            <p class="helper">Clone the default profile, edit rule metadata, and persist changes to local browser storage for this workspace session.</p>
+            <div class="split">
+              <div class="fieldset">
+                <label for="newProfileName">New profile name</label>
+                <input id="newProfileName" type="text" placeholder="Custom Ohio Buys" />
+              </div>
+              <div class="fieldset">
+                <label for="newRootArray">Root array</label>
+                <input id="newRootArray" type="text" placeholder="Export" />
+              </div>
+            </div>
+            <div class="actions-row" style="margin-top: 0.8rem;">
+              <button id="cloneProfileButton" type="button">Clone profile</button>
+              <button id="saveProfileButton" type="button" class="secondary">Save active profile</button>
+              <button id="resetProfileButton" type="button" class="ghost">Reset active profile</button>
+            </div>
+            <div class="profile-list" id="profileList" style="margin-top: 1rem;"></div>
+          </div>
+
+          <div class="file-card">
+            <h3>Loaded files</h3>
+            <p class="helper">Parse feedback appears here before validation. Invalid JSON is blocked immediately.</p>
+            <div id="fileList" class="file-list"></div>
+          </div>
+
+          <div class="notice">
+            <h3>Run summary</h3>
+            <p class="helper">The dashboard below reports record counts, severity totals, and a structured defect export. Persistence and trend charts will sit on top of this baseline.</p>
+            <div class="summary-layout" id="summaryLayout"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="table-card" style="margin-top: var(--space-4);">
+        <h2>Validation results</h2>
+        <p class="helper">Each row records the file, record index, primary ID, violated rule, expected value, actual value, and severity.</p>
+        <div id="emptyState" class="empty-state">
+          No validation has been run yet. Upload a file or load the sample data, then press Run validation.
+        </div>
+        <div id="resultsWrap" class="table-wrap hidden">
+          <table>
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Record</th>
+                <th>Primary ID</th>
+                <th>Field</th>
+                <th>Rule</th>
+                <th>Expected</th>
+                <th>Actual</th>
+                <th>Severity</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const STORAGE_KEY = "dqct.profiles.v1";
+      const RUN_KEY = "dqct.runs.v1";
+      const MAX_FILES = 10;
+      const MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+      const defaultProfile = {
+        profile_name: "Ohio Buys",
+        source: "State of Ohio Buys — ohiobuys.ohio.gov",
+        version: "1.0",
+        root_array: "Export",
+        rules: [
+          { id: "R01", layer: "core", field: "AgentName", type: "required", severity: "high", enabled: true, notes: "Always required — identifies the scraper source" },
+          { id: "R02", layer: "core", field: "AgentID", type: "required", severity: "high", enabled: true, notes: "Always required" },
+          { id: "R03", layer: "core", field: "LegacyAgentID", type: "required", severity: "high", enabled: true, notes: "Always required" },
+          { id: "R04", layer: "core", field: "ResourceURL", type: "required", severity: "high", enabled: true, notes: "Always required — source portal link" },
+          { id: "R05", layer: "domain", field: "ProjectCode", type: "required", severity: "high", enabled: true, notes: "Primary bid identifier" },
+          { id: "R06", layer: "domain", field: "ProjectCode", type: "unique", severity: "high", enabled: true, notes: "No duplicate bids in same file" },
+          { id: "R07", layer: "domain", field: "ProjectCode", type: "regex", severity: "medium", enabled: true, pattern: "^SRC\\d{10}$", notes: "Ohio Buys project code format" },
+          { id: "R08", layer: "domain", field: "Title", type: "required", severity: "high", enabled: true, notes: "Bid title required for publication" },
+          { id: "R09", layer: "domain", field: "BidURL", type: "required", severity: "high", enabled: true, notes: "Direct link to bid on source portal" },
+          { id: "R10", layer: "domain", field: "BidURL", type: "regex", severity: "medium", enabled: true, pattern: "^https://", notes: "Must be a secure URL" },
+          { id: "R11", layer: "domain", field: "BidStatus", type: "enum", severity: "high", enabled: true, allowed: ["Open for Bidding", "Closed", "Cancelled", "Awarded"], notes: "Known status values from Ohio Buys" },
+          { id: "R12", layer: "domain", field: "PublishedDate", type: "required", severity: "high", enabled: true, notes: "Required for publication" },
+          { id: "R13", layer: "domain", field: "PublishedDate", type: "date_format", severity: "medium", enabled: true, notes: "Accepts any recognizable date format across all portals — flags only unparseable values" },
+          { id: "R14", layer: "domain", field: "DueDate", type: "required_if", severity: "high", enabled: true, condition: { field: "BidStatus", equals: "Open for Bidding" }, notes: "Open bids must have a due date" },
+          { id: "R15", layer: "domain", field: "AwardedVendorName", type: "required_if", severity: "medium", enabled: true, condition: { field: "BidStatus", equals: "Awarded" }, notes: "Awarded bids should name the vendor" },
+          { id: "R16", layer: "domain", field: "BidDocuments", type: "documents_have_required_keys", severity: "high", enabled: true, required_keys: ["Title", "URL", "Hash"], run_if_not_empty: true, notes: "Each bid document must have Title, URL, Hash" },
+          { id: "R17", layer: "domain", field: "AddendumDocuments", type: "documents_have_required_keys", severity: "high", enabled: true, required_keys: ["Title", "URL", "Hash"], run_if_not_empty: true, notes: "Each addendum document must have Title, URL, Hash" },
+          { id: "R18", layer: "domain", field: "BidTabulations", type: "documents_have_required_keys", severity: "high", enabled: true, required_keys: ["Title", "URL", "Hash"], run_if_not_empty: true, notes: "Each tabulation must have Title, URL, Hash" },
+          { id: "R19", layer: "domain", field: "AwardDocuments", type: "documents_have_required_keys", severity: "high", enabled: true, required_keys: ["Title", "URL", "Hash"], run_if_not_empty: true, notes: "Each award document must have Title, URL, Hash" },
+          { id: "R20", layer: "domain", field: "BidDocuments", type: "hash_count_matches_documents", severity: "medium", enabled: true, hash_field: "BidDocumentHashes", notes: "Hash count must match document count" },
+          { id: "R21", layer: "domain", field: "AddendumDocuments", type: "hash_count_matches_documents", severity: "medium", enabled: true, hash_field: "AddendumDocumentHashes", notes: "Hash count must match document count" },
+          { id: "R22", layer: "domain", field: "BidTabulations", type: "hash_count_matches_documents", severity: "medium", enabled: true, hash_field: "BidTabulationHashes", notes: "Hash count must match document count" },
+          { id: "R23", layer: "domain", field: "AwardDocuments", type: "hash_count_matches_documents", severity: "medium", enabled: true, hash_field: "AwardDocumentHashes", notes: "Hash count must match document count" },
+          { id: "R24", layer: "domain", field: "BidDocuments", type: "no_duplicate_documents", severity: "medium", enabled: true, run_if_not_empty: true, notes: "Detects scraper deduplication failures" },
+          { id: "R25", layer: "diagnostic", field: "Description", type: "required", severity: "low", enabled: false, notes: "Enable to audit description coverage" },
+          { id: "R26", layer: "diagnostic", field: "BidType", type: "required", severity: "low", enabled: false, notes: "Enable to audit bid type classification" },
+          { id: "R27", layer: "diagnostic", field: "ContractValue", type: "required", severity: "low", enabled: false, notes: "Enable to check awarded bids have contract values" },
+          { id: "R28", layer: "diagnostic", field: "IssuingAgencyCity", type: "required", severity: "low", enabled: false, notes: "Enable to audit agency address coverage" },
+          { id: "R29", layer: "diagnostic", field: "ContactEmail", type: "required", severity: "low", enabled: false, notes: "Enable to audit contact info coverage" },
+          { id: "R30", layer: "diagnostic", field: "DueDate", type: "not_future", severity: "low", enabled: false, notes: "Sanity check: due dates are not unreasonably far in future" },
+          { id: "R31", layer: "diagnostic", field: "PublishedDate", type: "ambiguous_date", severity: "low", enabled: false, notes: "Flag dates like 04/05/2026 where day/month order is ambiguous — useful for auditing portal-level format inconsistency" },
+          { id: "R32", layer: "diagnostic", field: "DueDate", type: "ambiguous_date", severity: "low", enabled: false, notes: "Flag ambiguous due dates — enable when comparing data across multiple portal sources" },
+          { id: "R33", layer: "diagnostic", field: "AwardDate", type: "ambiguous_date", severity: "low", enabled: false, notes: "Flag ambiguous award dates" }
+        ]
+      };
+
+      const state = {
+        profiles: loadProfiles(),
+        activeProfileId: defaultProfile.profile_name,
+        files: [],
+        parsedRuns: [],
+        results: [],
+        currentLayer: "all",
+        ruleSearch: "",
+        runtimeOverrides: new Set()
+      };
+
+      const els = {
+        fileInput: document.getElementById("fileInput"),
+        profileSelect: document.getElementById("profileSelect"),
+        loadedFileCount: document.getElementById("loadedFileCount"),
+        loadedFileMeta: document.getElementById("loadedFileMeta"),
+        activeProfileLabel: document.getElementById("activeProfileLabel"),
+        activeProfileMeta: document.getElementById("activeProfileMeta"),
+        failureCount: document.getElementById("failureCount"),
+        failureMeta: document.getElementById("failureMeta"),
+        fileList: document.getElementById("fileList"),
+        rulesList: document.getElementById("rulesList"),
+        summaryLayout: document.getElementById("summaryLayout"),
+        resultsBody: document.getElementById("resultsBody"),
+        resultsWrap: document.getElementById("resultsWrap"),
+        emptyState: document.getElementById("emptyState"),
+        dropzone: document.getElementById("dropzone"),
+        runButton: document.getElementById("runButton"),
+        exportButton: document.getElementById("exportButton"),
+        clearFilesButton: document.getElementById("clearFilesButton"),
+        seedDemoButton: document.getElementById("seedDemoButton"),
+        profileList: document.getElementById("profileList"),
+        cloneProfileButton: document.getElementById("cloneProfileButton"),
+        saveProfileButton: document.getElementById("saveProfileButton"),
+        resetProfileButton: document.getElementById("resetProfileButton"),
+        newProfileName: document.getElementById("newProfileName"),
+        newRootArray: document.getElementById("newRootArray"),
+        searchRules: document.getElementById("searchRules"),
+        runtimeOverrides: document.getElementById("runtimeOverrides"),
+        showCore: document.getElementById("showCore"),
+        showDomain: document.getElementById("showDomain"),
+        showDiagnostic: document.getElementById("showDiagnostic"),
+        showAll: document.getElementById("showAll")
+      };
+
+      function loadProfiles() {
+        const stored = safeJsonParse(localStorage.getItem(STORAGE_KEY), []);
+        const map = new Map(stored.map((profile) => [profile.profile_name, profile]));
+        map.set(defaultProfile.profile_name, structuredClone(defaultProfile));
+        return Array.from(map.values());
+      }
+
+      function saveProfiles() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.profiles));
+      }
+
+      function saveRuns(runs) {
+        localStorage.setItem(RUN_KEY, JSON.stringify(runs.slice(-25)));
+      }
+
+      function loadRuns() {
+        return safeJsonParse(localStorage.getItem(RUN_KEY), []);
+      }
+
+      function safeJsonParse(text, fallback) {
+        try {
+          return text ? JSON.parse(text) : fallback;
+        } catch {
+          return fallback;
+        }
+      }
+
+      function activeProfile() {
+        return state.profiles.find((profile) => profile.profile_name === state.activeProfileId) || state.profiles[0];
+      }
+
+      function clone(obj) {
+        return structuredClone(obj);
+      }
+
+      function normalizeProfile(profile) {
+        return {
+          ...profile,
+          rules: profile.rules.map((rule) => ({ ...rule }))
+        };
+      }
+
+      function setActiveProfile(name) {
+        state.activeProfileId = name;
+        render();
+      }
+
+      function updateRuntimeOverrides() {
+        const values = els.runtimeOverrides.value.split(/[\s,]+/).map((value) => value.trim()).filter(Boolean);
+        state.runtimeOverrides = new Set(values);
+      }
+
+      function readTextFile(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = () => reject(reader.error || new Error("Unable to read file"));
+          reader.readAsText(file);
+        });
+      }
+
+      async function ingestFiles(fileList) {
+        const files = Array.from(fileList).slice(0, MAX_FILES);
+        if (!files.length) {
+          return;
+        }
+
+        const parsedFiles = [];
+        for (const file of files) {
+          if (file.size > MAX_FILE_SIZE) {
+            alert(`${file.name} exceeds the 50 MB limit.`);
+            continue;
+          }
+
+          try {
+            const text = await readTextFile(file);
+            const json = JSON.parse(text);
+            const records = Array.isArray(json) ? json : Array.isArray(json?.Export) ? json.Export : null;
+            if (!records) {
+              throw new Error('Root must be an array or an object with an "Export" array.');
+            }
+
+            parsedFiles.push({
+              name: file.name,
+              size: file.size,
+              records,
+              raw: json,
+              status: "ready"
+            });
+          } catch (error) {
+            parsedFiles.push({
+              name: file.name,
+              size: file.size,
+              records: [],
+              raw: null,
+              status: "error",
+              error: error.message || String(error)
+            });
+          }
+        }
+
+        state.files = parsedFiles;
+        render();
+      }
+
+      function parseDocumentCollection(value) {
+        if (value === "" || value === null || value === undefined) {
+          return [];
+        }
+
+        if (Array.isArray(value)) {
+          return value;
+        }
+
+        if (typeof value === "string") {
+          const trimmed = value.trim();
+          if (!trimmed || trimmed === "[]") {
+            return [];
+          }
+          try {
+            const parsed = JSON.parse(trimmed);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch {
+            return null;
+          }
+        }
+
+        return null;
+      }
+
+      function getPrimaryId(record) {
+        return record.ProjectCode || record.Title || record.AgentID || record.ResourceURL || "(missing primary id)";
+      }
+
+      function isEmpty(value) {
+        return value === null || value === undefined || value === "" || (Array.isArray(value) && value.length === 0);
+      }
+
+      function formatValue(value) {
+        if (Array.isArray(value)) {
+          return JSON.stringify(value);
+        }
+        if (value && typeof value === "object") {
+          return JSON.stringify(value);
+        }
+        return value === undefined ? "(undefined)" : String(value);
+      }
+
+      function severityPill(severity) {
+        return `<span class="pill ${severity}">${severity}</span>`;
+      }
+
+      function applyRule(rule, record, recordIndex) {
+        const failures = [];
+        const value = record[rule.field];
+        const isDisabledByRuntime = state.runtimeOverrides.has(rule.id);
+        if (!rule.enabled || isDisabledByRuntime) {
+          return failures;
+        }
+
+        const common = {
+          field: rule.field,
+          ruleId: rule.id,
+          ruleType: rule.type,
+          severity: rule.severity,
+          expected: "",
+          actual: formatValue(value),
+          recordIndex,
+          primaryId: getPrimaryId(record),
+          documentIndex: null,
+          fileName: ""
+        };
+
+        const fail = (expected, actual = value, extra = {}) => {
+          failures.push({
+            ...common,
+            expected,
+            actual: formatValue(actual),
+            ...extra
+          });
+        };
+
+        if (rule.type === "required") {
+          if (isEmpty(value)) {
+            fail("non-empty value", value);
+          }
+          return failures;
+        }
+
+        if (rule.type === "required_if") {
+          const condition = rule.condition || {};
+          const conditionMatches = record[condition.field] === condition.equals;
+          if (conditionMatches && isEmpty(value)) {
+            fail(`required when ${condition.field} equals ${condition.equals}`, value);
+          }
+          return failures;
+        }
+
+        if (rule.type === "unique") {
+          return failures;
+        }
+
+        if (rule.type === "regex") {
+          if (!isEmpty(value) && !new RegExp(rule.pattern).test(String(value))) {
+            fail(`pattern ${rule.pattern}`, value);
+          }
+          return failures;
+        }
+
+        if (rule.type === "enum") {
+          if (!isEmpty(value) && !rule.allowed.includes(value)) {
+            fail(`one of ${rule.allowed.join(", ")}`, value);
+          }
+          return failures;
+        }
+
+        if (rule.type === "date_format") {
+          if (!isEmpty(value) && Number.isNaN(Date.parse(value))) {
+            fail("a parseable date", value);
+          }
+          return failures;
+        }
+
+        if (rule.type === "not_future") {
+          if (!isEmpty(value)) {
+            const parsed = Date.parse(value);
+            if (!Number.isNaN(parsed) && parsed > Date.now()) {
+              fail("a non-future date", value);
+            }
+          }
+          return failures;
+        }
+
+        if (rule.type === "ambiguous_date") {
+          if (!isEmpty(value)) {
+            const match = String(value).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+            if (match) {
+              const first = Number(match[1]);
+              const second = Number(match[2]);
+              if (first <= 12 && second <= 12) {
+                fail("an unambiguous date", value, { severity: "low" });
+              }
+            }
+          }
+          return failures;
+        }
+
+        if (rule.type === "documents_have_required_keys") {
+          const documents = parseDocumentCollection(value);
+          if (documents === null) {
+            fail("valid JSON document payload", value);
+            return failures;
+          }
+
+          if (!documents.length && rule.run_if_not_empty) {
+            return failures;
+          }
+
+          documents.forEach((document, documentIndex) => {
+            for (const key of rule.required_keys || []) {
+              if (isEmpty(document?.[key])) {
+                failures.push({
+                  ...common,
+                  expected: `document key ${key}`,
+                  actual: formatValue(document || null),
+                  documentIndex,
+                  primaryId: getPrimaryId(record)
+                });
+              }
+            }
+          });
+          return failures;
+        }
+
+        if (rule.type === "hash_count_matches_documents") {
+          const documents = parseDocumentCollection(value);
+          if (documents === null) {
+            fail("valid JSON document payload", value);
+            return failures;
+          }
+
+          const hashValues = parseDocumentCollection(record[rule.hash_field]);
+          const documentCount = documents.length;
+          const hashCount = Array.isArray(hashValues) ? hashValues.length : String(record[rule.hash_field] || "").split(/[,\n]+/).filter(Boolean).length;
+          if (documentCount !== hashCount) {
+            fail(`document count to match ${rule.hash_field}`, `${documentCount} documents vs ${hashCount} hashes`);
+          }
+          return failures;
+        }
+
+        if (rule.type === "no_duplicate_documents") {
+          const documents = parseDocumentCollection(value);
+          if (documents === null) {
+            fail("valid JSON document payload", value);
+            return failures;
+          }
+
+          const seen = new Set();
+          documents.forEach((document, documentIndex) => {
+            const key = `${document?.Title || ""}::${document?.URL || ""}`;
+            if (seen.has(key)) {
+              failures.push({
+                ...common,
+                expected: "unique document URL/title pair",
+                actual: formatValue(document),
+                documentIndex
+              });
+            }
+            seen.add(key);
+          });
+          return failures;
+        }
+
+        return failures;
+      }
+
+      function validateRun() {
+        updateRuntimeOverrides();
+        const profile = activeProfile();
+        const results = [];
+        const perFileSummary = [];
+
+        state.files.forEach((file, fileIndex) => {
+          if (file.status === "error") {
+            results.push({
+              fileName: file.name,
+              recordIndex: 0,
+              primaryId: "(file error)",
+              field: "Upload",
+              ruleType: "parse",
+              expected: "valid JSON",
+              actual: file.error,
+              severity: "high",
+              ruleId: "FILE_PARSE"
+            });
+            perFileSummary.push({ name: file.name, records: 0, failures: 1 });
+            return;
+          }
+
+          const recordFailuresBefore = results.length;
+          const records = file.records;
+          const uniqueTracker = new Map();
+
+          profile.rules.forEach((rule) => {
+            if (rule.type === "unique" && rule.enabled && !state.runtimeOverrides.has(rule.id)) {
+              const values = new Map();
+              records.forEach((record, recordIndex) => {
+                const value = record[rule.field];
+                if (isEmpty(value)) {
+                  return;
+                }
+                if (values.has(value)) {
+                  results.push({
+                    fileName: file.name,
+                    recordIndex: recordIndex + 1,
+                    primaryId: getPrimaryId(record),
+                    field: rule.field,
+                    ruleType: rule.type,
+                    expected: "unique values",
+                    actual: formatValue(value),
+                    severity: rule.severity,
+                    ruleId: rule.id
+                  });
+                  results.push({
+                    fileName: file.name,
+                    recordIndex: values.get(value) + 1,
+                    primaryId: getPrimaryId(records[values.get(value)]),
+                    field: rule.field,
+                    ruleType: rule.type,
+                    expected: "unique values",
+                    actual: formatValue(value),
+                    severity: rule.severity,
+                    ruleId: rule.id
+                  });
+                } else {
+                  values.set(value, recordIndex);
+                }
+              });
+            }
+          });
+
+          records.forEach((record, recordIndex) => {
+            profile.rules.forEach((rule) => {
+              if (rule.type === "unique") {
+                return;
+              }
+              const failures = applyRule(rule, record, recordIndex + 1);
+              failures.forEach((failure) => {
+                results.push({
+                  fileName: file.name,
+                  ...failure
+                });
+              });
+            });
+          });
+
+          perFileSummary.push({ name: file.name, records: records.length, failures: results.length - recordFailuresBefore });
+          uniqueTracker.set(file.name, records.length);
+        });
+
+        state.results = results;
+        state.parsedRuns = loadRuns();
+        state.parsedRuns.push({
+          timestamp: new Date().toISOString(),
+          profile: profile.profile_name,
+          files: state.files.map((file) => ({ name: file.name, status: file.status, count: file.records.length })),
+          failures: results.length
+        });
+        saveRuns(state.parsedRuns);
+        render();
+        return { results, perFileSummary };
+      }
+
+      function buildReportText() {
+        const profile = activeProfile();
+        const lines = [];
+        lines.push(`DQCT validation report: ${profile.profile_name}`);
+        lines.push(`Files: ${state.files.length}`);
+        lines.push(`Failures: ${state.results.length}`);
+        lines.push("");
+        state.results.slice(0, 40).forEach((result) => {
+          lines.push([
+            result.fileName,
+            `record ${result.recordIndex}`,
+            result.primaryId,
+            result.field,
+            result.ruleType,
+            result.expected,
+            result.actual,
+            result.severity
+          ].join(" | "));
+        });
+        return lines.join("\n");
+      }
+
+      async function copyReport() {
+        const text = buildReportText();
+        await navigator.clipboard.writeText(text);
+        alert("Validation report copied to clipboard.");
+      }
+
+      function loadSampleData() {
+        const sample = {
+          Export: [
+            {
+              AgentName: "Ohio Buys",
+              AgentID: "OH-001",
+              LegacyAgentID: "LEG-1001",
+              ResourceURL: "https://ohiobuys.ohio.gov/bids/1",
+              ProjectCode: "SRC1234567890",
+              Title: "Replacement of HVAC controls",
+              BidURL: "https://ohiobuys.ohio.gov/bids/1",
+              BidStatus: "Open for Bidding",
+              PublishedDate: "4/5/2026",
+              DueDate: "4/25/2026",
+              BidDocuments: JSON.stringify([{ Title: "spec.pdf", URL: "https://example.com/spec.pdf", Hash: "abc123" }]),
+              BidDocumentHashes: "abc123",
+              AddendumDocuments: "[]",
+              AddendumDocumentHashes: "",
+              BidTabulations: "[]",
+              BidTabulationHashes: "",
+              AwardDocuments: "[]",
+              AwardDocumentHashes: "",
+              Addendum: ""
+            },
+            {
+              AgentName: "Ohio Buys",
+              AgentID: "OH-001",
+              LegacyAgentID: "LEG-1001",
+              ResourceURL: "https://ohiobuys.ohio.gov/bids/1",
+              ProjectCode: "SRC1234567890",
+              Title: "Replacement of HVAC controls duplicate",
+              BidURL: "http://ohiobuys.ohio.gov/bids/1",
+              BidStatus: "Open for Bidding",
+              PublishedDate: "13/5/2026",
+              DueDate: "",
+              BidDocuments: JSON.stringify([
+                { Title: "spec.pdf", URL: "https://example.com/spec.pdf", Hash: "abc123" },
+                { Title: "spec.pdf", URL: "https://example.com/spec.pdf", Hash: "def456" }
+              ]),
+              BidDocumentHashes: "abc123,def456",
+              AddendumDocuments: "[]",
+              AddendumDocumentHashes: "",
+              BidTabulations: "[]",
+              BidTabulationHashes: "",
+              AwardDocuments: "[]",
+              AwardDocumentHashes: "",
+              Addendum: ""
+            }
+          ]
+        };
+
+        state.files = [
+          {
+            name: "sample-ohio-buys.json",
+            size: JSON.stringify(sample).length,
+            records: sample.Export,
+            raw: sample,
+            status: "ready"
+          }
+        ];
+        render();
+      }
+
+      function clearFiles() {
+        state.files = [];
+        state.results = [];
+        render();
+      }
+
+      function resetProfile() {
+        state.profiles = [structuredClone(defaultProfile), ...state.profiles.filter((profile) => profile.profile_name !== defaultProfile.profile_name)];
+        state.activeProfileId = defaultProfile.profile_name;
+        saveProfiles();
+        render();
+      }
+
+      function cloneProfile() {
+        const base = activeProfile();
+        const name = els.newProfileName.value.trim() || `${base.profile_name} Clone`;
+        const rootArray = els.newRootArray.value.trim() || base.root_array || "Export";
+        const cloned = normalizeProfile({ ...clone(base), profile_name: name, root_array: rootArray });
+        cloned.rules = cloned.rules.map((rule) => ({ ...rule, enabled: true }));
+        state.profiles = state.profiles.filter((profile) => profile.profile_name !== name).concat(cloned);
+        state.activeProfileId = name;
+        saveProfiles();
+        render();
+      }
+
+      function saveActiveProfile() {
+        const profile = activeProfile();
+        const next = normalizeProfile(profile);
+        const index = state.profiles.findIndex((item) => item.profile_name === next.profile_name);
+        if (index >= 0) {
+          state.profiles[index] = next;
+        } else {
+          state.profiles.push(next);
+        }
+        saveProfiles();
+        render();
+      }
+
+      function renderFiles() {
+        els.loadedFileCount.textContent = String(state.files.length);
+        els.loadedFileMeta.textContent = state.files.length
+          ? `${state.files.reduce((sum, file) => sum + file.records.length, 0)} parsed records`
+          : "Waiting for upload";
+
+        els.fileList.innerHTML = state.files.length
+          ? state.files
+              .map((file) => `
+                <div class="file-item">
+                  <div>
+                    <strong>${file.name}</strong>
+                    <div class="meta">${file.records.length} records · ${Math.round(file.size / 1024)} KB</div>
+                    ${file.status === "error" ? `<div class="meta" style="color: var(--danger);">${file.error}</div>` : ""}
+                  </div>
+                  <span class="pill ${file.status === "error" ? "high" : "info"}">${file.status}</span>
+                </div>`)
+              .join("")
+          : '<div class="summary-item"><div><strong>No files loaded</strong><div class="meta">Drop JSON files or load sample data.</div></div></div>';
+      }
+
+      function renderSummary() {
+        const totalRecords = state.files.reduce((sum, file) => sum + file.records.length, 0);
+        const failureCount = state.results.length;
+        const high = state.results.filter((result) => result.severity === "high").length;
+        const medium = state.results.filter((result) => result.severity === "medium").length;
+        const low = state.results.filter((result) => result.severity === "low").length;
+
+        els.failureCount.textContent = String(failureCount);
+        els.failureMeta.textContent = failureCount ? `${high} high · ${medium} medium · ${low} low` : "No validation run yet";
+
+        els.summaryLayout.innerHTML = [
+          { label: "Records loaded", value: totalRecords, note: "Across all files" },
+          { label: "Files with errors", value: state.files.filter((file) => file.status === "error").length, note: "Parse or shape errors" },
+          { label: "Active rules", value: activeProfile().rules.filter((rule) => rule.enabled).length, note: `Runtime disabled: ${state.runtimeOverrides.size}` }
+        ]
+          .map((item) => `
+            <div class="summary-box">
+              <div class="meta">${item.label}</div>
+              <strong>${item.value}</strong>
+              <div class="meta">${item.note}</div>
+            </div>`)
+          .join("");
+      }
+
+      function renderRules() {
+        const profile = activeProfile();
+        els.activeProfileLabel.textContent = profile.profile_name;
+        els.activeProfileMeta.textContent = `${profile.rules.length} rules · root ${profile.root_array}`;
+        els.profileSelect.innerHTML = state.profiles
+          .map((profileItem) => `<option value="${profileItem.profile_name}" ${profileItem.profile_name === profile.profile_name ? "selected" : ""}>${profileItem.profile_name}</option>`)
+          .join("");
+
+        const filter = state.ruleSearch.trim().toLowerCase();
+        const filteredRules = profile.rules.filter((rule) => {
+          const matchesLayer = state.currentLayer === "all" || rule.layer === state.currentLayer;
+          const matchesSearch = !filter || [rule.id, rule.field, rule.type, rule.notes, rule.severity, rule.layer].some((value) => String(value || "").toLowerCase().includes(filter));
+          return matchesLayer && matchesSearch;
+        });
+
+        els.rulesList.innerHTML = filteredRules
+          .map((rule) => `
+            <article class="rule-card" data-rule-id="${rule.id}">
+              <div class="rule-top">
+                <div class="rule-meta">
+                  <span class="pill info">${rule.layer}</span>
+                  <span class="pill ${rule.severity}">${rule.severity}</span>
+                  <span class="title">${rule.id} · ${rule.field}</span>
+                  <span class="muted">${rule.type}</span>
+                  ${state.runtimeOverrides.has(rule.id) ? '<span class="pill low">runtime disabled</span>' : ""}
+                </div>
+                <label class="switch">
+                  <input type="checkbox" ${rule.enabled ? "checked" : ""} data-toggle-rule="${rule.id}" />
+                  Enabled
+                </label>
+              </div>
+              <div class="rule-grid">
+                <div class="fieldset wide">
+                  <label>Notes</label>
+                  <input type="text" value="${escapeHtml(rule.notes || "")}" data-rule-notes="${rule.id}" />
+                </div>
+                <div class="fieldset">
+                  <label>Type</label>
+                  <input type="text" value="${rule.type}" data-rule-type="${rule.id}" />
+                </div>
+                <div class="fieldset">
+                  <label>Severity</label>
+                  <select data-rule-severity="${rule.id}">
+                    ${["high", "medium", "low"].map((severity) => `<option value="${severity}" ${severity === rule.severity ? "selected" : ""}>${severity}</option>`).join("")}
+                  </select>
+                </div>
+                <div class="fieldset">
+                  <label>Field</label>
+                  <input type="text" value="${rule.field}" data-rule-field="${rule.id}" />
+                </div>
+                <div class="fieldset">
+                  <label>Layer</label>
+                  <input type="text" value="${rule.layer}" data-rule-layer="${rule.id}" />
+                </div>
+                <div class="fieldset full">
+                  <label>Condition / extras</label>
+                  <input type="text" value="${escapeHtml(renderRuleExtras(rule))}" data-rule-extras="${rule.id}" />
+                </div>
+              </div>
+            </article>`)
+          .join("");
+
+        if (!filteredRules.length) {
+          els.rulesList.innerHTML = '<div class="empty-state">No rules match the current filter.</div>';
+        }
+      }
+
+      function renderProfileList() {
+        els.profileList.innerHTML = state.profiles
+          .map((profile) => `
+            <div class="profile-item">
+              <div>
+                <strong>${profile.profile_name}</strong>
+                <div class="meta">${profile.source || "Custom profile"} · root ${profile.root_array}</div>
+              </div>
+              <button type="button" class="ghost" data-use-profile="${profile.profile_name}">${profile.profile_name === state.activeProfileId ? "Active" : "Use"}</button>
+            </div>`)
+          .join("");
+      }
+
+      function renderResults() {
+        if (!state.results.length) {
+          els.resultsWrap.classList.add("hidden");
+          els.emptyState.classList.remove("hidden");
+          els.resultsBody.innerHTML = "";
+          return;
+        }
+
+        els.emptyState.classList.add("hidden");
+        els.resultsWrap.classList.remove("hidden");
+        els.resultsBody.innerHTML = state.results
+          .map((result) => `
+            <tr>
+              <td>${escapeHtml(result.fileName || "")}</td>
+              <td>${result.recordIndex ?? ""}${result.documentIndex !== null && result.documentIndex !== undefined ? ` / doc ${result.documentIndex + 1}` : ""}</td>
+              <td>${escapeHtml(result.primaryId || "")}</td>
+              <td>${escapeHtml(result.field || "")}</td>
+              <td>${escapeHtml(result.ruleType || "")}</td>
+              <td>${escapeHtml(result.expected || "")}</td>
+              <td>${escapeHtml(result.actual || "")}</td>
+              <td><span class="pill ${result.severity || "low"}">${result.severity || "low"}</span></td>
+            </tr>`)
+          .join("");
+      }
+
+      function render() {
+        saveProfiles();
+        renderFiles();
+        renderRules();
+        renderProfileList();
+        renderSummary();
+        renderResults();
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function renderRuleExtras(rule) {
+        if (rule.condition) {
+          return `condition=${rule.condition.field}:${rule.condition.equals}`;
+        }
+        if (rule.pattern) {
+          return `pattern=${rule.pattern}`;
+        }
+        if (rule.allowed) {
+          return `allowed=${rule.allowed.join("|")}`;
+        }
+        if (rule.hash_field) {
+          return `hash_field=${rule.hash_field}`;
+        }
+        if (rule.required_keys) {
+          return `required_keys=${rule.required_keys.join("|")}`;
+        }
+        return "";
+      }
+
+      function bindEventHandlers() {
+        els.fileInput.addEventListener("change", (event) => ingestFiles(event.target.files));
+        els.profileSelect.addEventListener("change", (event) => setActiveProfile(event.target.value));
+        els.searchRules.addEventListener("input", (event) => {
+          state.ruleSearch = event.target.value;
+          renderRules();
+        });
+        els.runtimeOverrides.addEventListener("input", () => {
+          updateRuntimeOverrides();
+          renderRules();
+          renderSummary();
+        });
+        els.clearFilesButton.addEventListener("click", clearFiles);
+        els.seedDemoButton.addEventListener("click", loadSampleData);
+        els.runButton.addEventListener("click", validateRun);
+        els.exportButton.addEventListener("click", copyReport);
+        els.cloneProfileButton.addEventListener("click", cloneProfile);
+        els.saveProfileButton.addEventListener("click", saveActiveProfile);
+        els.resetProfileButton.addEventListener("click", resetProfile);
+        els.showCore.addEventListener("click", () => {
+          state.currentLayer = "core";
+          renderRules();
+        });
+        els.showDomain.addEventListener("click", () => {
+          state.currentLayer = "domain";
+          renderRules();
+        });
+        els.showDiagnostic.addEventListener("click", () => {
+          state.currentLayer = "diagnostic";
+          renderRules();
+        });
+        els.showAll.addEventListener("click", () => {
+          state.currentLayer = "all";
+          renderRules();
+        });
+
+        document.addEventListener("change", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) {
+            return;
+          }
+
+          if (target.matches("[data-toggle-rule]")) {
+            const ruleId = target.getAttribute("data-toggle-rule");
+            updateRule(ruleId, { enabled: target instanceof HTMLInputElement ? target.checked : false });
+          }
+
+          if (target.matches("[data-rule-severity]")) {
+            updateRule(target.getAttribute("data-rule-severity"), { severity: target.value });
+          }
+
+          if (target.matches("[data-rule-field]")) {
+            updateRule(target.getAttribute("data-rule-field"), { field: target.value });
+          }
+
+          if (target.matches("[data-rule-layer]")) {
+            updateRule(target.getAttribute("data-rule-layer"), { layer: target.value });
+          }
+
+          if (target.matches("[data-rule-type]")) {
+            updateRule(target.getAttribute("data-rule-type"), { type: target.value });
+          }
+        });
+
+        document.addEventListener("input", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) {
+            return;
+          }
+
+          if (target.matches("[data-rule-notes]")) {
+            updateRule(target.getAttribute("data-rule-notes"), { notes: target.value });
+          }
+
+          if (target.matches("[data-rule-extras]")) {
+            patchRuleExtras(target.getAttribute("data-rule-extras"), target.value);
+          }
+        });
+
+        document.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) {
+            return;
+          }
+
+          const useProfile = target.getAttribute("data-use-profile");
+          if (useProfile) {
+            setActiveProfile(useProfile);
+          }
+        });
+
+        ["dragenter", "dragover"].forEach((eventName) => {
+          els.dropzone.addEventListener(eventName, (event) => {
+            event.preventDefault();
+            els.dropzone.classList.add("dragging");
+          });
+        });
+
+        ["dragleave", "drop"].forEach((eventName) => {
+          els.dropzone.addEventListener(eventName, (event) => {
+            event.preventDefault();
+            if (eventName === "drop") {
+              ingestFiles(event.dataTransfer.files);
+            }
+            els.dropzone.classList.remove("dragging");
+          });
+        });
+      }
+
+      function updateRule(ruleId, patch) {
+        const profile = activeProfile();
+        const nextRules = profile.rules.map((rule) => (rule.id === ruleId ? { ...rule, ...patch } : rule));
+        const nextProfile = { ...profile, rules: nextRules };
+        state.profiles = state.profiles.map((item) => (item.profile_name === profile.profile_name ? nextProfile : item));
+        saveProfiles();
+        render();
+      }
+
+      function patchRuleExtras(ruleId, text) {
+        const profile = activeProfile();
+        const patch = {};
+        const entries = text.split(/\s+/).filter(Boolean);
+        for (const entry of entries) {
+          const [key, rawValue] = entry.split("=");
+          if (!key || rawValue === undefined) {
+            continue;
+          }
+          if (key === "condition") {
+            const [field, equals] = rawValue.split(":");
+            patch.condition = { field, equals };
+          }
+          if (key === "pattern") {
+            patch.pattern = rawValue;
+          }
+          if (key === "allowed") {
+            patch.allowed = rawValue.split("|");
+          }
+          if (key === "hash_field") {
+            patch.hash_field = rawValue;
+          }
+          if (key === "required_keys") {
+            patch.required_keys = rawValue.split("|");
+          }
+        }
+        const nextRules = profile.rules.map((rule) => (rule.id === ruleId ? { ...rule, ...patch } : rule));
+        const nextProfile = { ...profile, rules: nextRules };
+        state.profiles = state.profiles.map((item) => (item.profile_name === profile.profile_name ? nextProfile : item));
+        saveProfiles();
+        render();
+      }
+
+      function initialize() {
+        state.parsedRuns = loadRuns();
+        bindEventHandlers();
+        els.newRootArray.value = activeProfile().root_array || "Export";
+        updateRuntimeOverrides();
+        render();
+      }
+
+      initialize();
+    </script>
   </body>
 </html>
