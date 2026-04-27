@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DQCT — Data Quality Control Tower</title>
+
+  <!-- CDN: Day.js -->
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/customParseFormat.js"></script>
+
+  <!-- CDN: Lucide icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+  <style>
+    /* ── Design tokens ──────────────────────────────────────────── */
+    :root {
+      --color-bg: #f8fafc;
+      --color-surface: #ffffff;
+      --color-surface-raised: #f1f5f9;
+      --color-border: #e2e8f0;
+      --color-text: #0f172a;
+      --color-text-muted: #64748b;
+      --color-primary: #4f46e5;
+      --color-primary-hover: #4338ca;
+      --color-error: #dc2626;
+      --color-error-bg: #fef2f2;
+      --color-warning: #d97706;
+      --color-warning-bg: #fffbeb;
+      --color-success: #16a34a;
+      --color-success-bg: #f0fdf4;
+      --color-info: #0284c7;
+      --color-info-bg: #e0f2fe;
+      --radius: 8px;
+      --radius-lg: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-lg: 0 4px 12px rgba(0,0,0,.1);
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --transition: 150ms ease;
+    }
+
+    [data-theme="dark"] {
+      --color-bg: #0f172a;
+      --color-surface: #1e293b;
+      --color-surface-raised: #334155;
+      --color-border: #334155;
+      --color-text: #f1f5f9;
+      --color-text-muted: #94a3b8;
+      --color-error-bg: #450a0a;
+      --color-warning-bg: #431407;
+      --color-success-bg: #052e16;
+      --color-info-bg: #082f49;
+    }
+
+    /* ── Reset & base ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--color-bg);
+      color: var(--color-text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    a { color: var(--color-primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button { cursor: pointer; font-family: inherit; }
+
+    /* ── Layout ─────────────────────────────────────────────────── */
+    .app-header {
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: 0 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 56px;
+    }
+    .app-logo {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--color-primary);
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      flex-shrink: 0;
+    }
+    .nav-tabs {
+      display: flex;
+      gap: .25rem;
+      flex: 1;
+    }
+    .nav-tab {
+      background: none;
+      border: none;
+      padding: .4rem .75rem;
+      border-radius: var(--radius);
+      color: var(--color-text-muted);
+      font-size: .875rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: .35rem;
+      transition: background var(--transition), color var(--transition);
+    }
+    .nav-tab:hover { background: var(--color-surface-raised); color: var(--color-text); }
+    .nav-tab.active { background: var(--color-primary); color: #fff; }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      margin-left: auto;
+    }
+    .icon-btn {
+      background: none;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: .35rem .5rem;
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      gap: .25rem;
+      font-size: .8rem;
+      transition: background var(--transition), color var(--transition);
+    }
+    .icon-btn:hover { background: var(--color-surface-raised); color: var(--color-text); }
+
+    .app-main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Cards ──────────────────────────────────────────────────── */
+    .card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+
+    /* ── Buttons ────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .5rem 1rem;
+      border-radius: var(--radius);
+      border: none;
+      font-size: .875rem;
+      font-weight: 500;
+      transition: background var(--transition), opacity var(--transition);
+    }
+    .btn-primary { background: var(--color-primary); color: #fff; }
+    .btn-primary:hover { background: var(--color-primary-hover); }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+    }
+    .btn-outline:hover { background: var(--color-surface-raised); }
+    .btn-danger { background: var(--color-error); color: #fff; }
+    .btn:disabled { opacity: .5; pointer-events: none; }
+
+    /* ── Upload zone ────────────────────────────────────────────── */
+    #upload-view .drop-zone {
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    #upload-view .drop-zone.drag-over {
+      border-color: var(--color-primary);
+      background: var(--color-info-bg);
+    }
+    .drop-zone p { color: var(--color-text-muted); margin-top: .5rem; font-size: .9rem; }
+    .drop-zone .drop-icon { color: var(--color-primary); }
+
+    /* ── Profile selector ───────────────────────────────────────── */
+    .profile-bar {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .profile-bar label { font-size: .875rem; font-weight: 500; }
+    .profile-bar select {
+      padding: .35rem .6rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-size: .875rem;
+    }
+
+    /* ── Stats bar ──────────────────────────────────────────────── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: .75rem;
+      margin-bottom: 1.25rem;
+    }
+    .stat-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: .9rem 1rem;
+      text-align: center;
+    }
+    .stat-card .stat-value { font-size: 1.6rem; font-weight: 700; }
+    .stat-card .stat-label { font-size: .75rem; color: var(--color-text-muted); margin-top: .15rem; }
+    .stat-card.err .stat-value { color: var(--color-error); }
+    .stat-card.warn .stat-value { color: var(--color-warning); }
+    .stat-card.ok .stat-value { color: var(--color-success); }
+
+    /* ── Issues table ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th {
+      text-align: left;
+      padding: .5rem .75rem;
+      border-bottom: 2px solid var(--color-border);
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+    td {
+      padding: .5rem .75rem;
+      border-bottom: 1px solid var(--color-border);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--color-surface-raised); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .2rem;
+      padding: .15rem .45rem;
+      border-radius: 999px;
+      font-size: .72rem;
+      font-weight: 600;
+    }
+    .badge-error { background: var(--color-error-bg); color: var(--color-error); }
+    .badge-warning { background: var(--color-warning-bg); color: var(--color-warning); }
+    .badge-success { background: var(--color-success-bg); color: var(--color-success); }
+    .badge-info { background: var(--color-info-bg); color: var(--color-info); }
+
+    /* ── Export toolbar ─────────────────────────────────────────── */
+    .result-toolbar {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .filter-input {
+      padding: .35rem .65rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-size: .875rem;
+      flex: 1;
+      min-width: 180px;
+    }
+    .filter-input::placeholder { color: var(--color-text-muted); }
+    .severity-filter {
+      padding: .35rem .6rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-size: .875rem;
+    }
+
+    /* ── Run history ────────────────────────────────────────────── */
+    .run-list { display: flex; flex-direction: column; gap: .5rem; }
+    .run-item {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: .85rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .run-item:hover { background: var(--color-surface-raised); }
+    .run-meta { flex: 1; min-width: 0; }
+    .run-filename { font-weight: 600; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .run-ts { font-size: .75rem; color: var(--color-text-muted); }
+    .run-badges { display: flex; gap: .35rem; align-items: center; flex-shrink: 0; }
+
+    /* ── Sparkline ──────────────────────────────────────────────── */
+    .sparkline-wrap { display: flex; flex-direction: column; gap: .25rem; }
+    .sparkline-label { font-size: .72rem; color: var(--color-text-muted); }
+    canvas.sparkline { height: 36px; width: 100%; display: block; }
+
+    /* ── Schema drift ───────────────────────────────────────────── */
+    .drift-section { margin-top: 1.25rem; }
+    .drift-section h3 { font-size: .9rem; font-weight: 600; margin-bottom: .5rem; display: flex; align-items: center; gap: .35rem; }
+    .drift-list { display: flex; flex-direction: column; gap: .3rem; }
+    .drift-item {
+      padding: .4rem .75rem;
+      border-radius: var(--radius);
+      font-size: .82rem;
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+    .drift-item.new-field { background: var(--color-success-bg); color: var(--color-success); }
+    .drift-item.missing-field { background: var(--color-error-bg); color: var(--color-error); }
+
+    /* ── Dashboard ──────────────────────────────────────────────── */
+    #dashboard-view .dash-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .trend-chart-wrap { position: relative; height: 120px; }
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--color-text-muted);
+    }
+    .empty-state p { margin-top: .5rem; font-size: .9rem; }
+
+    /* ── Profile editor ─────────────────────────────────────────── */
+    #profiles-view .profile-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    @media (max-width: 640px) {
+      #profiles-view .profile-grid { grid-template-columns: 1fr; }
+    }
+    .profile-list-panel { display: flex; flex-direction: column; gap: .4rem; }
+    .profile-list-item {
+      padding: .6rem .75rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: .875rem;
+      border: 1px solid transparent;
+      transition: background var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .profile-list-item:hover { background: var(--color-surface-raised); }
+    .profile-list-item.active { border-color: var(--color-primary); background: var(--color-info-bg); color: var(--color-primary); font-weight: 600; }
+    .rule-editor { display: flex; flex-direction: column; gap: .75rem; }
+    .rule-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: .5rem;
+      align-items: center;
+      padding: .5rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+    }
+    .rule-row input, .rule-row select {
+      padding: .3rem .5rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-size: .8rem;
+      width: 100%;
+    }
+    textarea.json-preview {
+      width: 100%;
+      min-height: 180px;
+      font-family: var(--mono);
+      font-size: .78rem;
+      padding: .75rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      background: var(--color-surface-raised);
+      color: var(--color-text);
+      resize: vertical;
+    }
+
+    /* ── Anomaly ────────────────────────────────────────────────── */
+    .anomaly-badge { display: inline-flex; align-items: center; gap: .2rem; }
+
+    /* ── Toast ──────────────────────────────────────────────────── */
+    #toast-container {
+      position: fixed;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+      z-index: 9999;
+    }
+    .toast {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: .65rem 1rem;
+      box-shadow: var(--shadow-lg);
+      font-size: .875rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      animation: slideIn .2s ease;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to   { transform: translateX(0);   opacity: 1; }
+    }
+    .toast.success { border-left: 3px solid var(--color-success); }
+    .toast.error   { border-left: 3px solid var(--color-error); }
+    .toast.info    { border-left: 3px solid var(--color-info); }
+
+    /* ── Misc helpers ───────────────────────────────────────────── */
+    .mono { font-family: var(--mono); font-size: .8em; }
+    .text-muted { color: var(--color-text-muted); }
+    .mt-1 { margin-top: .5rem; }
+    .flex-gap { display: flex; align-items: center; gap: .5rem; }
+    .separator { flex: 1; }
+    hr.divider { border: none; border-top: 1px solid var(--color-border); margin: 1rem 0; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ───────────────────────────────────────────────────── -->
+<header class="app-header">
+  <div class="app-logo">
+    <i data-lucide="shield-check" style="width:20px;height:20px"></i>
+    DQCT
+  </div>
+
+  <nav class="nav-tabs" role="tablist">
+    <button class="nav-tab active" data-view="upload-view" role="tab" aria-selected="true">
+      <i data-lucide="upload" style="width:14px;height:14px"></i> Upload
+    </button>
+    <button class="nav-tab" data-view="results-view" role="tab" id="tab-results">
+      <i data-lucide="list-checks" style="width:14px;height:14px"></i> Results
+    </button>
+    <button class="nav-tab" data-view="history-view" role="tab">
+      <i data-lucide="history" style="width:14px;height:14px"></i> Runs
+    </button>
+    <button class="nav-tab" data-view="dashboard-view" role="tab">
+      <i data-lucide="layout-dashboard" style="width:14px;height:14px"></i> Dashboard
+    </button>
+    <button class="nav-tab" data-view="profiles-view" role="tab">
+      <i data-lucide="sliders-horizontal" style="width:14px;height:14px"></i> Profiles
+    </button>
+  </nav>
+
+  <div class="header-actions">
+    <button class="icon-btn" id="theme-toggle" title="Toggle dark mode">
+      <i data-lucide="moon" style="width:14px;height:14px"></i>
+      <span id="theme-label">Dark</span>
+    </button>
+  </div>
+</header>
+
+<!-- ── Main ─────────────────────────────────────────────────────── -->
+<main class="app-main">
+
+  <!-- ── Upload View ──────────────────────────────────────────── -->
+  <div id="upload-view" class="view active">
+    <div class="profile-bar">
+      <label for="profile-select">Rule profile:</label>
+      <select id="profile-select">
+        <option value="default">default</option>
+      </select>
+      <button class="btn btn-outline" id="load-profile-file-btn">
+        <i data-lucide="folder-open" style="width:14px;height:14px"></i> Import profile
+      </button>
+      <input type="file" id="profile-file-input" accept=".json" class="sr-only" />
+    </div>
+
+    <div class="drop-zone" id="drop-zone" tabindex="0" role="button" aria-label="Upload JSON file">
+      <i data-lucide="cloud-upload" class="drop-icon" style="width:48px;height:48px"></i>
+      <h2 style="margin-top:.75rem;font-size:1.1rem">Drop your Export JSON file here</h2>
+      <p>or click to browse — expects a root <code>Export</code> array</p>
+      <p style="margin-top:.75rem">
+        <button class="btn btn-primary" id="browse-btn">
+          <i data-lucide="file-json" style="width:14px;height:14px"></i> Browse file
+        </button>
+      </p>
+    </div>
+    <input type="file" id="file-input" accept=".json" class="sr-only" />
+
+    <div id="upload-status" class="mt-1 text-muted" style="font-size:.85rem"></div>
+  </div>
+
+  <!-- ── Results View ─────────────────────────────────────────── -->
+  <div id="results-view" class="view">
+    <div class="stats-bar" id="stats-bar"></div>
+
+    <!-- Schema drift -->
+    <div id="drift-section" class="drift-section card" style="margin-bottom:1rem;display:none">
+      <div class="card-title">
+        <i data-lucide="git-branch" style="width:16px;height:16px"></i>
+        Schema Drift
+      </div>
+      <div id="drift-list" class="drift-list"></div>
+    </div>
+
+    <!-- Anomalies -->
+    <div id="anomaly-section" class="card" style="margin-bottom:1rem;display:none">
+      <div class="card-title">
+        <i data-lucide="zap" style="width:16px;height:16px"></i>
+        Anomalies
+      </div>
+      <div id="anomaly-list"></div>
+    </div>
+
+    <!-- Issue table -->
+    <div class="card">
+      <div class="result-toolbar">
+        <span class="card-title" style="margin-bottom:0">
+          <i data-lucide="table-2" style="width:16px;height:16px"></i>
+          Issues
+        </span>
+        <input class="filter-input" id="issue-filter" type="search" placeholder="Filter by field, rule, or record…" />
+        <select class="severity-filter" id="severity-filter">
+          <option value="">All severities</option>
+          <option value="error">Errors only</option>
+          <option value="warning">Warnings only</option>
+        </select>
+        <div class="separator"></div>
+        <button class="btn btn-outline" id="copy-trello-btn" disabled>
+          <i data-lucide="trello" style="width:14px;height:14px"></i> Copy for Trello
+        </button>
+        <button class="btn btn-outline" id="export-csv-btn" disabled>
+          <i data-lucide="download" style="width:14px;height:14px"></i> Export CSV
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table id="issues-table">
+          <thead>
+            <tr>
+              <th>Row</th>
+              <th>Severity</th>
+              <th>Field</th>
+              <th>Rule</th>
+              <th>Message</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody id="issues-tbody"></tbody>
+        </table>
+        <div id="no-issues" class="empty-state" style="display:none">
+          <i data-lucide="check-circle-2" style="width:40px;height:40px;color:var(--color-success)"></i>
+          <p>No issues found — data looks clean!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Run History View ──────────────────────────────────────── -->
+  <div id="history-view" class="view">
+    <div class="flex-gap" style="margin-bottom:1rem">
+      <h2 style="font-size:1.1rem;font-weight:700">Run History</h2>
+      <div class="separator"></div>
+      <button class="btn btn-danger" id="clear-history-btn">
+        <i data-lucide="trash-2" style="width:14px;height:14px"></i> Clear all
+      </button>
+    </div>
+    <div id="run-list" class="run-list">
+      <div class="empty-state">
+        <i data-lucide="history" style="width:40px;height:40px"></i>
+        <p>No runs yet. Upload a file to get started.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Dashboard View ───────────────────────────────────────── -->
+  <div id="dashboard-view" class="view">
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:1rem">Dashboard</h2>
+    <div class="dash-grid" id="dash-grid">
+      <div class="empty-state" style="grid-column:1/-1">
+        <i data-lucide="layout-dashboard" style="width:40px;height:40px"></i>
+        <p>Run at least one file to see the dashboard.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Profiles View ────────────────────────────────────────── -->
+  <div id="profiles-view" class="view">
+    <div class="flex-gap" style="margin-bottom:1rem">
+      <h2 style="font-size:1.1rem;font-weight:700">Rule Profiles</h2>
+      <div class="separator"></div>
+      <button class="btn btn-primary" id="new-profile-btn">
+        <i data-lucide="plus" style="width:14px;height:14px"></i> New profile
+      </button>
+    </div>
+    <div class="profile-grid">
+      <div class="card profile-list-panel" id="profile-list-panel"></div>
+      <div class="card rule-editor" id="rule-editor-panel">
+        <div class="empty-state">
+          <i data-lucide="sliders-horizontal" style="width:40px;height:40px"></i>
+          <p>Select a profile to edit.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── Toast container ──────────────────────────────────────────── -->
+<div id="toast-container" aria-live="polite"></div>
+
+<script>
+/* ================================================================
+   DQCT — Data Quality Control Tower
+   Single-file vanilla JS app
+================================================================ */
+'use strict';
+
+// ── Day.js setup ───────────────────────────────────────────────
+dayjs.extend(window.dayjs_plugin_customParseFormat);
+
+const DATE_FORMATS = [
+  'YYYY-MM-DD',
+  'MM/DD/YYYY',
+  'M/D/YYYY',
+  'YYYY-MM-DDTHH:mm:ss',
+  'YYYY-MM-DDTHH:mm:ssZ',
+  'DD-MMM-YYYY',
+  'MMM D, YYYY',
+];
+
+function isValidDate(val) {
+  if (!val && val !== 0) return false;
+  const s = String(val).trim();
+  if (!s) return false;
+  return DATE_FORMATS.some(fmt => dayjs(s, fmt, true).isValid());
+}
+
+function isValidUrl(val) {
+  if (!val) return false;
+  try { new URL(String(val).trim()); return true; } catch { return false; }
+}
+
+function isValidJson(val) {
+  if (!val) return true; // empty is OK — not required
+  try { JSON.parse(String(val)); return true; } catch { return false; }
+}
+
+// ── Toast ──────────────────────────────────────────────────────
+function toast(msg, type = 'info', duration = 3500) {
+  const icons = { success: 'check-circle-2', error: 'x-circle', info: 'info' };
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<i data-lucide="${icons[type] || 'info'}" style="width:15px;height:15px;flex-shrink:0"></i> ${msg}`;
+  container.appendChild(el);
+  lucide.createIcons({ nodes: [el] });
+  setTimeout(() => el.remove(), duration);
+}
+
+// ── Navigation ────────────────────────────────────────────────
+document.querySelectorAll('.nav-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    document.getElementById(btn.dataset.view).classList.add('active');
+    if (btn.dataset.view === 'history-view') renderHistory();
+    if (btn.dataset.view === 'dashboard-view') renderDashboard();
+    if (btn.dataset.view === 'profiles-view') renderProfiles();
+  });
+});
+
+function switchToView(viewId) {
+  document.querySelectorAll('.nav-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === viewId);
+    b.setAttribute('aria-selected', b.dataset.view === viewId ? 'true' : 'false');
+  });
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === viewId));
+}
+
+// ── Theme toggle ──────────────────────────────────────────────
+const themeToggle = document.getElementById('theme-toggle');
+const themeLabel  = document.getElementById('theme-label');
+function applyTheme(dark) {
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  themeLabel.textContent = dark ? 'Light' : 'Dark';
+  localStorage.setItem('dqct-theme', dark ? 'dark' : 'light');
+  lucide.createIcons();
+}
+themeToggle.addEventListener('click', () => {
+  applyTheme(document.documentElement.getAttribute('data-theme') !== 'dark');
+});
+applyTheme(localStorage.getItem('dqct-theme') === 'dark');
+
+// ── Rule engine ────────────────────────────────────────────────
+const RULE_VALIDATORS = {
+  required: (val) => val !== null && val !== undefined && String(val).trim() !== '',
+  date:     (val) => !val || isValidDate(val),
+  url:      (val) => !val || isValidUrl(val),
+  json:     (val) => isValidJson(val),
+  regex:    (val, rule) => {
+    if (!val) return true;
+    try { return new RegExp(rule.pattern).test(String(val)); } catch { return false; }
+  },
+};
+
+function runRules(records, profile) {
+  const issues = [];
+  records.forEach((record, rowIdx) => {
+    profile.rules.forEach(rule => {
+      const val = record[rule.field];
+      const validator = RULE_VALIDATORS[rule.type];
+      if (!validator) return;
+      const pass = validator(val, rule);
+      if (!pass) {
+        issues.push({
+          row: rowIdx + 1,
+          severity: rule.severity || 'error',
+          field: rule.field,
+          ruleId: rule.id,
+          message: rule.message,
+          value: val === undefined ? '(missing)' : val === null ? '(null)' : String(val).slice(0, 120),
+        });
+      }
+    });
+  });
+  return issues;
+}
+
+// ── Schema drift detection ─────────────────────────────────────
+function detectSchemaDrift(records, baseline) {
+  if (!records.length) return { newFields: [], missingFields: [] };
+  const current = new Set(Object.keys(records[0]));
+  const base    = new Set(baseline);
+  return {
+    newFields:     [...current].filter(f => !base.has(f)),
+    missingFields: [...base].filter(f => !current.has(f)),
+  };
+}
+
+// Baseline schema inferred from first-ever run (stored in localStorage)
+function getBaselineSchema() {
+  const raw = localStorage.getItem('dqct-baseline-schema');
+  return raw ? JSON.parse(raw) : null;
+}
+function setBaselineSchema(fields) {
+  localStorage.setItem('dqct-baseline-schema', JSON.stringify(fields));
+}
+
+// ── Anomaly detection ──────────────────────────────────────────
+function detectAnomalies(records) {
+  const anomalies = [];
+
+  // 1. Completely empty records
+  records.forEach((rec, i) => {
+    const hasAnyValue = Object.values(rec).some(v => v !== null && v !== undefined && String(v).trim() !== '');
+    if (!hasAnyValue) anomalies.push({ row: i + 1, type: 'empty-record', msg: 'Record has no non-empty fields' });
+  });
+
+  // 2. Duplicate ResourceURLs
+  const urlCount = {};
+  records.forEach((rec, i) => {
+    const url = rec.ResourceURL;
+    if (!url) return;
+    if (!urlCount[url]) urlCount[url] = [];
+    urlCount[url].push(i + 1);
+  });
+  Object.entries(urlCount).forEach(([url, rows]) => {
+    if (rows.length > 1) {
+      anomalies.push({ rows, type: 'duplicate-url', msg: `Duplicate ResourceURL: ${url.slice(0, 80)}` });
+    }
+  });
+
+  // 3. Suspiciously long field values (> 5000 chars)
+  records.forEach((rec, i) => {
+    Object.entries(rec).forEach(([field, val]) => {
+      if (typeof val === 'string' && val.length > 5000) {
+        anomalies.push({ row: i + 1, field, type: 'long-value', msg: `Field "${field}" is unusually long (${val.length} chars)` });
+      }
+    });
+  });
+
+  return anomalies;
+}
+
+// ── Profiles (localStorage-backed) ────────────────────────────
+const BUILTIN_PROFILES = {};   // populated after fetch
+let profileStore = {};         // name → profile object
+
+async function loadBuiltinProfile() {
+  try {
+    const res = await fetch('./rules/default.json');
+    if (!res.ok) throw new Error('not found');
+    const p = await res.json();
+    BUILTIN_PROFILES[p.name] = p;
+    profileStore[p.name] = p;
+  } catch {
+    // fallback inline default
+    const fallback = {
+      name: 'default',
+      description: 'Standard DQCT validation rules',
+      version: '1.0.0',
+      rules: [
+        { id:'required-AgentName',     field:'AgentName',     type:'required', severity:'error',   message:'AgentName must be non-empty' },
+        { id:'required-AgentID',       field:'AgentID',       type:'required', severity:'error',   message:'AgentID must be non-empty' },
+        { id:'required-LegacyAgentID', field:'LegacyAgentID', type:'required', severity:'error',   message:'LegacyAgentID must be non-empty' },
+        { id:'required-ResourceURL',   field:'ResourceURL',   type:'required', severity:'error',   message:'ResourceURL must be non-empty' },
+        { id:'url-ResourceURL',        field:'ResourceURL',   type:'url',      severity:'warning', message:'ResourceURL should be a valid URL' },
+        { id:'date-BidOpenDate',       field:'BidOpenDate',   type:'date',     severity:'warning', message:'BidOpenDate should be a valid date' },
+        { id:'date-BidCloseDate',      field:'BidCloseDate',  type:'date',     severity:'warning', message:'BidCloseDate should be a valid date' },
+        { id:'date-AwardDate',         field:'AwardDate',     type:'date',     severity:'warning', message:'AwardDate should be a valid date' },
+        { id:'json-BidDocuments',      field:'BidDocuments',      type:'json', severity:'warning', message:'BidDocuments should be valid JSON' },
+        { id:'json-AddendumDocuments', field:'AddendumDocuments',  type:'json', severity:'warning', message:'AddendumDocuments should be valid JSON' },
+        { id:'json-BidTabulations',    field:'BidTabulations',     type:'json', severity:'warning', message:'BidTabulations should be valid JSON' },
+        { id:'json-AwardDocuments',    field:'AwardDocuments',     type:'json', severity:'warning', message:'AwardDocuments should be valid JSON' },
+      ],
+    };
+    BUILTIN_PROFILES[fallback.name] = fallback;
+    profileStore[fallback.name] = fallback;
+  }
+
+  // Merge any user-saved profiles from localStorage
+  const saved = localStorage.getItem('dqct-profiles');
+  if (saved) {
+    try {
+      const userProfiles = JSON.parse(saved);
+      Object.assign(profileStore, userProfiles);
+    } catch { /* ignore */ }
+  }
+
+  rebuildProfileSelect();
+}
+
+function saveUserProfiles() {
+  const userOnly = {};
+  Object.entries(profileStore).forEach(([k, v]) => {
+    if (!BUILTIN_PROFILES[k]) userOnly[k] = v;
+  });
+  localStorage.setItem('dqct-profiles', JSON.stringify(userOnly));
+}
+
+function rebuildProfileSelect() {
+  const sel = document.getElementById('profile-select');
+  const cur = sel.value;
+  sel.innerHTML = Object.keys(profileStore).map(n => `<option value="${n}">${n}</option>`).join('');
+  if (profileStore[cur]) sel.value = cur;
+}
+
+function getActiveProfile() {
+  const name = document.getElementById('profile-select').value;
+  return profileStore[name] || profileStore['default'];
+}
+
+// ── IndexedDB (run history) ────────────────────────────────────
+let db;
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('dqct-runs', 1);
+    req.onupgradeneeded = e => {
+      const store = e.target.result.createObjectStore('runs', { keyPath: 'id', autoIncrement: true });
+      store.createIndex('ts', 'ts');
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+function saveRun(runData) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('runs', 'readwrite');
+    tx.objectStore('runs').add(runData);
+    tx.oncomplete = resolve;
+    tx.onerror    = e => reject(e.target.error);
+  });
+}
+
+function getAllRuns() {
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction('runs', 'readonly');
+    const req = tx.objectStore('runs').index('ts').getAll();
+    req.onsuccess = e => resolve(e.target.result.reverse());
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+function clearAllRuns() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('runs', 'readwrite');
+    tx.objectStore('runs').clear();
+    tx.oncomplete = resolve;
+    tx.onerror    = e => reject(e.target.error);
+  });
+}
+
+// ── State ──────────────────────────────────────────────────────
+let currentIssues   = [];
+let currentRecords  = [];
+let currentFilename = '';
+
+// ── File upload ────────────────────────────────────────────────
+const dropZone   = document.getElementById('drop-zone');
+const fileInput  = document.getElementById('file-input');
+const browseBtn  = document.getElementById('browse-btn');
+const statusEl   = document.getElementById('upload-status');
+
+browseBtn.addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) processFile(fileInput.files[0]);
+  fileInput.value = '';
+});
+
+function processFile(file) {
+  if (!file.name.endsWith('.json')) {
+    toast('Please upload a .json file', 'error');
+    return;
+  }
+  statusEl.textContent = `Loading ${file.name}…`;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const records = data.Export || data.export || (Array.isArray(data) ? data : null);
+      if (!records) throw new Error('No "Export" array found at root of JSON');
+      if (!Array.isArray(records)) throw new Error('"Export" is not an array');
+      runAnalysis(records, file.name);
+    } catch (err) {
+      toast(`Parse error: ${err.message}`, 'error', 5000);
+      statusEl.textContent = `Error: ${err.message}`;
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function runAnalysis(records, filename) {
+  currentRecords  = records;
+  currentFilename = filename;
+
+  const profile   = getActiveProfile();
+  const issues    = runRules(records, profile);
+  currentIssues   = issues;
+
+  // Schema drift
+  const fields = records.length ? Object.keys(records[0]) : [];
+  const baseline = getBaselineSchema();
+  let drift = { newFields: [], missingFields: [] };
+  if (baseline) {
+    drift = detectSchemaDrift(records, baseline);
+  } else if (fields.length) {
+    setBaselineSchema(fields);
+  }
+
+  // Anomalies
+  const anomalies = detectAnomalies(records);
+
+  // Save to IndexedDB
+  const runData = {
+    ts:         Date.now(),
+    filename,
+    profile:    profile.name,
+    totalRows:  records.length,
+    errorCount: issues.filter(i => i.severity === 'error').length,
+    warnCount:  issues.filter(i => i.severity === 'warning').length,
+    issues:     issues.slice(0, 2000), // cap for storage
+    drift,
+    anomalies,
+  };
+  try { await saveRun(runData); } catch { /* storage full */ }
+
+  renderResults(issues, records, drift, anomalies);
+  switchToView('results-view');
+  statusEl.textContent = `Processed ${records.length} records from ${filename}`;
+  toast(`Analysed ${records.length} records — ${runData.errorCount} errors, ${runData.warnCount} warnings`, 'success');
+}
+
+// ── Render results ─────────────────────────────────────────────
+function renderResults(issues, records, drift, anomalies) {
+  // Stats bar
+  const errors   = issues.filter(i => i.severity === 'error').length;
+  const warnings = issues.filter(i => i.severity === 'warning').length;
+  const clean    = records.length - new Set(issues.map(i => i.row)).size;
+  document.getElementById('stats-bar').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${records.length}</div><div class="stat-label">Total Records</div></div>
+    <div class="stat-card err"><div class="stat-value">${errors}</div><div class="stat-label">Errors</div></div>
+    <div class="stat-card warn"><div class="stat-value">${warnings}</div><div class="stat-label">Warnings</div></div>
+    <div class="stat-card ok"><div class="stat-value">${clean}</div><div class="stat-label">Clean Rows</div></div>
+    <div class="stat-card info"><div class="stat-value">${issues.length}</div><div class="stat-label">Total Issues</div></div>
+  `;
+
+  // Schema drift
+  const driftSection = document.getElementById('drift-section');
+  const driftList    = document.getElementById('drift-list');
+  if (drift.newFields.length || drift.missingFields.length) {
+    driftSection.style.display = '';
+    driftList.innerHTML =
+      drift.newFields.map(f     => `<div class="drift-item new-field"><i data-lucide="plus-circle" style="width:14px;height:14px"></i> New field: <strong>${f}</strong></div>`).join('') +
+      drift.missingFields.map(f => `<div class="drift-item missing-field"><i data-lucide="minus-circle" style="width:14px;height:14px"></i> Missing field: <strong>${f}</strong></div>`).join('');
+    lucide.createIcons({ nodes: [driftList] });
+  } else {
+    driftSection.style.display = 'none';
+  }
+
+  // Anomalies
+  const anomalySection = document.getElementById('anomaly-section');
+  const anomalyList    = document.getElementById('anomaly-list');
+  if (anomalies.length) {
+    anomalySection.style.display = '';
+    anomalyList.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Row(s)</th><th>Type</th><th>Description</th></tr></thead><tbody>` +
+      anomalies.map(a => `<tr><td class="mono">${a.rows ? a.rows.join(', ') : a.row}</td><td><span class="badge badge-warning">${a.type}</span></td><td>${a.msg}</td></tr>`).join('') +
+      `</tbody></table></div>`;
+  } else {
+    anomalySection.style.display = 'none';
+  }
+
+  // Issues table
+  renderIssueTable(issues);
+
+  // Enable export buttons
+  document.getElementById('copy-trello-btn').disabled = issues.length === 0;
+  document.getElementById('export-csv-btn').disabled  = false;
+}
+
+function getFilteredIssues() {
+  const q    = document.getElementById('issue-filter').value.toLowerCase();
+  const sev  = document.getElementById('severity-filter').value;
+  return currentIssues.filter(issue => {
+    if (sev && issue.severity !== sev) return false;
+    if (q) {
+      return issue.field.toLowerCase().includes(q) ||
+             issue.ruleId.toLowerCase().includes(q) ||
+             issue.message.toLowerCase().includes(q) ||
+             String(issue.row).includes(q) ||
+             issue.value.toLowerCase().includes(q);
+    }
+    return true;
+  });
+}
+
+function renderIssueTable(issues) {
+  const tbody   = document.getElementById('issues-tbody');
+  const noIssue = document.getElementById('no-issues');
+  const filtered = issues !== undefined ? getFilteredIssues() : getFilteredIssues();
+  if (!filtered.length) {
+    tbody.innerHTML = '';
+    noIssue.style.display = '';
+    return;
+  }
+  noIssue.style.display = 'none';
+  tbody.innerHTML = filtered.map(issue => `
+    <tr>
+      <td class="mono">${issue.row}</td>
+      <td><span class="badge badge-${issue.severity === 'error' ? 'error' : 'warning'}">${issue.severity}</span></td>
+      <td class="mono">${issue.field}</td>
+      <td class="mono" style="font-size:.75em">${issue.ruleId}</td>
+      <td>${issue.message}</td>
+      <td class="mono" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(String(issue.value))}">${escHtml(String(issue.value))}</td>
+    </tr>
+  `).join('');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.getElementById('issue-filter').addEventListener('input', () => renderIssueTable());
+document.getElementById('severity-filter').addEventListener('change', () => renderIssueTable());
+
+// ── Trello export ──────────────────────────────────────────────
+document.getElementById('copy-trello-btn').addEventListener('click', async () => {
+  const issues = getFilteredIssues();
+  if (!issues.length) { toast('No issues to export', 'info'); return; }
+
+  const errors   = issues.filter(i => i.severity === 'error');
+  const warnings = issues.filter(i => i.severity === 'warning');
+
+  const lines = [
+    `## DQCT Run: ${currentFilename}`,
+    `*${new Date().toLocaleString()}*`,
+    ``,
+    `**Records:** ${currentRecords.length} | **Errors:** ${errors.length} | **Warnings:** ${warnings.length}`,
+    ``,
+  ];
+
+  if (errors.length) {
+    lines.push(`### 🔴 Errors (${errors.length})`);
+    errors.slice(0, 50).forEach(i => lines.push(`- Row ${i.row} · \`${i.field}\` — ${i.message}`));
+    if (errors.length > 50) lines.push(`- … and ${errors.length - 50} more errors`);
+    lines.push('');
+  }
+  if (warnings.length) {
+    lines.push(`### 🟡 Warnings (${warnings.length})`);
+    warnings.slice(0, 50).forEach(i => lines.push(`- Row ${i.row} · \`${i.field}\` — ${i.message}`));
+    if (warnings.length > 50) lines.push(`- … and ${warnings.length - 50} more warnings`);
+  }
+
+  const text = lines.join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Trello-formatted text copied to clipboard!', 'success');
+  } catch {
+    // Fallback: textarea
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    toast('Copied to clipboard (fallback)', 'success');
+  }
+});
+
+// ── CSV export ─────────────────────────────────────────────────
+document.getElementById('export-csv-btn').addEventListener('click', () => {
+  const issues = getFilteredIssues();
+  const header = ['Row', 'Severity', 'Field', 'RuleID', 'Message', 'Value'];
+  const rows   = issues.map(i => [i.row, i.severity, i.field, i.ruleId, i.message, i.value].map(v => `"${String(v).replace(/"/g, '""')}"`));
+  const csv    = [header, ...rows].map(r => r.join(',')).join('\n');
+  const blob   = new Blob([csv], { type: 'text/csv' });
+  const url    = URL.createObjectURL(blob);
+  const a      = document.createElement('a');
+  a.href = url; a.download = `dqct-issues-${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV downloaded', 'success');
+});
+
+// ── Run history ────────────────────────────────────────────────
+async function renderHistory() {
+  const listEl = document.getElementById('run-list');
+  const runs   = await getAllRuns();
+  if (!runs.length) {
+    listEl.innerHTML = `<div class="empty-state"><i data-lucide="history" style="width:40px;height:40px"></i><p>No runs yet. Upload a file to get started.</p></div>`;
+    lucide.createIcons({ nodes: [listEl] });
+    return;
+  }
+  listEl.innerHTML = runs.map(run => `
+    <div class="run-item" data-id="${run.id}">
+      <div class="run-meta">
+        <div class="run-filename">${escHtml(run.filename)}</div>
+        <div class="run-ts">${new Date(run.ts).toLocaleString()} · profile: ${run.profile} · ${run.totalRows} records</div>
+      </div>
+      <div class="run-badges">
+        <span class="badge badge-error">${run.errorCount} err</span>
+        <span class="badge badge-warning">${run.warnCount} warn</span>
+      </div>
+    </div>
+  `).join('');
+  lucide.createIcons({ nodes: [listEl] });
+
+  // Click to re-show results
+  listEl.querySelectorAll('.run-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const run = runs.find(r => r.id === Number(el.dataset.id));
+      if (!run) return;
+      currentIssues   = run.issues || [];
+      currentFilename = run.filename;
+      renderResults(run.issues || [], { length: run.totalRows }, run.drift || {}, run.anomalies || []);
+      switchToView('results-view');
+    });
+  });
+}
+
+document.getElementById('clear-history-btn').addEventListener('click', async () => {
+  if (!confirm('Clear all run history?')) return;
+  await clearAllRuns();
+  localStorage.removeItem('dqct-baseline-schema');
+  renderHistory();
+  toast('History cleared', 'info');
+});
+
+// ── Dashboard ──────────────────────────────────────────────────
+async function renderDashboard() {
+  const runs    = await getAllRuns();
+  const dashEl  = document.getElementById('dash-grid');
+  if (!runs.length) {
+    dashEl.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i data-lucide="layout-dashboard" style="width:40px;height:40px"></i><p>Run at least one file to see the dashboard.</p></div>`;
+    lucide.createIcons({ nodes: [dashEl] });
+    return;
+  }
+
+  // Aggregate stats
+  const totalErrors   = runs.reduce((s, r) => s + r.errorCount, 0);
+  const totalWarnings = runs.reduce((s, r) => s + r.warnCount,  0);
+  const totalRecords  = runs.reduce((s, r) => s + r.totalRows,  0);
+  const avgErrors     = runs.length ? (totalErrors / runs.length).toFixed(1) : 0;
+
+  // Latest run
+  const latest = runs[0];
+
+  dashEl.innerHTML = `
+    <div class="card">
+      <div class="card-title"><i data-lucide="activity" style="width:16px;height:16px"></i> Summary</div>
+      <div class="stats-bar" style="margin-bottom:0;grid-template-columns:1fr 1fr">
+        <div class="stat-card"><div class="stat-value">${runs.length}</div><div class="stat-label">Total Runs</div></div>
+        <div class="stat-card"><div class="stat-value">${totalRecords.toLocaleString()}</div><div class="stat-label">Records Processed</div></div>
+        <div class="stat-card err"><div class="stat-value">${totalErrors}</div><div class="stat-label">Total Errors</div></div>
+        <div class="stat-card warn"><div class="stat-value">${totalWarnings}</div><div class="stat-label">Total Warnings</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i data-lucide="trending-up" style="width:16px;height:16px"></i> Error trend (last ${Math.min(runs.length,10)} runs)</div>
+      <canvas id="spark-errors" class="sparkline"></canvas>
+      <div class="sparkline-label mt-1">Errors per run · avg ${avgErrors}</div>
+      <canvas id="spark-warnings" class="sparkline" style="margin-top:.5rem"></canvas>
+      <div class="sparkline-label mt-1">Warnings per run</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i data-lucide="clock" style="width:16px;height:16px"></i> Latest Run</div>
+      <div style="font-size:.85rem">
+        <div><strong>File:</strong> ${escHtml(latest.filename)}</div>
+        <div><strong>Time:</strong> ${new Date(latest.ts).toLocaleString()}</div>
+        <div><strong>Profile:</strong> ${latest.profile}</div>
+        <div><strong>Records:</strong> ${latest.totalRows}</div>
+        <div style="margin-top:.5rem">
+          <span class="badge badge-error">${latest.errorCount} errors</span>
+          <span class="badge badge-warning">${latest.warnCount} warnings</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i data-lucide="pie-chart" style="width:16px;height:16px"></i> Error Rate by Run</div>
+      <canvas id="spark-rate" class="sparkline"></canvas>
+      <div class="sparkline-label mt-1">% of records with issues</div>
+    </div>
+  `;
+
+  lucide.createIcons({ nodes: [dashEl] });
+
+  // Sparklines
+  const recent = [...runs].reverse().slice(-10);
+  drawSparkline('spark-errors',   recent.map(r => r.errorCount),  '#dc2626');
+  drawSparkline('spark-warnings', recent.map(r => r.warnCount),   '#d97706');
+  drawSparkline('spark-rate',     recent.map(r => r.totalRows > 0 ? Math.round((r.errorCount + r.warnCount) / r.totalRows * 100) : 0), '#4f46e5');
+}
+
+function drawSparkline(canvasId, data, color) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !data.length) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W   = canvas.offsetWidth  || 300;
+  const H   = canvas.offsetHeight || 36;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const max = Math.max(...data, 1);
+  const min = 0;
+  const pad = 4;
+  const xStep = (W - pad * 2) / Math.max(data.length - 1, 1);
+
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth   = 2;
+  ctx.lineJoin    = 'round';
+  ctx.lineCap     = 'round';
+
+  // Fill gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, color + '33');
+  grad.addColorStop(1, color + '00');
+
+  data.forEach((v, i) => {
+    const x = pad + i * xStep;
+    const y = H - pad - ((v - min) / (max - min)) * (H - pad * 2);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+
+  // Area fill
+  ctx.save();
+  const fillPath = new Path2D(ctx.currentPath);
+  ctx.fillStyle = grad;
+  // close path for fill
+  const lastX = pad + (data.length - 1) * xStep;
+  ctx.lineTo(lastX, H - pad);
+  ctx.lineTo(pad, H - pad);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // Re-draw the stroke on top
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = pad + i * xStep;
+    const y = H - pad - ((v - min) / (max - min)) * (H - pad * 2);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Dots
+  ctx.fillStyle = color;
+  data.forEach((v, i) => {
+    const x = pad + i * xStep;
+    const y = H - pad - ((v - min) / (max - min)) * (H - pad * 2);
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+// ── Profile management ─────────────────────────────────────────
+let activeProfileName = null;
+
+function renderProfiles() {
+  const panel = document.getElementById('profile-list-panel');
+  panel.innerHTML = Object.keys(profileStore).map(name => `
+    <div class="profile-list-item ${name === activeProfileName ? 'active' : ''}" data-name="${name}">
+      <span>${name}</span>
+      ${!BUILTIN_PROFILES[name] ? `<button class="icon-btn" data-delete="${name}" title="Delete" style="border:none;padding:.1rem .25rem"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button>` : ''}
+    </div>
+  `).join('');
+  lucide.createIcons({ nodes: [panel] });
+
+  panel.querySelectorAll('.profile-list-item').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.closest('[data-delete]')) return;
+      activeProfileName = el.dataset.name;
+      renderProfiles();
+      renderProfileEditor(profileStore[activeProfileName]);
+    });
+  });
+
+  panel.querySelectorAll('[data-delete]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const name = btn.dataset.delete;
+      if (!confirm(`Delete profile "${name}"?`)) return;
+      delete profileStore[name];
+      saveUserProfiles();
+      rebuildProfileSelect();
+      if (activeProfileName === name) { activeProfileName = null; clearProfileEditor(); }
+      renderProfiles();
+      toast(`Profile "${name}" deleted`, 'info');
+    });
+  });
+
+  if (activeProfileName) renderProfileEditor(profileStore[activeProfileName]);
+}
+
+function clearProfileEditor() {
+  document.getElementById('rule-editor-panel').innerHTML = `<div class="empty-state"><i data-lucide="sliders-horizontal" style="width:40px;height:40px"></i><p>Select a profile to edit.</p></div>`;
+  lucide.createIcons({ nodes: [document.getElementById('rule-editor-panel')] });
+}
+
+function renderProfileEditor(profile) {
+  const panel = document.getElementById('rule-editor-panel');
+  const isBuiltin = !!BUILTIN_PROFILES[profile.name];
+
+  panel.innerHTML = `
+    <div class="flex-gap">
+      <div>
+        <div style="font-weight:700;font-size:1rem">${profile.name}</div>
+        <div class="text-muted" style="font-size:.8rem">${profile.description || ''}</div>
+      </div>
+      <div class="separator"></div>
+      ${isBuiltin ? '<span class="badge badge-info">Built-in (read-only)</span>' : `<button class="btn btn-primary" id="save-profile-btn"><i data-lucide="save" style="width:14px;height:14px"></i> Save</button>`}
+      <button class="btn btn-outline" id="clone-profile-btn"><i data-lucide="copy" style="width:14px;height:14px"></i> Clone</button>
+      <button class="btn btn-outline" id="export-profile-btn"><i data-lucide="download" style="width:14px;height:14px"></i> Export JSON</button>
+    </div>
+    <hr class="divider" />
+    <div id="rules-rows" class="rule-editor"></div>
+    ${!isBuiltin ? `<button class="btn btn-outline" id="add-rule-btn"><i data-lucide="plus" style="width:14px;height:14px"></i> Add rule</button>` : ''}
+    <hr class="divider" />
+    <div class="card-title" style="font-size:.8rem">JSON Preview</div>
+    <textarea class="json-preview" id="profile-json-preview" readonly>${JSON.stringify(profile, null, 2)}</textarea>
+  `;
+  lucide.createIcons({ nodes: [panel] });
+
+  renderRuleRows(profile, !isBuiltin);
+
+  panel.querySelector('#clone-profile-btn')?.addEventListener('click', () => cloneProfile(profile));
+  panel.querySelector('#export-profile-btn')?.addEventListener('click', () => exportProfileJson(profile));
+  if (!isBuiltin) {
+    panel.querySelector('#save-profile-btn')?.addEventListener('click', () => saveCurrentProfile(profile));
+    panel.querySelector('#add-rule-btn')?.addEventListener('click', () => {
+      profile.rules.push({ id:`rule-${Date.now()}`, field:'', type:'required', severity:'error', message:'' });
+      renderProfileEditor(profile);
+    });
+  }
+}
+
+function renderRuleRows(profile, editable) {
+  const container = document.getElementById('rules-rows');
+  container.innerHTML = profile.rules.map((rule, i) => `
+    <div class="rule-row" data-idx="${i}">
+      <input type="text" class="rule-field" value="${escHtml(rule.field)}" placeholder="Field" ${editable?'':'disabled'} />
+      <select class="rule-type" ${editable?'':'disabled'}>
+        ${['required','date','url','json','regex'].map(t => `<option value="${t}" ${t===rule.type?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <select class="rule-severity" ${editable?'':'disabled'}>
+        ${['error','warning'].map(s => `<option value="${s}" ${s===rule.severity?'selected':''}>${s}</option>`).join('')}
+      </select>
+      ${editable ? `<button class="icon-btn" data-del-idx="${i}" title="Remove"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button>` : '<span></span>'}
+    </div>
+  `).join('');
+  lucide.createIcons({ nodes: [container] });
+
+  if (editable) {
+    container.querySelectorAll('[data-del-idx]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        profile.rules.splice(Number(btn.dataset.delIdx), 1);
+        renderProfileEditor(profile);
+      });
+    });
+  }
+}
+
+function collectRulesFromDOM(profile) {
+  const rows = document.querySelectorAll('#rules-rows .rule-row');
+  rows.forEach((row, i) => {
+    if (!profile.rules[i]) return;
+    profile.rules[i].field    = row.querySelector('.rule-field').value.trim();
+    profile.rules[i].type     = row.querySelector('.rule-type').value;
+    profile.rules[i].severity = row.querySelector('.rule-severity').value;
+  });
+}
+
+function saveCurrentProfile(profile) {
+  collectRulesFromDOM(profile);
+  profileStore[profile.name] = profile;
+  saveUserProfiles();
+  renderProfileEditor(profile);
+  rebuildProfileSelect();
+  toast(`Profile "${profile.name}" saved`, 'success');
+}
+
+function cloneProfile(profile) {
+  const name = prompt('New profile name:', `${profile.name}-copy`);
+  if (!name) return;
+  if (profileStore[name]) { toast('A profile with that name already exists', 'error'); return; }
+  const cloned = JSON.parse(JSON.stringify(profile));
+  cloned.name = name;
+  profileStore[name] = cloned;
+  saveUserProfiles();
+  rebuildProfileSelect();
+  activeProfileName = name;
+  renderProfiles();
+  toast(`Profile "${name}" created`, 'success');
+}
+
+function exportProfileJson(profile) {
+  const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `${profile.name}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('new-profile-btn').addEventListener('click', () => {
+  const name = prompt('New profile name:');
+  if (!name) return;
+  if (profileStore[name]) { toast('A profile with that name already exists', 'error'); return; }
+  profileStore[name] = { name, description: '', version: '1.0.0', rules: [
+    { id:'required-AgentName',     field:'AgentName',     type:'required', severity:'error',   message:'AgentName must be non-empty' },
+    { id:'required-AgentID',       field:'AgentID',       type:'required', severity:'error',   message:'AgentID must be non-empty' },
+    { id:'required-LegacyAgentID', field:'LegacyAgentID', type:'required', severity:'error',   message:'LegacyAgentID must be non-empty' },
+    { id:'required-ResourceURL',   field:'ResourceURL',   type:'required', severity:'error',   message:'ResourceURL must be non-empty' },
+  ]};
+  saveUserProfiles();
+  rebuildProfileSelect();
+  activeProfileName = name;
+  renderProfiles();
+  toast(`Profile "${name}" created`, 'success');
+});
+
+// ── Import profile file ────────────────────────────────────────
+const profileFileInput = document.getElementById('profile-file-input');
+document.getElementById('load-profile-file-btn').addEventListener('click', () => profileFileInput.click());
+profileFileInput.addEventListener('change', () => {
+  const file = profileFileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const p = JSON.parse(e.target.result);
+      if (!p.name || !Array.isArray(p.rules)) throw new Error('Invalid profile format');
+      profileStore[p.name] = p;
+      saveUserProfiles();
+      rebuildProfileSelect();
+      toast(`Profile "${p.name}" imported`, 'success');
+    } catch (err) {
+      toast(`Import failed: ${err.message}`, 'error');
+    }
+  };
+  reader.readAsText(file);
+  profileFileInput.value = '';
+});
+
+// ── Boot ──────────────────────────────────────────────────────
+(async () => {
+  await openDB();
+  await loadBuiltinProfile();
+  lucide.createIcons();
+})();
+</script>
+</body>
+</html>

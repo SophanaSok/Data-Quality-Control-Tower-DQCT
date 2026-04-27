@@ -1,0 +1,91 @@
+{
+  "name": "default",
+  "description": "Standard DQCT validation rules for bid export records",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "id": "required-AgentName",
+      "field": "AgentName",
+      "type": "required",
+      "severity": "error",
+      "message": "AgentName must be non-empty"
+    },
+    {
+      "id": "required-AgentID",
+      "field": "AgentID",
+      "type": "required",
+      "severity": "error",
+      "message": "AgentID must be non-empty"
+    },
+    {
+      "id": "required-LegacyAgentID",
+      "field": "LegacyAgentID",
+      "type": "required",
+      "severity": "error",
+      "message": "LegacyAgentID must be non-empty"
+    },
+    {
+      "id": "required-ResourceURL",
+      "field": "ResourceURL",
+      "type": "required",
+      "severity": "error",
+      "message": "ResourceURL must be non-empty"
+    },
+    {
+      "id": "url-ResourceURL",
+      "field": "ResourceURL",
+      "type": "url",
+      "severity": "warning",
+      "message": "ResourceURL should be a valid URL"
+    },
+    {
+      "id": "date-BidOpenDate",
+      "field": "BidOpenDate",
+      "type": "date",
+      "severity": "warning",
+      "message": "BidOpenDate should be a valid date"
+    },
+    {
+      "id": "date-BidCloseDate",
+      "field": "BidCloseDate",
+      "type": "date",
+      "severity": "warning",
+      "message": "BidCloseDate should be a valid date"
+    },
+    {
+      "id": "date-AwardDate",
+      "field": "AwardDate",
+      "type": "date",
+      "severity": "warning",
+      "message": "AwardDate should be a valid date"
+    },
+    {
+      "id": "json-BidDocuments",
+      "field": "BidDocuments",
+      "type": "json",
+      "severity": "warning",
+      "message": "BidDocuments should be valid serialized JSON"
+    },
+    {
+      "id": "json-AddendumDocuments",
+      "field": "AddendumDocuments",
+      "type": "json",
+      "severity": "warning",
+      "message": "AddendumDocuments should be valid serialized JSON"
+    },
+    {
+      "id": "json-BidTabulations",
+      "field": "BidTabulations",
+      "type": "json",
+      "severity": "warning",
+      "message": "BidTabulations should be valid serialized JSON"
+    },
+    {
+      "id": "json-AwardDocuments",
+      "field": "AwardDocuments",
+      "type": "json",
+      "severity": "warning",
+      "message": "AwardDocuments should be valid serialized JSON"
+    }
+  ]
+}
