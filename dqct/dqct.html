@@ -1051,6 +1051,7 @@
                 <th>Expected</th>
                 <th>Actual</th>
                 <th>Severity</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody id="resultsBody"></tbody>
@@ -1909,7 +1910,7 @@
       function buildIssueGroups(results) {
         const grouped = new Map();
         results.forEach((result) => {
-          const key = `${result.ruleId || "unknown"}|${result.field || "unknown"}|${result.ruleType || "unknown"}`;
+          const key = issueGroupKey(result);
           if (!grouped.has(key)) {
             grouped.set(key, {
               key,
@@ -1943,6 +1944,10 @@
           }
           return b.count - a.count;
         });
+      }
+
+      function issueGroupKey(result) {
+        return `${result.ruleId || "unknown"}|${result.field || "unknown"}|${result.ruleType || "unknown"}`;
       }
 
       function findRuleLayer(ruleId) {
@@ -2382,6 +2387,7 @@
               <td>${escapeHtml(result.expected || "")}</td>
               <td>${escapeHtml(result.actual || "")}</td>
               <td><span class="pill ${result.severity || "low"}">${result.severity || "low"}</span></td>
+              <td><button type="button" class="ghost" data-row-ticket="${escapeHtml(issueGroupKey(result))}">Ticket</button></td>
             </tr>`)
           .join("");
 
@@ -2565,6 +2571,18 @@
           const copyTicket = target.getAttribute("data-copy-ticket");
           if (copyTicket) {
             copyIssueTicket(copyTicket);
+          }
+
+          const rowTicket = target.getAttribute("data-row-ticket");
+          if (rowTicket) {
+            copyIssueTicket(rowTicket);
+            const matchingPreview = document.querySelectorAll("[data-ticket-preview]");
+            matchingPreview.forEach((node) => {
+              if (node.getAttribute("data-ticket-preview") === rowTicket) {
+                node.classList.remove("hidden");
+                node.scrollIntoView({ behavior: "smooth", block: "center" });
+              }
+            });
           }
         });
 
