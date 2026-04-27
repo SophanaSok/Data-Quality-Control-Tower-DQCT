@@ -1,0 +1,16 @@
+# Project spec and workspace instructions
+dqct_spec_v2.md
+dqct/.github/copilot-instructions.md
+
+# Local editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
