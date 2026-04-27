@@ -612,6 +612,46 @@
         margin-top: 0.75rem;
       }
 
+      .issue-groups {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .issue-group {
+        padding: 0.9rem;
+        border-radius: 14px;
+        background: rgba(20, 34, 58, 0.04);
+        border: 1px solid rgba(20, 34, 58, 0.06);
+      }
+
+      .issue-group-head {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .issue-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .ticket-preview {
+        margin-top: 0.75rem;
+        padding: 0.85rem;
+        border-radius: 12px;
+        background: rgba(16, 32, 51, 0.92);
+        color: #f3f7fb;
+        font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+        font-size: 0.86rem;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        max-height: 280px;
+        overflow: auto;
+      }
+
       .issue-item,
       .drift-item {
         padding: 0.8rem 0.9rem;
@@ -985,6 +1025,7 @@
               <label>Anomaly warnings</label>
               <div id="anomaliesList" class="drift-list"></div>
             </div>
+            <div id="summaryLayout" class="summary-layout hidden"></div>
           </div>
         </div>
       </section>
@@ -992,6 +1033,9 @@
       <section class="table-card" style="margin-top: var(--space-4);">
         <h2>Validation results</h2>
         <p class="helper">Each row records the file, record index, primary ID, violated rule, expected value, actual value, and severity.</p>
+        <div class="actions-row" style="justify-content: flex-start; margin-bottom: 0.75rem;">
+          <button id="downloadIssuesButton" type="button" class="secondary">Download all issues JSON</button>
+        </div>
         <div id="emptyState" class="empty-state">
           No validation has been run yet. Upload a file or load the sample data, then press Run validation.
         </div>
@@ -1011,6 +1055,13 @@
             </thead>
             <tbody id="resultsBody"></tbody>
           </table>
+        </div>
+
+        <div class="section" style="margin-top: 1rem;">
+          <h3>Issue report builder</h3>
+          <p class="helper">Generate Trello-ready ticket text by grouped issue and copy it directly.</p>
+          <div id="issueSummaryList" class="issue-groups"></div>
+          <div id="ticketPreview" class="ticket-preview hidden"></div>
         </div>
       </section>
     </div>
@@ -1078,6 +1129,7 @@
         currentDrift: { added: [], removed: [], typeChanges: [] },
         currentAnomalies: [],
         currentRunStats: null,
+        currentIssueGroups: [],
         currentLayer: "all",
         ruleSearch: "",
         runtimeOverrides: new Set()
@@ -1115,12 +1167,15 @@
         removedFieldsList: document.getElementById("removedFieldsList"),
         typeChangesList: document.getElementById("typeChangesList"),
         anomaliesList: document.getElementById("anomaliesList"),
+        issueSummaryList: document.getElementById("issueSummaryList"),
+        ticketPreview: document.getElementById("ticketPreview"),
         resultsBody: document.getElementById("resultsBody"),
         resultsWrap: document.getElementById("resultsWrap"),
         emptyState: document.getElementById("emptyState"),
         dropzone: document.getElementById("dropzone"),
         runButton: document.getElementById("runButton"),
         exportButton: document.getElementById("exportButton"),
+        downloadIssuesButton: document.getElementById("downloadIssuesButton"),
         clearFilesButton: document.getElementById("clearFilesButton"),
         seedDemoButton: document.getElementById("seedDemoButton"),
         profileList: document.getElementById("profileList"),
@@ -1797,6 +1852,7 @@
         const baselineSchema = state.schemaBaselines[profile.profile_name]?.schema || null;
         state.currentDrift = compareSchemas(baselineSchema, state.currentSchema);
         state.currentRunStats = buildRunStats(records, results, profile);
+        state.currentIssueGroups = buildIssueGroups(results);
         const previousRun = getLatestRunForProfile(profile.profile_name);
         state.currentAnomalies = detectAnomalies(state.currentRunStats, previousRun?.stats || null, profile);
 
@@ -1848,6 +1904,111 @@
           ].join(" | "));
         });
         return lines.join("\n");
+      }
+
+      function buildIssueGroups(results) {
+        const grouped = new Map();
+        results.forEach((result) => {
+          const key = `${result.ruleId || "unknown"}|${result.field || "unknown"}|${result.ruleType || "unknown"}`;
+          if (!grouped.has(key)) {
+            grouped.set(key, {
+              key,
+              ruleId: result.ruleId || "unknown",
+              field: result.field || "unknown",
+              ruleType: result.ruleType || "unknown",
+              severity: result.severity || "low",
+              expected: result.expected || "",
+              count: 0,
+              samples: []
+            });
+          }
+
+          const entry = grouped.get(key);
+          entry.count += 1;
+          if (entry.samples.length < 5) {
+            entry.samples.push({
+              fileName: result.fileName || "",
+              primaryId: result.primaryId || "",
+              actual: result.actual || "",
+              recordIndex: result.recordIndex || 0
+            });
+          }
+        });
+
+        const order = { high: 3, medium: 2, low: 1 };
+        return Array.from(grouped.values()).sort((a, b) => {
+          const severityDelta = (order[b.severity] || 0) - (order[a.severity] || 0);
+          if (severityDelta !== 0) {
+            return severityDelta;
+          }
+          return b.count - a.count;
+        });
+      }
+
+      function findRuleLayer(ruleId) {
+        const profile = activeProfile();
+        return profile.rules.find((rule) => rule.id === ruleId)?.layer || "Unknown";
+      }
+
+      function buildTicketText(issue) {
+        const profile = activeProfile();
+        const totalRecords = state.currentRunStats?.rowCount || 0;
+        const percentage = totalRecords ? ((issue.count / totalRecords) * 100).toFixed(2) : "0.00";
+        const lines = [];
+        lines.push(`[DEFECT] ${profile.profile_name} — ${issue.field} failed ${issue.ruleType}`);
+        lines.push("");
+        lines.push(`Date: ${new Date().toISOString()}`);
+        lines.push(`File count: ${state.files.length}`);
+        lines.push(`Affected records: ${issue.count} / ${totalRecords} (${percentage}%)`);
+        lines.push(`Rule: ${issue.ruleType}`);
+        lines.push(`Expected: ${issue.expected || "See rule configuration"}`);
+        lines.push("Actual examples:");
+        issue.samples.forEach((sample) => {
+          lines.push(`  - Record ${sample.primaryId || sample.recordIndex}: \"${String(sample.actual)}\" (${sample.fileName})`);
+        });
+        lines.push(`Layer: ${findRuleLayer(issue.ruleId)}`);
+        lines.push(`Severity: ${issue.severity}`);
+        lines.push(`Rule ID: ${issue.ruleId}`);
+        return lines.join("\n");
+      }
+
+      async function copyIssueTicket(issueKey) {
+        const issue = state.currentIssueGroups.find((entry) => entry.key === issueKey);
+        if (!issue) {
+          return;
+        }
+        const text = buildTicketText(issue);
+        await navigator.clipboard.writeText(text);
+        els.ticketPreview.textContent = text;
+        els.ticketPreview.classList.remove("hidden");
+      }
+
+      function downloadIssuesJson() {
+        const payload = {
+          generatedAt: new Date().toISOString(),
+          profile: activeProfile().profile_name,
+          files: state.files.map((file) => ({ name: file.name, status: file.status, records: file.records.length })),
+          totals: {
+            records: state.currentRunStats?.rowCount || 0,
+            failures: state.results.length,
+            anomalies: state.currentAnomalies.length
+          },
+          schemaDrift: state.currentDrift,
+          groupedIssues: state.currentIssueGroups,
+          issueRows: state.results,
+          anomalies: state.currentAnomalies
+        };
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const stamp = new Date().toISOString().replaceAll(":", "-");
+        a.href = url;
+        a.download = `dqct-issues-${activeProfile().profile_name.toLowerCase().replace(/\s+/g, "-")}-${stamp}.json`;
+        document.body.append(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
       }
 
       async function copyReport() {
@@ -1922,6 +2083,9 @@
       function clearFiles() {
         state.files = [];
         state.results = [];
+        state.currentIssueGroups = [];
+        els.ticketPreview.classList.add("hidden");
+        els.ticketPreview.textContent = "";
         render();
       }
 
@@ -2199,6 +2363,9 @@
           els.resultsWrap.classList.add("hidden");
           els.emptyState.classList.remove("hidden");
           els.resultsBody.innerHTML = "";
+          els.issueSummaryList.innerHTML = '<div class="issue-group"><strong>No grouped issues yet</strong><div class="meta">Run validation to generate ticket-ready issue groups.</div></div>';
+          els.ticketPreview.classList.add("hidden");
+          els.ticketPreview.textContent = "";
           return;
         }
 
@@ -2216,6 +2383,30 @@
               <td>${escapeHtml(result.actual || "")}</td>
               <td><span class="pill ${result.severity || "low"}">${result.severity || "low"}</span></td>
             </tr>`)
+          .join("");
+
+        const grouped = state.currentIssueGroups.length ? state.currentIssueGroups : buildIssueGroups(state.results);
+        state.currentIssueGroups = grouped;
+        els.issueSummaryList.innerHTML = grouped
+          .map((issue) => {
+            const ticketText = buildTicketText(issue);
+            return `
+              <article class="issue-group">
+                <div class="issue-group-head">
+                  <div>
+                    <strong>${escapeHtml(issue.field)} failed ${escapeHtml(issue.ruleType)}</strong>
+                    <div class="meta">Rule ${escapeHtml(issue.ruleId)} · ${escapeHtml(issue.severity)} severity · ${issue.count} affected rows</div>
+                    <div class="meta">Expected: ${escapeHtml(issue.expected || "See rule configuration")}</div>
+                  </div>
+                  <div class="issue-actions">
+                    <button type="button" class="secondary" data-preview-ticket="${escapeHtml(issue.key)}">Preview ticket</button>
+                    <button type="button" data-copy-ticket="${escapeHtml(issue.key)}">Copy ticket</button>
+                  </div>
+                </div>
+                <div class="meta" style="margin-top: 0.65rem;">Samples: ${escapeHtml(issue.samples.map((sample) => `${sample.primaryId || sample.recordIndex}`).join(", "))}</div>
+                <div class="ticket-preview hidden" data-ticket-preview="${escapeHtml(issue.key)}">${escapeHtml(ticketText)}</div>
+              </article>`;
+          })
           .join("");
       }
 
@@ -2276,6 +2467,7 @@
           await validateRun();
         });
         els.exportButton.addEventListener("click", copyReport);
+        els.downloadIssuesButton.addEventListener("click", downloadIssuesJson);
         els.cloneProfileButton.addEventListener("click", cloneProfile);
         els.saveProfileButton.addEventListener("click", saveActiveProfile);
         els.resetProfileButton.addEventListener("click", resetProfile);
@@ -2348,6 +2540,31 @@
           const useProfile = target.getAttribute("data-use-profile");
           if (useProfile) {
             setActiveProfile(useProfile);
+          }
+
+          const previewTicket = target.getAttribute("data-preview-ticket");
+          if (previewTicket) {
+            const issue = state.currentIssueGroups.find((entry) => entry.key === previewTicket);
+            if (issue) {
+              let previewNode = null;
+              document.querySelectorAll("[data-ticket-preview]").forEach((node) => {
+                if (node.getAttribute("data-ticket-preview") === previewTicket) {
+                  previewNode = node;
+                }
+              });
+              if (previewNode instanceof HTMLElement) {
+                const shouldHide = !previewNode.classList.contains("hidden");
+                document.querySelectorAll("[data-ticket-preview]").forEach((node) => node.classList.add("hidden"));
+                if (!shouldHide) {
+                  previewNode.classList.remove("hidden");
+                }
+              }
+            }
+          }
+
+          const copyTicket = target.getAttribute("data-copy-ticket");
+          if (copyTicket) {
+            copyIssueTicket(copyTicket);
           }
         });
 
