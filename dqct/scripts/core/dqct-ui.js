@@ -299,6 +299,38 @@
         renderResults();
       }
 
+      /* UI helpers: toggle Run button state and show toasts */
+      function toggleRunButton(running){
+        const btn = els.runButton;
+        if(!btn) return;
+        if(running){
+          btn.disabled = true;
+          btn.setAttribute('aria-disabled','true');
+          btn.innerHTML = '<span class="dqct-spinner" aria-hidden="true"></span>Running…';
+          let status = document.getElementById('dqct-status');
+          if(!status){ status = document.createElement('div'); status.id = 'dqct-status'; status.setAttribute('aria-live','polite'); document.body.appendChild(status); }
+          status.textContent = 'Validation started';
+          status.setAttribute('aria-busy','true');
+        } else {
+          btn.disabled = false;
+          btn.removeAttribute('aria-disabled');
+          btn.textContent = 'Run Validation';
+          const status = document.getElementById('dqct-status');
+          if(status){ status.textContent = 'Validation complete'; status.setAttribute('aria-busy','false'); }
+        }
+      }
+
+      function showToast(text, timeout = 3500){
+        try{
+          const t = document.createElement('div');
+          t.className = 'dqct-toast';
+          t.textContent = text;
+          document.body.appendChild(t);
+          setTimeout(()=> t.classList.add('dqct-toast--hide'), timeout);
+          setTimeout(()=> t.remove(), timeout + 350);
+        }catch(e){console.warn('toast failed', e)}
+      }
+
       function escapeHtml(value) {
         return String(value)
           .replaceAll("&", "&amp;")
@@ -350,7 +382,17 @@
         els.clearFilesButton.addEventListener("click", clearFiles);
         els.seedDemoButton.addEventListener("click", loadSampleData);
         els.runButton.addEventListener("click", async () => {
-          await validateRun();
+          toggleRunButton(true);
+          try{
+            const result = await validateRun();
+            toggleRunButton(false);
+            const issueCount = state.results?.length || (result && result.issues ? result.issues.length : 0);
+            showToast(`Validation complete — ${issueCount} issues`);
+          }catch(err){
+            toggleRunButton(false);
+            showToast('Validation failed');
+            console.error(err);
+          }
         });
         els.exportButton.addEventListener("click", copyReport);
         els.downloadIssuesButton.addEventListener("click", downloadIssuesJson);
