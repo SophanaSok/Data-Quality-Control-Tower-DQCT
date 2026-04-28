@@ -299,36 +299,80 @@
         renderResults();
       }
 
-      /* UI helpers: toggle Run button state and show toasts */
-      function toggleRunButton(running){
-        const btn = els.runButton;
-        if(!btn) return;
-        if(running){
-          btn.disabled = true;
-          btn.setAttribute('aria-disabled','true');
-          btn.innerHTML = '<span class="dqct-spinner" aria-hidden="true"></span>Running…';
-          let status = document.getElementById('dqct-status');
-          if(!status){ status = document.createElement('div'); status.id = 'dqct-status'; status.setAttribute('aria-live','polite'); document.body.appendChild(status); }
-          status.textContent = 'Validation started';
-          status.setAttribute('aria-busy','true');
+      const defaultActionStatus = "Ready to validate loaded files.";
+      const actionFeedbackTimeout = 3000;
+      let actionStatusTimer = null;
+
+      function setActionStatus(message, tone = "info", persist = false) {
+        if (!els.actionStatus) {
+          return;
+        }
+
+        els.actionStatus.textContent = message;
+        if (tone) {
+          els.actionStatus.dataset.tone = tone;
         } else {
-          btn.disabled = false;
-          btn.removeAttribute('aria-disabled');
-          btn.textContent = 'Run Validation';
-          const status = document.getElementById('dqct-status');
-          if(status){ status.textContent = 'Validation complete'; status.setAttribute('aria-busy','false'); }
+          delete els.actionStatus.dataset.tone;
+        }
+
+        if (actionStatusTimer) {
+          clearTimeout(actionStatusTimer);
+          actionStatusTimer = null;
+        }
+
+        if (!persist) {
+          actionStatusTimer = setTimeout(() => {
+            if (!els.actionStatus) {
+              return;
+            }
+            els.actionStatus.textContent = defaultActionStatus;
+            delete els.actionStatus.dataset.tone;
+          }, actionFeedbackTimeout);
         }
       }
 
-      function showToast(text, timeout = 3500){
-        try{
-          const t = document.createElement('div');
-          t.className = 'dqct-toast';
-          t.textContent = text;
-          document.body.appendChild(t);
-          setTimeout(()=> t.classList.add('dqct-toast--hide'), timeout);
-          setTimeout(()=> t.remove(), timeout + 350);
-        }catch(e){console.warn('toast failed', e)}
+      function showToast(text, timeout = 3200) {
+        const toast = document.createElement("div");
+        toast.className = "dqct-toast";
+        toast.textContent = text;
+        document.body.appendChild(toast);
+        window.setTimeout(() => toast.classList.add("dqct-toast--hide"), timeout);
+        window.setTimeout(() => toast.remove(), timeout + 350);
+      }
+
+      async function withActionFeedback(button, options, action) {
+        const originalHtml = button ? button.innerHTML : "";
+        if (button) {
+          button.disabled = true;
+          button.setAttribute("aria-disabled", "true");
+          button.innerHTML = `<span class="dqct-spinner" aria-hidden="true"></span>${options.runningLabel || "Working…"}`;
+        }
+
+        const startMessage = typeof options.startMessage === "function" ? options.startMessage() : options.startMessage;
+        setActionStatus(startMessage, options.startTone || "info", true);
+
+        try {
+          const result = await action();
+          const successMessage = typeof options.successMessage === "function" ? options.successMessage(result) : options.successMessage;
+          if (successMessage) {
+            setActionStatus(successMessage, options.successTone || "success");
+          }
+          const toastMessage = typeof options.toastMessage === "function" ? options.toastMessage(result) : options.toastMessage;
+          if (toastMessage) {
+            showToast(toastMessage);
+          }
+          return result;
+        } catch (error) {
+          setActionStatus(options.errorMessage || "Action failed.", "error");
+          showToast(options.errorToast || "Action failed.");
+          throw error;
+        } finally {
+          if (button) {
+            button.disabled = false;
+            button.removeAttribute("aria-disabled");
+            button.innerHTML = originalHtml;
+          }
+        }
       }
 
       function escapeHtml(value) {
@@ -379,24 +423,54 @@
           renderRules();
           renderSummary();
         });
-        els.clearFilesButton.addEventListener("click", clearFiles);
-        els.seedDemoButton.addEventListener("click", loadSampleData);
-        els.runButton.addEventListener("click", async () => {
-          toggleRunButton(true);
-          try{
-            const result = await validateRun();
-            toggleRunButton(false);
-            const issueCount = state.results?.length || (result && result.issues ? result.issues.length : 0);
-            showToast(`Validation complete — ${issueCount} issues`);
-          }catch(err){
-            toggleRunButton(false);
-            showToast('Validation failed');
-            console.error(err);
-          }
+        els.clearFilesButton.addEventListener("click", async () => {
+          await withActionFeedback(els.clearFilesButton, {
+            runningLabel: "Clearing…",
+            startMessage: "Clearing loaded files and validation results…",
+            successMessage: "Loaded files and results cleared.",
+            toastMessage: "Loaded files cleared."
+          }, async () => clearFiles());
         });
-        els.exportButton.addEventListener("click", copyReport);
-        els.downloadIssuesButton.addEventListener("click", downloadIssuesJson);
-        els.cloneProfileButton.addEventListener("click", cloneProfile);
+        els.seedDemoButton.addEventListener("click", async () => {
+          await withActionFeedback(els.seedDemoButton, {
+            runningLabel: "Loading…",
+            startMessage: "Loading sample Ohio Buys data…",
+            successMessage: (result) => `Loaded ${result.recordCount} sample records across ${result.fileCount} file${result.fileCount === 1 ? "" : "s"}.`,
+            toastMessage: (result) => `Sample data loaded (${result.recordCount} records).`
+          }, async () => loadSampleData());
+        });
+        els.runButton.addEventListener("click", async () => {
+          await withActionFeedback(els.runButton, {
+            runningLabel: "Running…",
+            startMessage: () => `Validating ${state.files.length} loaded file${state.files.length === 1 ? "" : "s"} against ${activeProfile().profile_name} rules…`,
+            successMessage: (result) => `Validation complete: ${result.results.length} issue${result.results.length === 1 ? "" : "s"} found across ${state.files.length} file${state.files.length === 1 ? "" : "s"}.`,
+            toastMessage: (result) => `Validation complete — ${result.results.length} issue${result.results.length === 1 ? "" : "s"}.`
+          }, validateRun);
+        });
+        els.exportButton.addEventListener("click", async () => {
+          await withActionFeedback(els.exportButton, {
+            runningLabel: "Copying…",
+            startMessage: "Copying validation report to the clipboard…",
+            successMessage: "Validation report copied to the clipboard.",
+            toastMessage: "Report copied."
+          }, copyReport);
+        });
+        els.downloadIssuesButton.addEventListener("click", async () => {
+          await withActionFeedback(els.downloadIssuesButton, {
+            runningLabel: "Downloading…",
+            startMessage: "Preparing issue JSON for download…",
+            successMessage: (result) => `Downloaded ${result.issueCount} issue${result.issueCount === 1 ? "" : "s"} as ${result.filename}.`,
+            toastMessage: (result) => `Downloaded ${result.issueCount} issue${result.issueCount === 1 ? "" : "s"}.`
+          }, downloadIssuesJson);
+        });
+        els.cloneProfileButton.addEventListener("click", async () => {
+          await withActionFeedback(els.cloneProfileButton, {
+            runningLabel: "Cloning…",
+            startMessage: "Cloning the active profile…",
+            successMessage: (profileName) => `Cloned profile ${profileName}.`,
+            toastMessage: (profileName) => `Profile ${profileName} is now active.`
+          }, cloneProfile);
+        });
           els.importSchemaButton.addEventListener("click", () => {
             els.schemaImportInput.value = "";
             els.schemaImportInput.click();
@@ -408,16 +482,34 @@
             }
 
             try {
-              const draftProfile = await importSchemaFromFile(file);
-              alert(`Imported schema draft: ${draftProfile.profile_name}`);
+              await withActionFeedback(els.importSchemaButton, {
+                runningLabel: "Importing…",
+                startMessage: () => `Importing schema draft from ${file.name}…`,
+                successMessage: (draftProfile) => `Imported schema draft ${draftProfile.profile_name}.`,
+                toastMessage: (draftProfile) => `Schema draft ${draftProfile.profile_name} imported.`
+              }, async () => importSchemaFromFile(file));
             } catch (error) {
-              alert(error.message || String(error));
+              console.error(error);
             } finally {
               event.target.value = "";
             }
           });
-        els.saveProfileButton.addEventListener("click", saveActiveProfile);
-        els.resetProfileButton.addEventListener("click", resetProfile);
+        els.saveProfileButton.addEventListener("click", async () => {
+          await withActionFeedback(els.saveProfileButton, {
+            runningLabel: "Saving…",
+            startMessage: "Saving the active profile changes…",
+            successMessage: (profileName) => `Saved profile ${profileName}.`,
+            toastMessage: (profileName) => `Profile ${profileName} saved.`
+          }, saveActiveProfile);
+        });
+        els.resetProfileButton.addEventListener("click", async () => {
+          await withActionFeedback(els.resetProfileButton, {
+            runningLabel: "Resetting…",
+            startMessage: "Resetting the active profile to defaults…",
+            successMessage: (profileName) => `Reset ${profileName} to defaults.`,
+            toastMessage: (profileName) => `Profile reset to ${profileName}.`
+          }, resetProfile);
+        });
         els.showCore.addEventListener("click", () => {
           state.currentLayer = "core";
           renderRules();
@@ -602,6 +694,7 @@
         bindEventHandlers();
         els.newRootArray.value = activeProfile().root_array || "Export";
         updateRuntimeOverrides();
+        setActionStatus(defaultActionStatus, "info", true);
         render();
       }
 

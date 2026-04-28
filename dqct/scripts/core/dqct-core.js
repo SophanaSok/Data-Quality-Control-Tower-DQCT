@@ -106,6 +106,7 @@
         dropzone: document.getElementById("dropzone"),
         runButton: document.getElementById("runButton"),
         exportButton: document.getElementById("exportButton"),
+        actionStatus: document.getElementById("actionStatus"),
         downloadIssuesButton: document.getElementById("downloadIssuesButton"),
         clearFilesButton: document.getElementById("clearFilesButton"),
         seedDemoButton: document.getElementById("seedDemoButton"),
@@ -1064,12 +1065,13 @@
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
+        return { filename: a.download, issueCount: state.results.length };
       }
 
       async function copyReport() {
         const text = buildReportText();
         await navigator.clipboard.writeText(text);
-        alert("Validation report copied to clipboard.");
+        return text;
       }
 
       function loadSampleData() {
@@ -1133,6 +1135,7 @@
           }
         ];
         render();
+        return { fileCount: state.files.length, recordCount: sample.Export.length };
       }
 
       function clearFiles() {
@@ -1142,6 +1145,7 @@
         els.ticketPreview.classList.add("hidden");
         els.ticketPreview.textContent = "";
         render();
+        return { fileCount: 0, issueCount: 0 };
       }
 
       function resetProfile() {
@@ -1149,6 +1153,7 @@
         state.activeProfileId = defaultProfile.profile_name;
         saveProfiles();
         render();
+        return defaultProfile.profile_name;
       }
 
       function cloneProfile() {
@@ -1161,6 +1166,7 @@
         state.activeProfileId = name;
         saveProfiles();
         render();
+        return cloned.profile_name;
       }
 
       function saveActiveProfile() {
@@ -1174,5 +1180,6 @@
         }
         saveProfiles();
         render();
+        return next.profile_name;
       }
 
