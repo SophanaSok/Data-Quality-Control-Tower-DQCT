@@ -35,19 +35,20 @@ A browser-based validation tool for scraped government IT and software bid data.
    Then open `http://localhost:8000/` or `http://localhost:8000/dqct/dqct.html` in your browser.
 
 ### 2. Load Sample Data (Optional)
-- Click **"Seed Demo Data"** to load 2 sample Ohio Buys bid records
+- Click **"Load sample data"** to load 2 sample Ohio Buys bid records
 - Perfect for learning the workflow without uploading your own files
 
 ### 3. Run Validation
-- Click **"Run Validation"** to validate the loaded data against the default Ohio Buys profile
-- Results appear instantly on the **Run Results** panel
+- Click **"Run validation"** to validate the loaded data against the default Ohio Buys profile
+- The button changes to a running state, the top status banner explains what is happening, and a toast confirms when the run finishes
+- Results appear on the **Validation results** panel
 
 ### 4. Generate a Trello Ticket
-- In the **Issue Summary** section, click **"Copy Ticket"** on a grouped issue
+- In the **Issue report builder** section, click **"Copy ticket"** on a grouped issue
 - Ticket text is copied to your clipboard—paste directly into Trello
 
 ### 5. Download Results
-- Click **"Download Issues"** to export all defects as a `.json` file for archival or further analysis
+- Click **"Download all issues JSON"** to export all defects as a `.json` file for archival or further analysis
 
 ---
 
@@ -133,11 +134,11 @@ On the right sidebar under **Active Profile**:
 3. To create a new profile:
    - Enter a name in **New Profile Name** (e.g., "County RFP Board")
    - Enter the root array field in **New Root Array** (default: `Export`)
-   - Click **Clone Current Profile** to create a copy of the active profile, then customize its rules
+   - Click **Clone profile** to create a copy of the active profile, then customize its rules
 
 ### Importing a Schema Draft
 
-1. Click **Import schema** in the Profile Management panel
+1. Click **Import schema** in the Profile management panel
 2. Select a sample JSON file with either a bare array or an `{ "Export": [...] }` wrapper
 3. The app generates a draft profile with inferred `required` and `type` rules
 4. Review and edit the draft inline, then click **Save active profile** to keep it
@@ -164,11 +165,19 @@ On the right sidebar under **Active Profile**:
    - Example: `R25 R26 R27` disables diagnostic description, bid type, and contract value checks
    - Useful for one-off validation runs
 
+### Action Feedback
+
+The main action buttons now give immediate feedback when clicked:
+- The button shows a spinner and a temporary running label while the action is in progress
+- A status banner near the top explains what the button is doing
+- A toast message confirms the outcome when the action completes
+- Buttons reset automatically after the action finishes or if it fails
+
 ---
 
-### Step 5: Run Validation
+### Step 5: Run validation
 
-1. Click **"Run Validation"** button
+1. Click **"Run validation"** button
 2. The app validates all loaded files in seconds
 3. Results appear on the **Run Results** panel
 
@@ -202,15 +211,15 @@ Issues are automatically grouped by (Rule ID, Field, Rule Type). Each group show
 - **Rule name** (e.g., "ProjectCode failed regex")
 - **Severity** and **count** (how many records are affected)
 - **Samples**: Up to 5 example records with bad values
-- **Preview Ticket** button: Toggle a formatted ticket preview
-- **Copy Ticket** button: Copy the ticket to clipboard
+- **Preview ticket** button: Toggle a formatted ticket preview
+- **Copy ticket** button: Copy the ticket to clipboard
 
 ---
 
 ### Step 7: Export Results
 
 #### Option A: Copy Individual Tickets
-1. In **Issue Summary**, click **"Copy Ticket"** on any grouped issue
+1. In **Issue report builder**, click **"Copy ticket"** on any grouped issue
 2. The formatted ticket text is copied to your clipboard:
    ```
    [DEFECT] Ohio Buys — ProjectCode failed regex
@@ -231,7 +240,7 @@ Issues are automatically grouped by (Rule ID, Field, Rule Type). Each group show
 3. Paste directly into a Trello card
 
 #### Option B: Download All Issues as JSON
-1. Click **"Download Issues"** button
+1. Click **"Download all issues JSON"** button
 2. A `.json` file downloads with the complete run data:
    - All defects with full details
    - Schema drift information
@@ -240,7 +249,7 @@ Issues are automatically grouped by (Rule ID, Field, Rule Type). Each group show
 3. File is named: `dqct-issues-ohio-buys-2026-04-28T12-34-56Z.json`
 
 #### Option C: Copy Report
-1. Click **"Copy Report"** to copy a text summary of all results to clipboard
+1. Click **"Copy report"** to copy a text summary of all results to clipboard
 2. Useful for quick summaries in emails or Slack
 
 ---
@@ -253,7 +262,7 @@ Issues are automatically grouped by (Rule ID, Field, Rule Type). Each group show
 2. In the **Profile Management** panel, enter:
    - **New Profile Name**: e.g., "County RFP System"
    - **New Root Array**: The field containing the record array (default: `Export`)
-3. Click **"Clone Current Profile"**
+3. Click **"Clone profile"**
 4. The new profile appears in the profile list with all rules from the active profile
 5. Customize rules as needed
 
@@ -458,7 +467,7 @@ Detail: Previous 85% null vs current 95% null
 ## 💡 Tips & Best Practices
 
 ### 1. **Start with Sample Data**
-Click "Seed Demo Data" to learn the UI without uploading real files. Run validation on the sample to see how failures are reported.
+Click "Load sample data" to learn the UI without uploading real files. Run validation on the sample to see how failures are reported.
 
 ### 2. **Create Profiles Per Source**
 Don't try to use one profile for all data sources. Create separate profiles for Ohio Buys, county RFPs, etc. Rules will be clearer and easier to maintain.
@@ -470,7 +479,7 @@ When managing rules, filter by layer:
 - **Diagnostic**: Enable only when auditing specific fields.
 
 ### 4. **Save Profiles Before Uploading**
-If you've customized a profile, give it a memorable name and click **"Save Profile"** to lock in your changes.
+If you've customized a profile, give it a memorable name and click **"Save active profile"** to lock in your changes.
 
 ### 5. **Use Runtime Overrides for One-Offs**
 If you want to skip one or two rules for a single run without permanently disabling them, use **Runtime Overrides**:
@@ -524,7 +533,7 @@ On the first run with a new profile, results become your baseline for schema dri
 
 ### Validation Not Running
 
-**Symptom:** Clicking "Run Validation" does nothing.
+**Symptom:** Clicking "Run validation" does nothing.
 
 **Diagnosis:**
 1. Are there any files loaded? Check the Loaded Files panel.
@@ -540,7 +549,7 @@ On the first run with a new profile, results become your baseline for schema dri
 
 ### Results Not Showing
 
-**Symptom:** Clicked Run Validation but no table appears.
+**Symptom:** Clicked Run validation but no table appears.
 
 **Diagnosis:**
 1. All records might be passing (no failures). Check the Failure Count card—if it's 0, validation passed!
@@ -567,7 +576,7 @@ On the first run with a new profile, results become your baseline for schema dri
 
 ### Ticket Text Not Copying to Clipboard
 
-**Symptom:** Clicked "Copy Ticket" but nothing happens.
+**Symptom:** Clicked "Copy ticket" but nothing happens.
 
 **Diagnosis:**
 1. Browser permissions — does the app have clipboard access?
@@ -582,7 +591,7 @@ On the first run with a new profile, results become your baseline for schema dri
 
 ### JSON Download Not Working
 
-**Symptom:** Clicked "Download Issues" but no file appears.
+**Symptom:** Clicked "Download all issues JSON" but no file appears.
 
 **Diagnosis:**
 1. Browser might be blocking downloads
