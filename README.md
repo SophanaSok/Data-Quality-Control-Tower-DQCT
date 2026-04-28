@@ -24,9 +24,15 @@ A browser-based validation tool for scraped government IT and software bid data.
 
 ## 🚀 Quick Start
 
-### 1. Open the App
-- Navigate to `http://localhost:8000/` or `http://localhost:8000/dqct/dqct.html` in your browser (Chrome or Firefox recommended)
-- No login or setup required—fully offline capable
+### 1. Open the App (GitHub Pages)
+- The app is published via GitHub Pages for this repository. Open the site in your browser:
+   - Root: https://SophanaSok.github.io/Data-Quality-Control-Tower-DQCT
+   - Direct app page: https://SophanaSok.github.io/Data-Quality-Control-Tower-DQCT/dqct/dqct.html
+- To publish via GitHub Pages: go to your repository Settings → Pages → Build and deployment, select branch `main` and folder `/ (root)`, then save. The site will publish within a few minutes.
+- If you prefer a local preview, serve the repo root (optional):
+   - Python 3: `python3 -m http.server 8000`
+   - or Node: `npx http-server -p 8000`
+   Then open `http://localhost:8000/` or `http://localhost:8000/dqct/dqct.html` in your browser.
 
 ### 2. Load Sample Data (Optional)
 - Click **"Seed Demo Data"** to load 2 sample Ohio Buys bid records
