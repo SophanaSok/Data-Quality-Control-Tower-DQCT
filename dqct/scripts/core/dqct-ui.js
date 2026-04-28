@@ -54,6 +54,14 @@
           : 0;
         const latestRun = runs[0] || null;
         const openIssues = (state.results.length || 0) + (state.currentAnomalies.length || 0);
+        const formatRunFiles = (run) => {
+          const files = run.files || [];
+          if (!files.length) {
+            return "(none)";
+          }
+          const firstFile = files[0]?.name || "(unnamed file)";
+          return files.length > 1 ? `${firstFile} +${files.length - 1} more` : firstFile;
+        };
 
         els.dashboardRunsToday.textContent = String(runsToday.length);
         els.dashboardRunsTodayMeta.textContent = `${profileName} profile runs stored locally`;
@@ -70,10 +78,10 @@
             <tr>
               <td>${escapeHtml(run.timestamp.replace("T", " ").slice(0, 19))}</td>
               <td>${escapeHtml(run.profileName)}</td>
-              <td>${run.files?.length || 0}</td>
+              <td>${escapeHtml(formatRunFiles(run))}</td>
               <td>${run.rowCount || 0}</td>
+              <td>${run.ruleCount ?? activeProfile().rules.filter((rule) => rule.enabled && !state.runtimeOverrides.has(rule.id)).length}</td>
               <td>${Math.round((run.passRate || 0) * 100)}%</td>
-              <td>${run.schemaDriftCount || 0}</td>
               <td>${run.anomalyCount || 0}</td>
               <td><span class="badge ${run.failureCount > 0 ? "warn" : "good"}">${run.failureCount > 0 ? "issues" : "clean"}</span></td>
             </tr>`).join("")
@@ -181,10 +189,13 @@
                   <span class="muted">${rule.type}</span>
                   ${state.runtimeOverrides.has(rule.id) ? '<span class="pill low">runtime disabled</span>' : ""}
                 </div>
-                <label class="switch">
-                  <input type="checkbox" ${rule.enabled ? "checked" : ""} data-toggle-rule="${rule.id}" />
-                  Enabled
-                </label>
+                <div class="rule-actions">
+                  <label class="switch">
+                    <input type="checkbox" ${rule.enabled ? "checked" : ""} data-toggle-rule="${rule.id}" />
+                    Enabled
+                  </label>
+                  <button type="button" class="ghost" data-delete-rule="${rule.id}">Delete</button>
+                </div>
               </div>
               <div class="rule-grid">
                 <div class="fieldset wide">
@@ -443,8 +454,13 @@
           await withActionFeedback(els.runButton, {
             runningLabel: "Running…",
             startMessage: () => `Validating ${state.files.length} loaded file${state.files.length === 1 ? "" : "s"} against ${activeProfile().profile_name} rules…`,
-            successMessage: (result) => `Validation complete: ${result.results.length} issue${result.results.length === 1 ? "" : "s"} found across ${state.files.length} file${state.files.length === 1 ? "" : "s"}.`,
-            toastMessage: (result) => `Validation complete — ${result.results.length} issue${result.results.length === 1 ? "" : "s"}.`
+            successMessage: (result) => {
+              if (result?.skipped) {
+                return result.message;
+              }
+              return `Validation complete: ${result.results.length} issue${result.results.length === 1 ? "" : "s"} found across ${state.files.length} file${state.files.length === 1 ? "" : "s"}.`;
+            },
+            toastMessage: (result) => result?.skipped ? result.message : `Validation complete — ${result.results.length} issue${result.results.length === 1 ? "" : "s"}.`
           }, validateRun);
         });
         els.exportButton.addEventListener("click", async () => {
@@ -573,6 +589,15 @@
         document.addEventListener("click", (event) => {
           const target = event.target;
           if (!(target instanceof HTMLElement)) {
+            return;
+          }
+
+          const deleteRuleId = target.getAttribute("data-delete-rule");
+          if (deleteRuleId) {
+            const confirmed = window.confirm(`Delete rule ${deleteRuleId}?`);
+            if (confirmed) {
+              deleteRule(deleteRuleId);
+            }
             return;
           }
 

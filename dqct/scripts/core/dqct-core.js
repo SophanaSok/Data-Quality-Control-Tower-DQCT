@@ -138,7 +138,7 @@
       }
 
       function saveRuns(runs) {
-        localStorage.setItem(RUN_KEY, JSON.stringify(runs.slice(-25)));
+        localStorage.setItem(RUN_KEY, JSON.stringify(pruneRuns(runs).slice(-25)));
       }
 
       function loadSchemaBaselines() {
@@ -150,7 +150,15 @@
       }
 
       function loadRuns() {
-        return safeJsonParse(localStorage.getItem(RUN_KEY), []);
+        return pruneRuns(safeJsonParse(localStorage.getItem(RUN_KEY), []));
+      }
+
+      function pruneRuns(runs) {
+        const cutoff = Date.now() - (90 * 24 * 60 * 60 * 1000);
+        return (runs || []).filter((run) => {
+          const timestamp = Date.parse(run?.timestamp || "");
+          return Number.isNaN(timestamp) ? true : timestamp >= cutoff;
+        });
       }
 
       function openHistoryDb() {
@@ -182,17 +190,47 @@
         localStorage.setItem(`${RUN_KEY}.historyFallback`, JSON.stringify(records.slice(-100)));
       }
 
+      function pruneHistoryRecords(records) {
+        const cutoff = Date.now() - (90 * 24 * 60 * 60 * 1000);
+        return (records || []).filter((record) => {
+          const timestamp = Date.parse(record?.timestamp || "");
+          return Number.isNaN(timestamp) ? true : timestamp >= cutoff;
+        });
+      }
+
+      async function pruneIndexedDbHistory(db) {
+        const cutoff = Date.now() - (90 * 24 * 60 * 60 * 1000);
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(HISTORY_STORE_NAME, "readwrite");
+          const store = tx.objectStore(HISTORY_STORE_NAME);
+          const request = store.getAll();
+          request.onsuccess = () => {
+            (request.result || []).forEach((record) => {
+              const timestamp = Date.parse(record?.timestamp || "");
+              if (!Number.isNaN(timestamp) && timestamp < cutoff && record.id !== undefined) {
+                store.delete(record.id);
+              }
+            });
+          };
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error || new Error("Unable to prune history"));
+        });
+      }
+
       async function loadRunHistory() {
         try {
           const db = await openHistoryDb();
           return await new Promise((resolve, reject) => {
             const tx = db.transaction(HISTORY_STORE_NAME, "readonly");
             const request = tx.objectStore(HISTORY_STORE_NAME).getAll();
-            request.onsuccess = () => resolve(request.result || []);
+            request.onsuccess = () => {
+              pruneIndexedDbHistory(db).catch(() => {});
+              resolve(pruneHistoryRecords(request.result || []));
+            };
             request.onerror = () => reject(request.error || new Error("Unable to read history"));
           });
         } catch {
-          return historyFallbackLoad();
+          return pruneHistoryRecords(historyFallbackLoad());
         }
       }
 
@@ -205,10 +243,11 @@
             tx.oncomplete = () => resolve();
             tx.onerror = () => reject(tx.error || new Error("Unable to save history"));
           });
+          await pruneIndexedDbHistory(db);
         } catch {
           const fallback = historyFallbackLoad();
           fallback.push(record);
-          historyFallbackSave(fallback);
+          historyFallbackSave(pruneHistoryRecords(fallback));
         }
       }
 
@@ -249,6 +288,20 @@
           ...profile,
           rules: profile.rules.map((rule) => ({ ...rule }))
         };
+      }
+
+      function deleteRule(ruleId) {
+        const profile = activeProfile();
+        const nextRules = profile.rules.filter((rule) => rule.id !== ruleId);
+        if (nextRules.length === profile.rules.length) {
+          return false;
+        }
+
+        const nextProfile = { ...profile, rules: nextRules };
+        state.profiles = state.profiles.map((item) => (item.profile_name === profile.profile_name ? nextProfile : item));
+        saveProfiles();
+        render();
+        return true;
       }
 
       function setActiveProfile(name) {
@@ -765,16 +818,18 @@
 
           const seen = new Set();
           documents.forEach((document, documentIndex) => {
-            const key = `${document?.Title || ""}::${document?.URL || ""}`;
-            if (seen.has(key)) {
+            const key = document?.URL || "";
+            if (key && seen.has(key)) {
               failures.push({
                 ...common,
-                expected: "unique document URL/title pair",
+                expected: "unique document URL",
                 actual: formatValue(document),
                 documentIndex
               });
             }
-            seen.add(key);
+            if (key) {
+              seen.add(key);
+            }
           });
           return failures;
         }
@@ -786,6 +841,14 @@
         updateRuntimeOverrides();
         const profile = activeProfile();
         const records = getLoadedRecords();
+        if (!records.length) {
+          state.results = [];
+          state.currentIssueGroups = [];
+          state.currentAnomalies = [];
+          state.currentRunStats = { rowCount: 0, nullRates: {}, enumValues: {}, duplicateDocumentCount: 0, failureCount: 0, passRate: 1, schema: { fields: [] } };
+          render();
+          return { results: [], perFileSummary: [], skipped: true, message: "No files loaded. Upload a JSON file before running validation." };
+        }
         const results = [];
         const perFileSummary = [];
 
@@ -885,12 +948,14 @@
         state.currentIssueGroups = buildIssueGroups(results);
         const previousRun = getLatestRunForProfile(profile.profile_name);
         state.currentAnomalies = detectAnomalies(state.currentRunStats, previousRun?.stats || null, profile);
+        const rulesChecked = profile.rules.filter((rule) => rule.enabled && !state.runtimeOverrides.has(rule.id)).length;
 
         const historyEntry = {
           profileName: profile.profile_name,
           timestamp: new Date().toISOString(),
           files: state.files.map((file) => ({ name: file.name, status: file.status, count: file.records.length })),
           rowCount: state.currentRunStats.rowCount,
+          ruleCount: rulesChecked,
           failureCount: results.length,
           passRate: state.currentRunStats.passRate,
           anomalyCount: state.currentAnomalies.length,
