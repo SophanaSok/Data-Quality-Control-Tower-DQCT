@@ -97,6 +97,7 @@
         addedFieldsList: document.getElementById("addedFieldsList"),
         removedFieldsList: document.getElementById("removedFieldsList"),
         typeChangesList: document.getElementById("typeChangesList"),
+        driftDiffList: document.getElementById("driftDiffList"),
         anomaliesList: document.getElementById("anomaliesList"),
         issueSummaryList: document.getElementById("issueSummaryList"),
         ticketPreview: document.getElementById("ticketPreview"),
@@ -277,10 +278,6 @@
 
       function clone(obj) {
         return structuredClone(obj);
-      }
-
-      function copyJson(value) {
-        return structuredClone(value);
       }
 
       function normalizeProfile(profile) {
@@ -632,10 +629,6 @@
         return value === undefined ? "(undefined)" : String(value);
       }
 
-      function severityPill(severity) {
-        return `<span class="pill ${severity}">${severity}</span>`;
-      }
-
       function applyRule(rule, record, recordIndex) {
         const failures = [];
         const value = record[rule.field];
@@ -852,7 +845,7 @@
         const results = [];
         const perFileSummary = [];
 
-        state.files.forEach((file, fileIndex) => {
+        state.files.forEach((file) => {
           if (file.status === "error") {
             results.push({
               fileName: file.name,
@@ -871,8 +864,6 @@
 
           const recordFailuresBefore = results.length;
           const records = file.records;
-          const uniqueTracker = new Map();
-
           profile.rules.forEach((rule) => {
             if (rule.type === "unique" && rule.enabled && !state.runtimeOverrides.has(rule.id)) {
               const values = new Map();
@@ -927,7 +918,6 @@
           });
 
           perFileSummary.push({ name: file.name, records: records.length, failures: results.length - recordFailuresBefore });
-          uniqueTracker.set(file.name, records.length);
         });
 
         state.results = results;
@@ -937,7 +927,7 @@
             profileName: profile.profile_name,
             rootArray: profile.root_array,
             savedAt: new Date().toISOString(),
-            schema: copyJson(state.currentSchema)
+            schema: structuredClone(state.currentSchema)
           };
           saveSchemaBaselines();
         }

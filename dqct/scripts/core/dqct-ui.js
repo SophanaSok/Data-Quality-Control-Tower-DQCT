@@ -152,11 +152,54 @@
           ? items.map((item) => `<div class="drift-item"><strong>${escapeHtml(item.field || item.label || "")}</strong><div class="meta">${escapeHtml(item.type ? `${item.type} · null rate ${(item.nullRate * 100).toFixed(1)}%` : item.detail || item.incoming || item.baseline || "")}</div></div>`).join("")
           : `<div class="drift-item"><strong>${emptyLabel}</strong></div>`;
 
+        const diffEntries = [];
+        (state.currentDrift.added || []).forEach((item) => {
+          diffEntries.push({
+            field: item.field,
+            type: "Added field",
+            baseline: "Missing from baseline",
+            incoming: item.type ? `${item.type} · null rate ${(item.nullRate * 100).toFixed(1)}%` : "Present in incoming data"
+          });
+        });
+        (state.currentDrift.removed || []).forEach((item) => {
+          diffEntries.push({
+            field: item.field,
+            type: "Removed field",
+            baseline: item.type ? `${item.type} · null rate ${(item.nullRate * 100).toFixed(1)}%` : "Present in baseline",
+            incoming: "Missing from incoming data"
+          });
+        });
+        (state.currentDrift.typeChanges || []).forEach((item) => {
+          diffEntries.push({
+            field: item.field,
+            type: "Type change",
+            baseline: item.baseline,
+            incoming: item.incoming
+          });
+        });
+
         els.addedFieldsList.innerHTML = renderFieldList(state.currentDrift.added || [], "No added fields");
         els.removedFieldsList.innerHTML = renderFieldList(state.currentDrift.removed || [], "No removed fields");
         els.typeChangesList.innerHTML = (state.currentDrift.typeChanges || []).length
           ? state.currentDrift.typeChanges.map((item) => `<div class="drift-item"><strong>${escapeHtml(item.field)}</strong><div class="meta">Baseline ${escapeHtml(item.baseline)} → Incoming ${escapeHtml(item.incoming)}</div></div>`).join("")
           : '<div class="drift-item"><strong>No type changes</strong></div>';
+        els.driftDiffList.innerHTML = diffEntries.length
+          ? diffEntries.map((item) => `
+            <div class="drift-item diff">
+              <strong>${escapeHtml(item.field)}</strong>
+              <div class="meta">${escapeHtml(item.type)}</div>
+              <div class="diff-columns">
+                <div class="diff-column">
+                  <div class="label">Baseline</div>
+                  <div class="value">${escapeHtml(item.baseline)}</div>
+                </div>
+                <div class="diff-column">
+                  <div class="label">Incoming</div>
+                  <div class="value">${escapeHtml(item.incoming)}</div>
+                </div>
+              </div>
+            </div>`).join("")
+          : '<div class="drift-item"><strong>No schema drift differences</strong></div>';
 
         els.anomaliesList.innerHTML = (state.currentAnomalies || []).length
           ? state.currentAnomalies.map((item) => `<div class="drift-item"><strong>${escapeHtml(item.label)}</strong><div class="meta">${escapeHtml(item.detail)}</div><div style="margin-top: 0.4rem;"><span class="badge ${item.severity === "warn" ? "warn" : "good"}">${escapeHtml(item.severity)}</span></div></div>`).join("")
