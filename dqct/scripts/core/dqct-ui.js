@@ -312,12 +312,20 @@
         if (rule.condition) {
           return `condition=${rule.condition.field}:${rule.condition.equals}`;
         }
+          if (rule.expected_type) {
+            return `expected_type=${rule.expected_type}`;
+          }
         if (rule.pattern) {
           return `pattern=${rule.pattern}`;
         }
         if (rule.allowed) {
           return `allowed=${rule.allowed.join("|")}`;
         }
+          if (rule.min !== undefined || rule.max !== undefined) {
+            const min = rule.min !== undefined ? rule.min : "";
+            const max = rule.max !== undefined ? rule.max : "";
+            return `min=${min} max=${max}`;
+          }
         if (rule.hash_field) {
           return `hash_field=${rule.hash_field}`;
         }
@@ -347,6 +355,25 @@
         els.exportButton.addEventListener("click", copyReport);
         els.downloadIssuesButton.addEventListener("click", downloadIssuesJson);
         els.cloneProfileButton.addEventListener("click", cloneProfile);
+          els.importSchemaButton.addEventListener("click", () => {
+            els.schemaImportInput.value = "";
+            els.schemaImportInput.click();
+          });
+          els.schemaImportInput.addEventListener("change", async (event) => {
+            const file = event.target.files?.[0];
+            if (!file) {
+              return;
+            }
+
+            try {
+              const draftProfile = await importSchemaFromFile(file);
+              alert(`Imported schema draft: ${draftProfile.profile_name}`);
+            } catch (error) {
+              alert(error.message || String(error));
+            } finally {
+              event.target.value = "";
+            }
+          });
         els.saveProfileButton.addEventListener("click", saveActiveProfile);
         els.resetProfileButton.addEventListener("click", resetProfile);
         els.showCore.addEventListener("click", () => {
@@ -501,8 +528,17 @@
           if (key === "pattern") {
             patch.pattern = rawValue;
           }
+          if (key === "expected_type") {
+            patch.expected_type = rawValue;
+          }
           if (key === "allowed") {
             patch.allowed = rawValue.split("|");
+          }
+          if (key === "min") {
+            patch.min = rawValue;
+          }
+          if (key === "max") {
+            patch.max = rawValue;
           }
           if (key === "hash_field") {
             patch.hash_field = rawValue;

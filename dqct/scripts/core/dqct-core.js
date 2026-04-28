@@ -111,6 +111,8 @@
         seedDemoButton: document.getElementById("seedDemoButton"),
         profileList: document.getElementById("profileList"),
         cloneProfileButton: document.getElementById("cloneProfileButton"),
+        importSchemaButton: document.getElementById("importSchemaButton"),
+        schemaImportInput: document.getElementById("schemaImportInput"),
         saveProfileButton: document.getElementById("saveProfileButton"),
         resetProfileButton: document.getElementById("resetProfileButton"),
         newProfileName: document.getElementById("newProfileName"),
@@ -215,6 +217,18 @@
         } catch {
           return fallback;
         }
+      }
+
+      function extractRecordsFromPayload(payload) {
+        if (Array.isArray(payload)) {
+          return { records: payload, rootArray: "root" };
+        }
+
+        if (Array.isArray(payload?.Export)) {
+          return { records: payload.Export, rootArray: "Export" };
+        }
+
+        return null;
       }
 
       function activeProfile() {
@@ -427,6 +441,55 @@
         };
       }
 
+      function buildImportedProfile(records, sourceName, rootArray) {
+        const schema = inferSchema(records);
+        const safeSourceName = String(sourceName || "Imported schema").replace(/\.json$/i, "");
+        const profileName = `Draft schema: ${safeSourceName}`;
+        const rules = [];
+        let ruleNumber = 1;
+
+        schema.fields.forEach((field) => {
+          if (field.nullRate === 0) {
+            rules.push({
+              id: `S${String(ruleNumber).padStart(2, "0")}`,
+              layer: "domain",
+              field: field.field,
+              type: "required",
+              severity: "high",
+              enabled: true,
+              notes: "Imported from sample schema; review before saving"
+            });
+            ruleNumber += 1;
+          }
+
+          if (field.type && field.type !== "empty") {
+            rules.push({
+              id: `S${String(ruleNumber).padStart(2, "0")}`,
+              layer: "diagnostic",
+              field: field.field,
+              type: "type",
+              severity: "medium",
+              enabled: true,
+              expected_type: field.type,
+              notes: "Imported from sample schema; confirm inferred type"
+            });
+            ruleNumber += 1;
+          }
+        });
+
+        return {
+          profile_name: profileName,
+          source: `Imported from ${sourceName}`,
+          version: "draft-1.0",
+          root_array: rootArray || "Export",
+          draft: true,
+          imported_from: sourceName,
+          imported_at: new Date().toISOString(),
+          schema_summary: schema,
+          rules
+        };
+      }
+
       function detectAnomalies(currentStats, previousStats, profile) {
         if (!previousStats) {
           return [];
@@ -579,6 +642,41 @@
         if (rule.type === "enum") {
           if (!isEmpty(value) && !rule.allowed.includes(value)) {
             fail(`one of ${rule.allowed.join(", ")}`, value);
+          }
+          return failures;
+        }
+
+        if (rule.type === "type") {
+          if (isEmpty(value)) {
+            return failures;
+          }
+
+          const expectedType = rule.expected_type || rule.expectedType || rule.data_type || "string";
+          const actualType = inferFieldType(value);
+          const typeMatches = expectedType === actualType || (expectedType === "date" && !Number.isNaN(Date.parse(String(value))));
+
+          if (!typeMatches) {
+            fail(`type ${expectedType}`, value);
+          }
+          return failures;
+        }
+
+        if (rule.type === "range") {
+          if (isEmpty(value)) {
+            return failures;
+          }
+
+          const numericValue = Number(value);
+          if (Number.isNaN(numericValue)) {
+            fail("numeric value", value);
+            return failures;
+          }
+
+          const min = rule.min !== undefined && rule.min !== null && rule.min !== "" ? Number(rule.min) : null;
+          const max = rule.max !== undefined && rule.max !== null && rule.max !== "" ? Number(rule.max) : null;
+
+          if ((min !== null && numericValue < min) || (max !== null && numericValue > max)) {
+            fail(`range ${min !== null ? min : "-∞"} to ${max !== null ? max : "∞"}`, value);
           }
           return failures;
         }
@@ -813,6 +911,28 @@
         saveRuns(state.parsedRuns);
         render();
         return { results, perFileSummary };
+      }
+
+      async function importSchemaFromFile(file) {
+        const text = await readTextFile(file);
+        const payload = JSON.parse(text);
+        const extracted = extractRecordsFromPayload(payload);
+
+        if (!extracted || !extracted.records.length) {
+          throw new Error('Schema import requires a JSON array or an object with a non-empty "Export" array.');
+        }
+
+        const draftProfile = buildImportedProfile(extracted.records, file.name, extracted.rootArray);
+        state.profiles = state.profiles.filter((profile) => profile.profile_name !== draftProfile.profile_name).concat(draftProfile);
+        state.activeProfileId = draftProfile.profile_name;
+        state.ruleSearch = "";
+        state.currentLayer = "all";
+        state.runtimeOverrides = new Set();
+        els.newProfileName.value = draftProfile.profile_name;
+        els.newRootArray.value = draftProfile.root_array || "Export";
+        saveProfiles();
+        render();
+        return draftProfile;
       }
 
       function buildReportText() {

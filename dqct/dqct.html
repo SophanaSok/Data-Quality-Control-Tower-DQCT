@@ -202,9 +202,12 @@
             </div>
             <div class="actions-row" style="margin-top: 0.8rem;">
               <button id="cloneProfileButton" type="button">Clone profile</button>
+              <button id="importSchemaButton" type="button" class="secondary">Import schema</button>
               <button id="saveProfileButton" type="button" class="secondary">Save active profile</button>
               <button id="resetProfileButton" type="button" class="ghost">Reset active profile</button>
             </div>
+            <input id="schemaImportInput" class="hidden" type="file" accept=".json,application/json" />
+            <div class="footer-note">Import schema creates a draft profile from a sample JSON file so you can review inferred required and type rules before saving.</div>
             <div class="profile-list" id="profileList" style="margin-top: 1rem;"></div>
           </div>
 

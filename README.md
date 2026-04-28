@@ -25,7 +25,7 @@ A browser-based validation tool for scraped government IT and software bid data.
 ## 🚀 Quick Start
 
 ### 1. Open the App
-- Navigate to `http://localhost:8000/dqct.html` in your browser (Chrome or Firefox recommended)
+- Navigate to `http://localhost:8000/` or `http://localhost:8000/dqct/dqct.html` in your browser (Chrome or Firefox recommended)
 - No login or setup required—fully offline capable
 
 ### 2. Load Sample Data (Optional)
@@ -128,6 +128,13 @@ On the right sidebar under **Active Profile**:
    - Enter a name in **New Profile Name** (e.g., "County RFP Board")
    - Enter the root array field in **New Root Array** (default: `Export`)
    - Click **Clone Current Profile** to create a copy of the active profile, then customize its rules
+
+### Importing a Schema Draft
+
+1. Click **Import schema** in the Profile Management panel
+2. Select a sample JSON file with either a bare array or an `{ "Export": [...] }` wrapper
+3. The app generates a draft profile with inferred `required` and `type` rules
+4. Review and edit the draft inline, then click **Save active profile** to keep it
 
 ---
 
