@@ -239,7 +239,7 @@
                 <div class="field-title-row">
                   <strong>${escapeHtml(field)}</strong>
                   <div class="field-actions">
-                    <button type="button" class="field-action delete" data-delete-field="${escapeHtml(field)}" aria-label="Delete all rules for ${escapeHtml(field)}">Delete rules</button>
+                    <button type="button" class="field-action delete" data-delete-field="${escapeHtml(field)}" aria-label="Delete rule for ${escapeHtml(field)}">Delete rule</button>
                     <button type="button" class="field-action toggle" data-toggle-field="${escapeHtml(field)}" aria-label="${isExpanded ? "Collapse" : "Expand"} rules for ${escapeHtml(field)}">${isExpanded ? "Collapse" : "Expand"}</button>
                   </div>
                 </div>
@@ -721,7 +721,7 @@
 
           const deleteFieldName = target.getAttribute("data-delete-field");
           if (deleteFieldName) {
-            const confirmed = window.confirm(`Delete all rules for field ${deleteFieldName}?`);
+            const confirmed = window.confirm(`Delete rule for field ${deleteFieldName}?`);
             if (confirmed) {
               if (typeof deleteRulesByField === "function") {
                 const ok = deleteRulesByField(deleteFieldName);
