@@ -816,40 +816,47 @@
       .field-actions {
         display: inline-flex;
         align-items: center;
-        gap: 0.3rem;
+        gap: 0.7rem;
         flex-shrink: 0;
         white-space: nowrap;
       }
 
       .field-action {
-        border: 1px solid rgba(20, 34, 58, 0.1);
-        border-radius: 999px;
-        padding: 0.3rem 0.58rem;
-        font-size: 0.72rem;
-        line-height: 1;
-        font-weight: 700;
-        background: rgba(255, 255, 255, 0.82);
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+        font-size: 0.8rem;
+        line-height: 1.2;
+        font-weight: 600;
+        background: transparent;
         color: var(--primary-strong);
         cursor: pointer;
-        letter-spacing: 0.01em;
+        text-decoration: none;
       }
 
       .field-action:hover {
-        background: rgba(32, 74, 135, 0.06);
+        text-decoration-thickness: 2px;
+        text-decoration: underline;
+        text-underline-offset: 0.18em;
+      }
+
+      .field-action:focus-visible {
+        outline: none;
+        text-decoration: underline;
+        text-underline-offset: 0.18em;
       }
 
       .field-action.delete {
         color: var(--danger);
-        border-color: rgba(161, 31, 31, 0.14);
-        background: rgba(161, 31, 31, 0.03);
+        font-weight: 700;
       }
 
       .field-action.delete:hover {
-        background: rgba(161, 31, 31, 0.08);
+        color: #7f1515;
       }
 
       .field-action.toggle {
-        background: rgba(32, 74, 135, 0.04);
+        color: var(--primary-strong);
       }
 
       .drift-item.diff {

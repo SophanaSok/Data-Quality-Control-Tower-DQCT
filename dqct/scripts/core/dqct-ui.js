@@ -239,7 +239,7 @@
                 <div class="field-title-row">
                   <strong>${escapeHtml(field)}</strong>
                   <div class="field-actions">
-                    <button type="button" class="field-action delete" data-delete-field="${escapeHtml(field)}" aria-label="Delete rule for ${escapeHtml(field)}">Delete rule</button>
+                    <button type="button" class="field-action delete" data-delete-field="${escapeHtml(field)}" aria-label="Delete rule for ${escapeHtml(field)}">Delete</button>
                     <button type="button" class="field-action toggle" data-toggle-field="${escapeHtml(field)}" aria-label="${isExpanded ? "Collapse" : "Expand"} rules for ${escapeHtml(field)}">${isExpanded ? "Collapse" : "Expand"}</button>
                   </div>
                 </div>
