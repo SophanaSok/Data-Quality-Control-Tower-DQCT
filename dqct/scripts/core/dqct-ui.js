@@ -286,7 +286,8 @@
               </div>
               <div class="profile-actions">
                 <button type="button" class="ghost" data-use-profile="${profile.profile_name}">${profile.profile_name === state.activeProfileId ? "Active" : "Use"}</button>
-                ${profile.profile_name === (typeof defaultProfile !== 'undefined' ? defaultProfile.profile_name : "") ? "" : `<button type="button" class="ghost" data-delete-profile="${profile.profile_name}">Delete</button>`}
+                <button type="button" class="ghost" data-edit-profile="${profile.profile_name}">Edit</button>
+                <button type="button" class="ghost" data-delete-profile="${profile.profile_name}">Delete</button>
               </div>
             </div>`)
           .join("");
@@ -659,6 +660,22 @@
               } else {
                 console.warn("deleteProfile function not available");
               }
+            }
+            return;
+          }
+
+          const editProfileName = target.getAttribute("data-edit-profile");
+          if (editProfileName) {
+            const current = state.profiles.find((p) => p.profile_name === editProfileName);
+            if (!current) return;
+            const newName = window.prompt("New profile name:", current.profile_name);
+            if (!newName || !newName.trim() || newName === current.profile_name) return;
+            const newDesc = window.prompt("Profile description/source:", current.source || "");
+            if (typeof renameProfile === "function") {
+              const ok = renameProfile(current.profile_name, newName.trim(), (newDesc || "").trim());
+              if (!ok) alert(`Unable to rename profile ${current.profile_name} to ${newName}. Name might already exist.`);
+            } else {
+              console.warn("renameProfile function not available");
             }
             return;
           }

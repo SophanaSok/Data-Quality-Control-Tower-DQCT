@@ -303,11 +303,6 @@
 
       function deleteProfile(profileName) {
         if (!profileName) return false;
-        if (profileName === defaultProfile.profile_name) {
-          alert(`Cannot delete the built-in default profile: ${profileName}`);
-          return false;
-        }
-
         const before = state.profiles.length;
         state.profiles = state.profiles.filter((p) => p.profile_name !== profileName);
         if (state.profiles.length === before) return false;
@@ -330,6 +325,50 @@
         } catch (err) {
           console.warn('Failed to prune runs for deleted profile', err);
         }
+
+        saveProfiles();
+        render();
+        return true;
+      }
+
+      function renameProfile(oldName, newName, newSource) {
+        if (!oldName || !newName) return false;
+        if (oldName === newName) {
+          // still update description/source
+          state.profiles = state.profiles.map((p) => (p.profile_name === oldName ? { ...p, source: newSource || p.source } : p));
+          saveProfiles();
+          render();
+          return true;
+        }
+
+        // prevent name collision
+        if (state.profiles.some((p) => p.profile_name === newName)) return false;
+
+        state.profiles = state.profiles.map((p) => {
+          if (p.profile_name === oldName) {
+            return { ...p, profile_name: newName, source: newSource || p.source };
+          }
+          return p;
+        });
+
+        // move schema baseline key if exists
+        if (state.schemaBaselines && state.schemaBaselines[oldName]) {
+          state.schemaBaselines[newName] = state.schemaBaselines[oldName];
+          delete state.schemaBaselines[oldName];
+          saveSchemaBaselines();
+        }
+
+        // update run history entries
+        try {
+          const runs = loadRuns() || [];
+          const updated = runs.map((r) => (r.profileName === oldName ? { ...r, profileName: newName } : r));
+          saveRuns(updated);
+        } catch (err) {
+          console.warn('Failed to update runs for renamed profile', err);
+        }
+
+        // update active profile id if necessary
+        if (state.activeProfileId === oldName) state.activeProfileId = newName;
 
         saveProfiles();
         render();

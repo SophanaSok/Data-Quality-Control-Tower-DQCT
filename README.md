@@ -279,6 +279,19 @@ Each rule can be customized inline:
 
 Changes are saved automatically to your browser's local storage.
 
+### Renaming & Deleting Profiles
+
+- **Rename (Edit)**: In the **Profile management** list click **Edit** next to a profile. You'll be prompted for a new profile name and a description/source string. Renaming updates the profile name in the UI, moves any saved schema baseline to the new name, and updates stored run entries so history remains associated with the renamed profile. Renames will fail if the target name already exists.
+
+- **Delete**: Click **Delete** next to a profile and confirm. Deleting removes the profile from the local profile list, clears its saved schema baseline, and prunes any run entries stored in localStorage that reference the deleted profile. Deleting the built-in default profile is allowed. Note: IndexedDB run history is not deleted by this action to avoid accidental large DB changes.
+
+Testing these actions locally:
+1. Serve the app locally: `python3 -m http.server 8000` and open `http://localhost:8000/dqct/dqct.html`.
+2. Create or clone a profile so you have a non-default profile to experiment with.
+3. Use **Edit** to rename and change the profile description, then verify the profile list and run history reflect the new name.
+4. Use **Delete** to remove a profile and confirm that the profile disappears and its schema baseline and localStorage run entries are removed.
+
+
 ### Filtering Rules by Layer
 
 At the top of the **Rules** panel, click layer buttons to filter:
