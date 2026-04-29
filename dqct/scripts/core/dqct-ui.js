@@ -771,11 +771,7 @@
 
           const toggleAllFields = target.getAttribute("data-toggle-all-fields");
           if (toggleAllFields) {
-            const fieldNames = Object.keys((activeProfile().rules || []).reduce((acc, rule) => {
-              const key = rule.field || "(no field)";
-              acc[key] = true;
-              return acc;
-            }, {}));
+            const fieldNames = Array.from(document.querySelectorAll(".field-group-header strong")).map((node) => node.textContent || "(no field)");
             const shouldExpand = !fieldNames.every((field) => state.expandedFields.has(field));
             state.expandedFields = shouldExpand ? new Set(fieldNames) : new Set();
             if (typeof saveUiState === "function") {
