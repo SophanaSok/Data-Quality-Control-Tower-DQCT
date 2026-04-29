@@ -1,4 +1,5 @@
       const STORAGE_KEY = "dqct.profiles.v1";
+      const UI_STATE_KEY = "dqct.ui.v1";
       const RUN_KEY = "dqct.runs.v1";
       const SCHEMA_KEY = "dqct.schemas.v1";
       const HISTORY_DB_NAME = "dqct-history-db";
@@ -52,6 +53,7 @@
         profiles: loadProfiles(),
         activeProfileId: defaultProfile.profile_name,
         editingProfile: null,
+        expandedFields: new Set(loadUiState().expandedFields || []),
         files: [],
         parsedRuns: [],
         results: [],
@@ -137,6 +139,14 @@
 
       function saveProfiles() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state.profiles));
+      }
+
+      function loadUiState() {
+        return safeJsonParse(localStorage.getItem(UI_STATE_KEY), { expandedFields: [] });
+      }
+
+      function saveUiState() {
+        localStorage.setItem(UI_STATE_KEY, JSON.stringify({ expandedFields: Array.from(state.expandedFields || []) }));
       }
 
       function saveRuns(runs) {

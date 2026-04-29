@@ -455,11 +455,16 @@
       .summary-item {
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
+        align-items: center;
         gap: 1rem;
-        padding: 0.85rem 0.92rem;
+        padding: 0.9rem 1rem;
         border-radius: 14px;
         background: rgba(20, 34, 58, 0.04);
+      }
+
+      .profile-item > div:first-child {
+        min-width: 0;
+        flex: 1 1 auto;
       }
 
       /* Inline profile edit styles */
@@ -512,8 +517,22 @@
 
       .profile-actions {
         display: flex;
-        gap: 0.5rem;
+        gap: 0.6rem;
         align-items: center;
+        margin-left: 0.6rem;
+        flex-shrink: 0;
+      }
+
+      .profile-actions button {
+        padding: 0.48rem 0.75rem;
+        border-radius: 10px;
+        font-size: 0. ninerem;
+      }
+
+      /* Fallback for browsers that misinterpret spacing; ensure consistent min heights */
+      .profile-actions button,
+      .profile-edit-form input {
+        min-height: 36px;
       }
 
       .profile-item.editing .meta {
@@ -755,6 +774,31 @@
         background: rgba(20, 34, 58, 0.04);
         border: 1px solid rgba(20, 34, 58, 0.06);
       }
+
+      /* Field group styles for rules grouped by field name */
+      .field-group {
+        border-radius: 10px;
+        border: 1px solid rgba(20,34,58,0.06);
+        background: rgba(255,255,255,0.94);
+        margin-bottom: 0.6rem;
+        overflow: hidden;
+      }
+
+      .field-group-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.7rem 0.9rem;
+        border-bottom: 1px solid rgba(20,34,58,0.04);
+      }
+
+      .field-title { display: flex; flex-direction: column; }
+      .field-title .meta { font-size: 0.82rem; color: var(--muted); }
+
+      .rules-group { padding: 0.9rem; display: grid; gap: 0.75rem; }
+
+      .field-actions button.ghost { padding: 0.4rem 0.6rem; }
 
       .drift-item.diff {
         display: grid;

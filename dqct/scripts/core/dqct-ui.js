@@ -220,56 +220,77 @@
           const matchesSearch = !filter || [rule.id, rule.field, rule.type, rule.notes, rule.severity, rule.layer].some((value) => String(value || "").toLowerCase().includes(filter));
           return matchesLayer && matchesSearch;
         });
+        // Group rules by field name for collapsible groups
+        const groups = {};
+        for (const rule of filteredRules) {
+          const key = rule.field || "(no field)";
+          groups[key] = groups[key] || [];
+          groups[key].push(rule);
+        }
 
-        els.rulesList.innerHTML = filteredRules
-          .map((rule) => `
-            <article class="rule-card" data-rule-id="${rule.id}">
-              <div class="rule-top">
-                <div class="rule-meta">
-                  <span class="pill info">${rule.layer}</span>
-                  <span class="pill ${rule.severity}">${rule.severity}</span>
-                  <span class="title">${rule.id} · ${rule.field}</span>
-                  <span class="muted">${rule.type}</span>
-                  ${state.runtimeOverrides.has(rule.id) ? '<span class="pill low">runtime disabled</span>' : ""}
-                </div>
-                <div class="rule-actions">
-                  <label class="switch">
-                    <input type="checkbox" ${rule.enabled ? "checked" : ""} data-toggle-rule="${rule.id}" />
-                    Enabled
-                  </label>
-                  <button type="button" class="ghost" data-delete-rule="${rule.id}">Delete</button>
-                </div>
+        els.rulesList.innerHTML = Object.keys(groups).map((field) => {
+          const rules = groups[field];
+          const isExpanded = state.expandedFields.has(field);
+          const header = `
+            <div class="field-group-header">
+              <div class="field-title"><strong>${escapeHtml(field)}</strong><div class="meta">${rules.length} rule${rules.length === 1 ? "" : "s"}</div></div>
+              <div class="field-actions">
+                <button type="button" class="ghost" data-toggle-field="${escapeHtml(field)}">${isExpanded ? "Collapse" : "Expand"}</button>
               </div>
-              <div class="rule-grid">
-                <div class="fieldset wide">
-                  <label>Notes</label>
-                  <input type="text" value="${escapeHtml(rule.notes || "")}" data-rule-notes="${rule.id}" />
-                </div>
-                <div class="fieldset">
-                  <label>Type</label>
-                  <input type="text" value="${rule.type}" data-rule-type="${rule.id}" />
-                </div>
-                <div class="fieldset">
-                  <label>Severity</label>
-                  <select data-rule-severity="${rule.id}">
-                    ${["high", "medium", "low"].map((severity) => `<option value="${severity}" ${severity === rule.severity ? "selected" : ""}>${severity}</option>`).join("")}
-                  </select>
-                </div>
-                <div class="fieldset">
-                  <label>Field</label>
-                  <input type="text" value="${rule.field}" data-rule-field="${rule.id}" />
-                </div>
-                <div class="fieldset">
-                  <label>Layer</label>
-                  <input type="text" value="${rule.layer}" data-rule-layer="${rule.id}" />
-                </div>
-                <div class="fieldset full">
-                  <label>Condition / extras</label>
-                  <input type="text" value="${escapeHtml(renderRuleExtras(rule))}" data-rule-extras="${rule.id}" />
-                </div>
-              </div>
-            </article>`)
-          .join("");
+            </div>`;
+
+          const rulesHtml = isExpanded
+            ? rules.map((rule) => `
+                <article class="rule-card" data-rule-id="${rule.id}">
+                  <div class="rule-top">
+                    <div class="rule-meta">
+                      <span class="pill info">${rule.layer}</span>
+                      <span class="pill ${rule.severity}">${rule.severity}</span>
+                      <span class="title">${rule.id} · ${escapeHtml(rule.field)}</span>
+                      <span class="muted">${rule.type}</span>
+                      ${state.runtimeOverrides.has(rule.id) ? '<span class="pill low">runtime disabled</span>' : ""}
+                    </div>
+                    <div class="rule-actions">
+                      <label class="switch">
+                        <input type="checkbox" ${rule.enabled ? "checked" : ""} data-toggle-rule="${rule.id}" />
+                        Enabled
+                      </label>
+                      <button type="button" class="ghost" data-delete-rule="${rule.id}">Delete</button>
+                    </div>
+                  </div>
+                  <div class="rule-grid">
+                    <div class="fieldset wide">
+                      <label>Notes</label>
+                      <input type="text" value="${escapeHtml(rule.notes || "")}" data-rule-notes="${rule.id}" />
+                    </div>
+                    <div class="fieldset">
+                      <label>Type</label>
+                      <input type="text" value="${rule.type}" data-rule-type="${rule.id}" />
+                    </div>
+                    <div class="fieldset">
+                      <label>Severity</label>
+                      <select data-rule-severity="${rule.id}">
+                        ${["high", "medium", "low"].map((severity) => `<option value="${severity}" ${severity === rule.severity ? "selected" : ""}>${severity}</option>`).join("")}
+                      </select>
+                    </div>
+                    <div class="fieldset">
+                      <label>Field</label>
+                      <input type="text" value="${rule.field}" data-rule-field="${rule.id}" />
+                    </div>
+                    <div class="fieldset">
+                      <label>Layer</label>
+                      <input type="text" value="${rule.layer}" data-rule-layer="${rule.id}" />
+                    </div>
+                    <div class="fieldset full">
+                      <label>Condition / extras</label>
+                      <input type="text" value="${escapeHtml(renderRuleExtras(rule))}" data-rule-extras="${rule.id}" />
+                    </div>
+                  </div>
+                </article>`).join("")
+            : '';
+
+          return `<div class="field-group">${header}<div class="rules-group ${isExpanded ? '' : 'hidden'}">${rulesHtml}</div></div>`;
+        }).join("");
 
         if (!filteredRules.length) {
           els.rulesList.innerHTML = '<div class="empty-state">No rules match the current filter.</div>';
@@ -711,6 +732,20 @@
               console.warn("renameProfile function not available");
             }
             state.editingProfile = null;
+            render();
+            return;
+          }
+
+          const toggleField = target.getAttribute("data-toggle-field");
+          if (toggleField) {
+            if (state.expandedFields.has(toggleField)) {
+              state.expandedFields.delete(toggleField);
+            } else {
+              state.expandedFields.add(toggleField);
+            }
+            if (typeof saveUiState === "function") {
+              saveUiState();
+            }
             render();
             return;
           }
