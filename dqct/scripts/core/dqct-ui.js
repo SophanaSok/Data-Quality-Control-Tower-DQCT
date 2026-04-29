@@ -284,7 +284,10 @@
                 <strong>${profile.profile_name}</strong>
                 <div class="meta">${profile.source || "Custom profile"} · root ${profile.root_array}</div>
               </div>
-              <button type="button" class="ghost" data-use-profile="${profile.profile_name}">${profile.profile_name === state.activeProfileId ? "Active" : "Use"}</button>
+              <div class="profile-actions">
+                <button type="button" class="ghost" data-use-profile="${profile.profile_name}">${profile.profile_name === state.activeProfileId ? "Active" : "Use"}</button>
+                ${profile.profile_name === (typeof defaultProfile !== 'undefined' ? defaultProfile.profile_name : "") ? "" : `<button type="button" class="ghost" data-delete-profile="${profile.profile_name}">Delete</button>`}
+              </div>
             </div>`)
           .join("");
       }
@@ -640,6 +643,22 @@
             const confirmed = window.confirm(`Delete rule ${deleteRuleId}?`);
             if (confirmed) {
               deleteRule(deleteRuleId);
+            }
+            return;
+          }
+
+          const deleteProfileName = target.getAttribute("data-delete-profile");
+          if (deleteProfileName) {
+            const confirmed = window.confirm(`Delete profile ${deleteProfileName}? This will remove saved rules and schema baseline for the profile.`);
+            if (confirmed) {
+              if (typeof deleteProfile === "function") {
+                const ok = deleteProfile(deleteProfileName);
+                if (!ok) {
+                  alert(`Unable to delete profile ${deleteProfileName}.`);
+                }
+              } else {
+                console.warn("deleteProfile function not available");
+              }
             }
             return;
           }

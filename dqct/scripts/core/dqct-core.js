@@ -301,6 +301,41 @@
         return true;
       }
 
+      function deleteProfile(profileName) {
+        if (!profileName) return false;
+        if (profileName === defaultProfile.profile_name) {
+          alert(`Cannot delete the built-in default profile: ${profileName}`);
+          return false;
+        }
+
+        const before = state.profiles.length;
+        state.profiles = state.profiles.filter((p) => p.profile_name !== profileName);
+        if (state.profiles.length === before) return false;
+
+        if (state.activeProfileId === profileName) {
+          state.activeProfileId = state.profiles[0]?.profile_name || defaultProfile.profile_name;
+        }
+
+        // Remove any saved schema baseline for the profile
+        if (state.schemaBaselines && state.schemaBaselines[profileName]) {
+          delete state.schemaBaselines[profileName];
+          saveSchemaBaselines();
+        }
+
+        // Remove runs stored in localStorage for this profile
+        try {
+          const runs = loadRuns();
+          const filtered = (runs || []).filter((r) => r.profileName !== profileName);
+          saveRuns(filtered);
+        } catch (err) {
+          console.warn('Failed to prune runs for deleted profile', err);
+        }
+
+        saveProfiles();
+        render();
+        return true;
+      }
+
       function setActiveProfile(name) {
         state.activeProfileId = name;
         render();
