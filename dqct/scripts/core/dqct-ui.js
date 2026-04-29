@@ -278,18 +278,36 @@
 
       function renderProfileList() {
         els.profileList.innerHTML = state.profiles
-          .map((profile) => `
-            <div class="profile-item">
-              <div>
-                <strong>${profile.profile_name}</strong>
-                <div class="meta">${profile.source || "Custom profile"} · root ${profile.root_array}</div>
-              </div>
-              <div class="profile-actions">
-                <button type="button" class="ghost" data-use-profile="${profile.profile_name}">${profile.profile_name === state.activeProfileId ? "Active" : "Use"}</button>
-                <button type="button" class="ghost" data-edit-profile="${profile.profile_name}">Edit</button>
-                <button type="button" class="ghost" data-delete-profile="${profile.profile_name}">Delete</button>
-              </div>
-            </div>`)
+          .map((profile) => {
+            const isEditing = state.editingProfile === profile.profile_name;
+            if (isEditing) {
+              return `
+                <div class="profile-item editing">
+                  <div class="profile-edit-form">
+                    <div><input name="editName" value="${escapeHtml(profile.profile_name)}" /></div>
+                    <div><input name="editSource" value="${escapeHtml(profile.source || "")}" placeholder="Description / source" /></div>
+                    <div class="meta">root ${profile.root_array}</div>
+                  </div>
+                  <div class="profile-actions">
+                    <button type="button" class="ghost" data-save-profile="${profile.profile_name}">Save</button>
+                    <button type="button" class="ghost" data-cancel-edit="${profile.profile_name}">Cancel</button>
+                    <button type="button" class="ghost" data-delete-profile="${profile.profile_name}">Delete</button>
+                  </div>
+                </div>`;
+            }
+            return `
+              <div class="profile-item">
+                <div>
+                  <strong>${escapeHtml(profile.profile_name)}</strong>
+                  <div class="meta">${escapeHtml(profile.source || "Custom profile")} · root ${escapeHtml(profile.root_array)}</div>
+                </div>
+                <div class="profile-actions">
+                  <button type="button" class="ghost" data-use-profile="${escapeHtml(profile.profile_name)}">${profile.profile_name === state.activeProfileId ? "Active" : "Use"}</button>
+                  <button type="button" class="ghost" data-edit-profile="${escapeHtml(profile.profile_name)}">Edit</button>
+                  <button type="button" class="ghost" data-delete-profile="${escapeHtml(profile.profile_name)}">Delete</button>
+                </div>
+              </div>`;
+          })
           .join("");
       }
 
@@ -666,17 +684,35 @@
 
           const editProfileName = target.getAttribute("data-edit-profile");
           if (editProfileName) {
-            const current = state.profiles.find((p) => p.profile_name === editProfileName);
-            if (!current) return;
-            const newName = window.prompt("New profile name:", current.profile_name);
-            if (!newName || !newName.trim() || newName === current.profile_name) return;
-            const newDesc = window.prompt("Profile description/source:", current.source || "");
+            state.editingProfile = editProfileName;
+            render();
+            return;
+          }
+
+          const saveProfileOld = target.getAttribute("data-save-profile");
+          if (saveProfileOld) {
+            const container = target.closest('.profile-item');
+            if (!container) return;
+            const nameInput = container.querySelector('input[name="editName"]');
+            const sourceInput = container.querySelector('input[name="editSource"]');
+            const newName = nameInput ? nameInput.value.trim() : null;
+            const newSource = sourceInput ? sourceInput.value.trim() : null;
+            if (!newName) { alert('Profile name cannot be empty'); return; }
             if (typeof renameProfile === "function") {
-              const ok = renameProfile(current.profile_name, newName.trim(), (newDesc || "").trim());
-              if (!ok) alert(`Unable to rename profile ${current.profile_name} to ${newName}. Name might already exist.`);
+              const ok = renameProfile(saveProfileOld, newName, newSource || "");
+              if (!ok) alert(`Unable to rename profile ${saveProfileOld} to ${newName}. Name might already exist.`);
             } else {
               console.warn("renameProfile function not available");
             }
+            state.editingProfile = null;
+            render();
+            return;
+          }
+
+          const cancelEdit = target.getAttribute("data-cancel-edit");
+          if (cancelEdit) {
+            state.editingProfile = null;
+            render();
             return;
           }
 

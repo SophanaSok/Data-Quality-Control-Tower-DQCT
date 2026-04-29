@@ -51,6 +51,7 @@
       const state = {
         profiles: loadProfiles(),
         activeProfileId: defaultProfile.profile_name,
+        editingProfile: null,
         files: [],
         parsedRuns: [],
         results: [],
