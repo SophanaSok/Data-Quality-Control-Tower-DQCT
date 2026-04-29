@@ -831,33 +831,39 @@
         cursor: pointer;
         text-decoration: none;
         white-space: nowrap;
+        transition: text-decoration-color 0.15s ease, opacity 0.15s ease;
       }
 
       .field-action:hover {
-        text-decoration: underline;
-        text-underline-offset: 0.18em;
+        opacity: 0.88;
       }
 
       .field-action:focus-visible {
         outline: none;
         text-decoration: underline;
         text-underline-offset: 0.18em;
+        text-decoration-thickness: 1px;
+        text-decoration-color: rgba(32, 74, 135, 0.55);
+      }
+
+      .field-action.toggle:hover,
+      .field-action.toggle:focus-visible {
+        text-decoration: underline;
       }
 
       .field-action.delete {
-        color: var(--danger);
+        color: rgba(161, 31, 31, 0.78);
         font-weight: 700;
         text-decoration: none;
       }
 
       .field-action.delete:hover {
-        color: #7f1515;
-        text-decoration: underline;
+        color: var(--danger);
+        opacity: 1;
       }
 
       .field-action.delete:focus-visible {
-        color: #7f1515;
-        text-decoration: underline;
+        text-decoration: none;
         outline: none;
       }
 
