@@ -235,10 +235,15 @@
           const isExpanded = state.expandedFields.has(field);
           const header = `
             <div class="field-group-header">
-              <div class="field-title"><strong>${escapeHtml(field)}</strong><div class="meta">${rules.length} rule${rules.length === 1 ? "" : "s"}</div></div>
-              <div class="field-actions">
-                <button type="button" class="ghost" data-delete-field="${escapeHtml(field)}">Quick delete</button>
-                <button type="button" class="ghost" data-toggle-field="${escapeHtml(field)}">${isExpanded ? "Collapse" : "Expand"}</button>
+              <div class="field-title">
+                <div class="field-title-row">
+                  <strong>${escapeHtml(field)}</strong>
+                  <div class="field-actions">
+                    <button type="button" class="field-action delete" data-delete-field="${escapeHtml(field)}" aria-label="Delete all rules for ${escapeHtml(field)}">Delete rules</button>
+                    <button type="button" class="field-action toggle" data-toggle-field="${escapeHtml(field)}" aria-label="${isExpanded ? "Collapse" : "Expand"} rules for ${escapeHtml(field)}">${isExpanded ? "Collapse" : "Expand"}</button>
+                  </div>
+                </div>
+                <div class="meta">${rules.length} rule${rules.length === 1 ? "" : "s"}</div>
               </div>
             </div>`;
 
