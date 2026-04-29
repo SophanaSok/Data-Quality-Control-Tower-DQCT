@@ -289,7 +289,7 @@
                     <div class="meta">root ${profile.root_array}</div>
                   </div>
                   <div class="profile-actions">
-                    <button type="button" class="ghost" data-save-profile="${profile.profile_name}">Save</button>
+                    <button type="button" data-save-profile="${profile.profile_name}">Save</button>
                     <button type="button" class="ghost" data-cancel-edit="${profile.profile_name}">Cancel</button>
                     <button type="button" class="ghost" data-delete-profile="${profile.profile_name}">Delete</button>
                   </div>
