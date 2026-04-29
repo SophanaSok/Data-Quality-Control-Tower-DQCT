@@ -312,6 +312,22 @@
         return true;
       }
 
+      function deleteRulesByField(fieldName) {
+        if (!fieldName) return false;
+
+        const profile = activeProfile();
+        const nextRules = profile.rules.filter((rule) => (rule.field || "(no field)") !== fieldName);
+        if (nextRules.length === profile.rules.length) {
+          return false;
+        }
+
+        const nextProfile = { ...profile, rules: nextRules };
+        state.profiles = state.profiles.map((item) => (item.profile_name === profile.profile_name ? nextProfile : item));
+        saveProfiles();
+        render();
+        return true;
+      }
+
       function deleteProfile(profileName) {
         if (!profileName) return false;
         const before = state.profiles.length;

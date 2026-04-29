@@ -526,7 +526,7 @@
       .profile-actions button {
         padding: 0.48rem 0.75rem;
         border-radius: 10px;
-        font-size: 0. ninerem;
+        font-size: 0.9rem;
       }
 
       /* Fallback for browsers that misinterpret spacing; ensure consistent min heights */
@@ -799,6 +799,11 @@
       .rules-group { padding: 0.9rem; display: grid; gap: 0.75rem; }
 
       .field-actions button.ghost { padding: 0.4rem 0.6rem; }
+
+      .field-actions button[data-delete-field] {
+        color: var(--danger);
+        border-color: rgba(161, 31, 31, 0.14);
+      }
 
       .drift-item.diff {
         display: grid;

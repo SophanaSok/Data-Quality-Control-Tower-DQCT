@@ -227,14 +227,17 @@
           groups[key] = groups[key] || [];
           groups[key].push(rule);
         }
+        const groupNames = Object.keys(groups);
+        const allExpanded = groupNames.length > 0 && groupNames.every((field) => state.expandedFields.has(field));
 
-        els.rulesList.innerHTML = Object.keys(groups).map((field) => {
+        els.rulesList.innerHTML = groupNames.length ? groupNames.map((field) => {
           const rules = groups[field];
           const isExpanded = state.expandedFields.has(field);
           const header = `
             <div class="field-group-header">
               <div class="field-title"><strong>${escapeHtml(field)}</strong><div class="meta">${rules.length} rule${rules.length === 1 ? "" : "s"}</div></div>
               <div class="field-actions">
+                <button type="button" class="ghost" data-delete-field="${escapeHtml(field)}">Quick delete</button>
                 <button type="button" class="ghost" data-toggle-field="${escapeHtml(field)}">${isExpanded ? "Collapse" : "Expand"}</button>
               </div>
             </div>`;
@@ -290,10 +293,12 @@
             : '';
 
           return `<div class="field-group">${header}<div class="rules-group ${isExpanded ? '' : 'hidden'}">${rulesHtml}</div></div>`;
-        }).join("");
+        }).join("") : '<div class="empty-state">No rules match the current filter.</div>';
 
-        if (!filteredRules.length) {
-          els.rulesList.innerHTML = '<div class="empty-state">No rules match the current filter.</div>';
+        const toggleAllButton = document.querySelector("[data-toggle-all-fields]");
+        if (toggleAllButton instanceof HTMLButtonElement) {
+          toggleAllButton.textContent = allExpanded ? "Collapse all fields" : "Expand all fields";
+          toggleAllButton.setAttribute("aria-pressed", String(allExpanded));
         }
       }
 
@@ -709,6 +714,20 @@
             return;
           }
 
+          const deleteFieldName = target.getAttribute("data-delete-field");
+          if (deleteFieldName) {
+            const confirmed = window.confirm(`Delete all rules for field ${deleteFieldName}?`);
+            if (confirmed) {
+              if (typeof deleteRulesByField === "function") {
+                const ok = deleteRulesByField(deleteFieldName);
+                if (!ok) {
+                  alert(`Unable to delete field group ${deleteFieldName}.`);
+                }
+              }
+            }
+            return;
+          }
+
           const editProfileName = target.getAttribute("data-edit-profile");
           if (editProfileName) {
             state.editingProfile = editProfileName;
@@ -743,6 +762,22 @@
             } else {
               state.expandedFields.add(toggleField);
             }
+            if (typeof saveUiState === "function") {
+              saveUiState();
+            }
+            render();
+            return;
+          }
+
+          const toggleAllFields = target.getAttribute("data-toggle-all-fields");
+          if (toggleAllFields) {
+            const fieldNames = Object.keys((activeProfile().rules || []).reduce((acc, rule) => {
+              const key = rule.field || "(no field)";
+              acc[key] = true;
+              return acc;
+            }, {}));
+            const shouldExpand = !fieldNames.every((field) => state.expandedFields.has(field));
+            state.expandedFields = shouldExpand ? new Set(fieldNames) : new Set();
             if (typeof saveUiState === "function") {
               saveUiState();
             }
