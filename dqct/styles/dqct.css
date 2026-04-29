@@ -477,12 +477,40 @@
         flex: 1 1 auto;
       }
 
+
+      /* Match generic input styling used across rule cards */
       .profile-edit-form input {
-        padding: 0.5rem 0.6rem;
-        border-radius: 10px;
-        border: 1px solid rgba(32, 74, 135, 0.12);
-        background: #fff;
+        width: 100%;
+        border: 1px solid rgba(20, 34, 58, 0.14);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 0.82rem 0.92rem; /* same as generic inputs */
+        color: var(--text);
         font: inherit;
+        font-size: 0.95rem;
+        transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.06s ease;
+      }
+
+      .profile-edit-form input:focus {
+        outline: none;
+        border-color: rgba(32, 74, 135, 0.9);
+        box-shadow: 0 6px 18px rgba(32, 74, 135, 0.06);
+        transform: none; /* avoid floating effect to match rule inputs */
+      }
+
+      .profile-edit-form input[name="editName"] {
+        font-weight: 700;
+        font-size: 1rem;
+      }
+
+      .profile-edit-form input::placeholder {
+        color: rgba(16, 32, 51, 0.36);
+      }
+
+      .profile-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
       }
 
       .profile-item.editing .meta {
