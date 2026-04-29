@@ -284,14 +284,20 @@
               return `
                 <div class="profile-item editing">
                   <div class="profile-edit-form">
-                    <div><input name="editName" value="${escapeHtml(profile.profile_name)}" /></div>
-                    <div><input name="editSource" value="${escapeHtml(profile.source || "")}" placeholder="Description / source" /></div>
-                    <div class="meta">root ${profile.root_array}</div>
+                    <div class="fieldset">
+                      <label>Name</label>
+                      <input type="text" name="editName" value="${escapeHtml(profile.profile_name)}" />
+                    </div>
+                    <div class="fieldset">
+                      <label>Description</label>
+                      <input type="text" name="editSource" value="${escapeHtml(profile.source || "")}" placeholder="Description / source" />
+                    </div>
+                    <div class="meta">root ${escapeHtml(profile.root_array)}</div>
                   </div>
                   <div class="profile-actions">
-                    <button type="button" data-save-profile="${profile.profile_name}">Save</button>
-                    <button type="button" class="ghost" data-cancel-edit="${profile.profile_name}">Cancel</button>
-                    <button type="button" class="ghost" data-delete-profile="${profile.profile_name}">Delete</button>
+                    <button type="button" data-save-profile="${escapeHtml(profile.profile_name)}">Save</button>
+                    <button type="button" class="ghost" data-cancel-edit="${escapeHtml(profile.profile_name)}">Cancel</button>
+                    <button type="button" class="ghost" data-delete-profile="${escapeHtml(profile.profile_name)}">Delete</button>
                   </div>
                 </div>`;
             }
