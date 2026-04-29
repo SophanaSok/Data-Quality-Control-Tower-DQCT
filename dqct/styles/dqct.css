@@ -874,6 +874,14 @@
       }
 
       .field-action.toggle {
+        color: rgba(16, 32, 51, 0.7);
+      }
+
+      .field-action.toggle:hover {
+        color: var(--primary-strong);
+      }
+
+      .field-action.toggle:focus-visible {
         color: var(--primary-strong);
       }
 
