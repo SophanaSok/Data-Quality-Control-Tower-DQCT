@@ -96,9 +96,9 @@
     const newRecords = [];
     const removedRecords = [];
     const diffRows = [];
+    // Duplicate keys are reported by findDuplicates; diff comparison uses the first occurrence per key.
 
     comparisonMap.forEach((comparisonItems, key) => {
-      // Duplicate keys are reported by findDuplicates; diff comparison uses the first occurrence per key.
       const comparisonItem = comparisonItems[0];
       const baselineItem = baselineMap.get(key)?.[0];
       if (!baselineItem) {

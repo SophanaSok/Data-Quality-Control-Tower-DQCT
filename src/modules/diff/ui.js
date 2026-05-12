@@ -167,10 +167,10 @@
 
   function setupDiffUi() {
     const mountNode = document.getElementById("diffApp");
-    render(mountNode);
     if (!mountNode) {
       return;
     }
+    render(mountNode);
 
     const baselineInput = document.getElementById("diffBaselineInput");
     const comparisonInput = document.getElementById("diffComparisonInput");
@@ -190,6 +190,13 @@
       return;
     }
 
+    const resetAnalysisState = () => {
+      state.analysis = null;
+      summaryNode.classList.add("hidden");
+      summaryNode.innerHTML = "";
+      enableExports(false);
+    };
+
     baselineInput.addEventListener("change", async (event) => {
       const file = event.target.files?.[0];
       if (!file) {
@@ -207,10 +214,7 @@
           baselineMeta.textContent = `Failed to parse ${file.name}: ${error.message || error}`;
         }
       }
-      state.analysis = null;
-      summaryNode.classList.add("hidden");
-      summaryNode.innerHTML = "";
-      enableExports(false);
+      resetAnalysisState();
     });
 
     comparisonInput.addEventListener("change", async (event) => {
@@ -230,10 +234,7 @@
           comparisonMeta.textContent = `Failed to parse ${file.name}: ${error.message || error}`;
         }
       }
-      state.analysis = null;
-      summaryNode.classList.add("hidden");
-      summaryNode.innerHTML = "";
-      enableExports(false);
+      resetAnalysisState();
     });
 
     analyzeButton.addEventListener("click", () => {
