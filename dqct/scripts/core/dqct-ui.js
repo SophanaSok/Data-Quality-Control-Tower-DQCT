@@ -59,6 +59,7 @@
         if (validationResultsTable || !window.DQCTTable?.create) {
           return;
         }
+        const formatRecordIndex = (result) => `${result.recordIndex ?? ""}${result.documentIndex !== null && result.documentIndex !== undefined ? ` / doc ${result.documentIndex + 1}` : ""}`;
         validationResultsTable = window.DQCTTable.create({
           tableElement: els.resultsTable,
           bodyElement: els.resultsBody,
@@ -70,7 +71,7 @@
               key: "recordIndex",
               sortable: true,
               sortValue: (result) => Number(result.recordIndex),
-              render: (result) => `${result.recordIndex ?? ""}${result.documentIndex !== null && result.documentIndex !== undefined ? ` / doc ${result.documentIndex + 1}` : ""}`
+              render: formatRecordIndex
             },
             { key: "primaryId", sortable: true, render: (result) => escapeHtml(result.primaryId || "") },
             { key: "field", sortable: true, render: (result) => escapeHtml(result.field || "") },

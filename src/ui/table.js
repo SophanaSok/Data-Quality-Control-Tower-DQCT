@@ -1,4 +1,6 @@
 (function attachDQCTTable(globalScope) {
+  const INTERACTIVE_ELEMENT_SELECTORS = "button,a,input,select,textarea,label";
+
   function escapeHtml(value) {
     return String(value ?? "")
       .replaceAll("&", "&amp;")
@@ -144,7 +146,7 @@
       if (!(target instanceof HTMLElement)) {
         return;
       }
-      if (target.closest("button,a,input,select,textarea,label")) {
+      if (target.closest(INTERACTIVE_ELEMENT_SELECTORS)) {
         return;
       }
       const rowNode = target.closest("tr[data-row-index]");
@@ -171,7 +173,8 @@
         state.page -= 1;
         render();
       }
-      if (action === "next") {
+      const totalPages = Math.max(1, Math.ceil(getSortedRows().length / pageSize));
+      if (action === "next" && state.page < totalPages) {
         state.page += 1;
         render();
       }
