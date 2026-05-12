@@ -386,7 +386,7 @@
         els.emptyState.classList.add("hidden");
         els.resultsWrap.classList.remove("hidden");
         els.resultsBody.innerHTML = state.results
-          .map((result) => `
+          .map((result, __idx) => `
             <tr>
               <td>${escapeHtml(result.fileName || "")}</td>
               <td>${result.recordIndex ?? ""}${result.documentIndex !== null && result.documentIndex !== undefined ? ` / doc ${result.documentIndex + 1}` : ""}</td>
@@ -396,7 +396,10 @@
               <td>${escapeHtml(result.expected || "")}</td>
               <td>${escapeHtml(result.actual || "")}</td>
               <td><span class="pill ${result.severity || "low"}">${result.severity || "low"}</span></td>
-              <td><button type="button" class="ghost" data-row-ticket="${escapeHtml(issueGroupKey(result))}">Ticket</button></td>
+              <td>
+                <button type="button" class="ghost" data-row-ticket="${escapeHtml(issueGroupKey(result))}">Ticket</button>
+                <button type="button" class="ghost view-row-diff" data-row-idx="${__idx}">View Diff</button>
+              </td>
             </tr>`)
           .join("");
 
@@ -423,6 +426,28 @@
               </article>`;
           })
           .join("");
+
+          // Attach per-row View Diff handlers
+          try {
+            const rowButtons = Array.from(els.resultsBody.querySelectorAll('.view-row-diff'));
+            rowButtons.forEach((btn) => {
+              btn.addEventListener('click', (ev) => {
+                const idx = Number(btn.getAttribute('data-row-idx'));
+                const result = state.results[idx];
+                if (!result) return;
+                const field = result.field || 'value';
+                const baseObj = { [field]: result.expected };
+                const incomingObj = { [field]: result.actual };
+                if (window.diffUI && typeof window.diffUI.openDiffModal === 'function') {
+                  window.diffUI.openDiffModal(baseObj, incomingObj, [field]);
+                } else if (window.jsonViewer && typeof window.jsonViewer.renderDiffViewer === 'function') {
+                  window.jsonViewer.renderDiffViewer(baseObj, incomingObj, [field]);
+                }
+              });
+            });
+          } catch (e) {
+            console.warn('Unable to attach row diff handlers', e);
+          }
       }
 
       function render() {
