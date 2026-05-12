@@ -8,6 +8,12 @@
   </head>
   <body>
     <div class="app">
+      <nav class="top-nav-tabs" aria-label="Primary navigation">
+        <button type="button" class="top-nav-tab is-active" data-app-tab="validate" aria-selected="true">Validate</button>
+        <button type="button" class="top-nav-tab" data-app-tab="diff" aria-selected="false">Diff</button>
+      </nav>
+
+      <div data-tab-panel="validate" id="validateTabPanel">
       <section class="hero">
         <div>
           <div class="eyebrow">Data Quality Control Tower</div>
@@ -296,12 +302,19 @@
           <div id="ticketPreview" class="ticket-preview hidden"></div>
         </div>
       </section>
+      </div>
+
+      <section data-tab-panel="diff" id="diffTabPanel" class="hidden">
+        <div id="diffApp" class="panel"></div>
+      </section>
     </div>
 
     <script src="../src/shared/parser.js" defer></script>
     <script src="../src/shared/exports.js" defer></script>
     <script src="../src/modules/validation/profiles.js" defer></script>
     <script src="../src/modules/validation/engine.js" defer></script>
+    <script src="../src/modules/diff/engine.js" defer></script>
+    <script src="../src/modules/diff/ui.js" defer></script>
     <script src="../src/ui/toasts.js" defer></script>
     <script src="../src/ui/table.js" defer></script>
     <script src="./scripts/core/dqct-core.js" defer></script>
