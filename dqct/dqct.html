@@ -372,13 +372,28 @@
 
       <section class="table-card" style="margin-top: var(--space-4);">
         <h2>Validation results</h2>
-        <p class="helper">Each row records the file, record index, primary ID, violated rule, expected value, actual value, and severity.</p>
-        <div class="actions-row" style="justify-content: flex-start; margin-bottom: 0.75rem;">
-          <button id="downloadIssuesButton" type="button" class="secondary">Download all issues JSON</button>
+        
+        <div id="failureViewHelper" class="helper">Each row records the file, record index, primary ID, violated rule, expected value, actual value, and severity.</div>
+        <div id="recordViewHelper" class="helper hidden">Each row represents a validated record with aggregated status, error count, and warning count.</div>
+        
+        <div class="actions-row" style="justify-content: space-between; margin-bottom: 0.75rem;">
+          <div style="display: flex; gap: 0.5rem;">
+            <button id="downloadIssuesButton" type="button" class="secondary">Download all issues JSON</button>
+            <button id="downloadRecordSummariesButton" type="button" class="secondary hidden">Download record summaries JSON</button>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <label for="viewToggle" style="font-size: 0.9rem; font-weight: 500;">View:</label>
+            <select id="viewToggle" style="padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid var(--border);">
+              <option value="failures">Failures (detailed)</option>
+              <option value="records">Records (summary)</option>
+            </select>
+          </div>
         </div>
+        
         <div id="emptyState" class="empty-state">
           No validation has been run yet. Upload a file or load the sample data, then press Run validation.
         </div>
+        
         <div id="resultsWrap" class="table-wrap hidden">
           <table id="resultsTable">
             <thead>
@@ -395,6 +410,26 @@
               </tr>
             </thead>
             <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+        
+        <div id="recordSummariesWrap" class="table-wrap hidden">
+          <table id="recordSummariesTable">
+            <thead>
+              <tr>
+                <th>Row</th>
+                <th>File</th>
+                <th>Agent ID</th>
+                <th>Project Code</th>
+                <th>Title</th>
+                <th>Bid Status</th>
+                <th>QA Status</th>
+                <th>Errors</th>
+                <th>Warnings</th>
+                <th>Info</th>
+              </tr>
+            </thead>
+            <tbody id="recordSummariesBody"></tbody>
           </table>
         </div>
 

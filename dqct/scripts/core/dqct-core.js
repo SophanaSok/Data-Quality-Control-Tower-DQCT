@@ -67,7 +67,8 @@
         currentIssueGroups: [],
         currentLayer: "all",
         ruleSearch: "",
-        runtimeOverrides: new Set()
+        runtimeOverrides: new Set(),
+        viewMode: "failures",
         historyFilters: { status: 'all', from: null, to: null, search: '' }
       };
 
@@ -114,6 +115,13 @@
         resultsTable: document.getElementById("resultsTable"),
         resultsBody: document.getElementById("resultsBody"),
         resultsWrap: document.getElementById("resultsWrap"),
+        recordSummariesTable: document.getElementById("recordSummariesTable"),
+        recordSummariesBody: document.getElementById("recordSummariesBody"),
+        recordSummariesWrap: document.getElementById("recordSummariesWrap"),
+        viewToggle: document.getElementById("viewToggle"),
+        failureViewHelper: document.getElementById("failureViewHelper"),
+        recordViewHelper: document.getElementById("recordViewHelper"),
+        downloadRecordSummariesButton: document.getElementById("downloadRecordSummariesButton"),
         emptyState: document.getElementById("emptyState"),
         dropzone: document.getElementById("dropzone"),
         runButton: document.getElementById("runButton"),
@@ -915,6 +923,30 @@
         const filename = getIssuesFilename(new Date().toISOString());
         const downloadResult = window.DQCTExports.downloadJson(payload, filename);
         return { filename: downloadResult.filename, issueCount: state.results.length };
+      }
+
+      function downloadRecordSummariesJson() {
+        const payload = {
+          metadata: {
+            profile_name: activeProfile().profile_name,
+            export_date: new Date().toISOString(),
+            total_records: state.recordSummaries.length,
+            total_errors: state.recordSummaries.reduce((sum, r) => sum + r.error_count, 0),
+            total_warnings: state.recordSummaries.reduce((sum, r) => sum + r.warning_count, 0),
+            total_info: state.recordSummaries.reduce((sum, r) => sum + r.info_count, 0)
+          },
+          record_summaries: state.recordSummaries
+        };
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filename = `record-summaries_${timestamp}.json`;
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+        return { filename, recordCount: state.recordSummaries.length };
       }
 
       async function copyReport() {

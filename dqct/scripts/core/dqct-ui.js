@@ -443,14 +443,17 @@
       }
 
       function renderResults() {
-        if (!state.results.length) {
+        // Handle empty state
+        if (!state.results.length && !state.recordSummaries.length) {
           els.resultsWrap.classList.add("hidden");
+          els.recordSummariesWrap.classList.add("hidden");
           els.emptyState.classList.remove("hidden");
           if (validationResultsTable) {
             validationResultsTable.clear();
           } else {
             els.resultsBody.innerHTML = "";
           }
+          els.recordSummariesBody.innerHTML = "";
           els.issueSummaryList.innerHTML = '<div class="issue-group"><strong>No grouped issues yet</strong><div class="meta">Run validation to generate ticket-ready issue groups.</div></div>';
           els.ticketPreview.classList.add("hidden");
           els.ticketPreview.textContent = "";
@@ -459,36 +462,86 @@
         }
 
         els.emptyState.classList.add("hidden");
-        els.resultsWrap.classList.remove("hidden");
-        ensureResultsTable();
-        if (validationResultsTable) {
-          validationResultsTable.update(state.results);
+
+        // Show/hide appropriate table based on viewMode
+        if (state.viewMode === "records") {
+          els.resultsWrap.classList.add("hidden");
+          els.recordSummariesWrap.classList.remove("hidden");
+          els.failureViewHelper.classList.add("hidden");
+          els.recordViewHelper.classList.remove("hidden");
+          els.downloadIssuesButton.classList.add("hidden");
+          els.downloadRecordSummariesButton.classList.remove("hidden");
+          renderRecordSummaries();
+        } else {
+          els.resultsWrap.classList.remove("hidden");
+          els.recordSummariesWrap.classList.add("hidden");
+          els.failureViewHelper.classList.remove("hidden");
+          els.recordViewHelper.classList.add("hidden");
+          els.downloadIssuesButton.classList.remove("hidden");
+          els.downloadRecordSummariesButton.classList.add("hidden");
+          ensureResultsTable();
+          if (validationResultsTable) {
+            validationResultsTable.update(state.results);
+          }
         }
 
-        const grouped = state.currentIssueGroups.length ? state.currentIssueGroups : buildIssueGroups(state.results);
-        state.currentIssueGroups = grouped;
-        els.issueSummaryList.innerHTML = grouped
-          .map((issue) => {
-            const ticketText = buildTicketText(issue);
-            return `
-              <article class="issue-group">
-                <div class="issue-group-head">
-                  <div>
-                    <strong>${escapeHtml(issue.field)} failed ${escapeHtml(issue.ruleType)}</strong>
-                    <div class="meta">Rule ${escapeHtml(issue.ruleId)} · ${escapeHtml(issue.severity)} severity · ${issue.count} affected rows</div>
-                    <div class="meta">Expected: ${escapeHtml(issue.expected || "See rule configuration")}</div>
+        // Always render issue groups for failures view
+        if (state.viewMode === "failures") {
+          const grouped = state.currentIssueGroups.length ? state.currentIssueGroups : buildIssueGroups(state.results);
+          state.currentIssueGroups = grouped;
+          els.issueSummaryList.innerHTML = grouped
+            .map((issue) => {
+              const ticketText = buildTicketText(issue);
+              return `
+                <article class="issue-group">
+                  <div class="issue-group-head">
+                    <div>
+                      <strong>${escapeHtml(issue.field)} failed ${escapeHtml(issue.ruleType)}</strong>
+                      <div class="meta">Rule ${escapeHtml(issue.ruleId)} · ${escapeHtml(issue.severity)} severity · ${issue.count} affected rows</div>
+                      <div class="meta">Expected: ${escapeHtml(issue.expected || "See rule configuration")}</div>
+                    </div>
+                    <div class="issue-actions">
+                      <button type="button" class="secondary" data-preview-ticket="${escapeHtml(issue.key)}">Preview ticket</button>
+                      <button type="button" data-copy-ticket="${escapeHtml(issue.key)}">Copy ticket</button>
+                    </div>
                   </div>
-                  <div class="issue-actions">
-                    <button type="button" class="secondary" data-preview-ticket="${escapeHtml(issue.key)}">Preview ticket</button>
-                    <button type="button" data-copy-ticket="${escapeHtml(issue.key)}">Copy ticket</button>
-                  </div>
-                </div>
-                <div class="meta" style="margin-top: 0.65rem;">Samples: ${escapeHtml(issue.samples.map((sample) => `${sample.primaryId || sample.recordIndex}`).join(", "))}</div>
-                <div class="ticket-preview hidden" data-ticket-preview="${escapeHtml(issue.key)}">${escapeHtml(ticketText)}</div>
-              </article>`;
-          })
+                  <div class="meta" style="margin-top: 0.65rem;">Samples: ${escapeHtml(issue.samples.map((sample) => `${sample.primaryId || sample.recordIndex}`).join(", "))}</div>
+                  <div class="ticket-preview hidden" data-ticket-preview="${escapeHtml(issue.key)}">${escapeHtml(ticketText)}</div>
+                </article>`;
+            })
+            .join("");
+        }
+      }
+
+      function renderRecordSummaries() {
+        if (!state.recordSummaries.length) {
+          els.recordSummariesBody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 2rem;">No record summaries available.</td></tr>';
+          return;
+        }
+
+        const formatQaStatus = (status) => {
+          const statusClass = status === "FAIL" ? "high" : status === "PASS_WITH_WARNINGS" ? "medium" : "info";
+          return `<span class="pill ${statusClass}">${escapeHtml(status)}</span>`;
+        };
+
+        els.recordSummariesBody.innerHTML = state.recordSummaries
+          .map((record) => `
+            <tr>
+              <td>${escapeHtml(String(record.row_number))}</td>
+              <td>${escapeHtml(record.file_name)}</td>
+              <td>${escapeHtml(record.AgentID)}</td>
+              <td>${escapeHtml(record.ProjectCode)}</td>
+              <td>${escapeHtml(record.Title)}</td>
+              <td>${escapeHtml(record.BidStatus)}</td>
+              <td>${formatQaStatus(record.qa_status)}</td>
+              <td>${record.error_count}</td>
+              <td>${record.warning_count}</td>
+              <td>${record.info_count}</td>
+            </tr>
+          `)
           .join("");
       }
+
 
       function render() {
         saveProfiles();
@@ -672,6 +725,18 @@
             successMessage: (result) => `Downloaded ${result.issueCount} issue${result.issueCount === 1 ? "" : "s"} as ${result.filename}.`,
             toastMessage: (result) => `Downloaded ${result.issueCount} issue${result.issueCount === 1 ? "" : "s"}.`
           }, downloadIssuesJson);
+        });
+        els.viewToggle.addEventListener("change", (event) => {
+          state.viewMode = event.target.value;
+          renderResults();
+        });
+        els.downloadRecordSummariesButton.addEventListener("click", async () => {
+          await withActionFeedback(els.downloadRecordSummariesButton, {
+            runningLabel: "Downloading…",
+            startMessage: "Preparing record summaries JSON for download…",
+            successMessage: (result) => `Downloaded ${result.recordCount} record${result.recordCount === 1 ? "" : "s"} as ${result.filename}.`,
+            toastMessage: (result) => `Downloaded ${result.recordCount} record summary summaries.`
+          }, downloadRecordSummariesJson);
         });
         els.cloneProfileButton.addEventListener("click", async () => {
           await withActionFeedback(els.cloneProfileButton, {
