@@ -93,6 +93,20 @@
               <div>
                 <h3>Run history</h3>
                 <p class="helper">Latest 12 validated runs for the active profile, stored locally in IndexedDB.</p>
+                <div class="run-history-filters" style="margin-top:0.5rem; display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+                  <label style="display:flex; gap:0.25rem; align-items:center;"><span class="meta">Status</span>
+                    <select id="runFilterStatus"><option value="all">All</option><option value="issues">Issues</option><option value="clean">Clean</option></select>
+                  </label>
+                  <label style="display:flex; gap:0.25rem; align-items:center;"><span class="meta">From</span>
+                    <input id="runFilterFrom" type="date" />
+                  </label>
+                  <label style="display:flex; gap:0.25rem; align-items:center;"><span class="meta">To</span>
+                    <input id="runFilterTo" type="date" />
+                  </label>
+                  <label style="flex:1; display:flex; gap:0.5rem; align-items:center;">
+                    <input id="runFilterSearch" type="search" placeholder="Search runs by file, profile or id" style="width:100%;" />
+                  </label>
+                </div>
               </div>
               <span class="badge good" id="historyBadge">Ready</span>
             </div>

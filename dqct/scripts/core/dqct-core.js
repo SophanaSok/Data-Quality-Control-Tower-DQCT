@@ -67,6 +67,7 @@
         currentLayer: "all",
         ruleSearch: "",
         runtimeOverrides: new Set()
+        historyFilters: { status: 'all', from: null, to: null, search: '' }
       };
 
       const els = {
@@ -93,6 +94,11 @@
         runHistoryBody: document.getElementById("runHistoryBody"),
         trendSparkline: document.getElementById("trendSparkline"),
         recentIssuesFeed: document.getElementById("recentIssuesFeed"),
+        // Run history filters
+        runFilterStatus: document.getElementById("runFilterStatus"),
+        runFilterFrom: document.getElementById("runFilterFrom"),
+        runFilterTo: document.getElementById("runFilterTo"),
+        runFilterSearch: document.getElementById("runFilterSearch"),
         baselineSchemaMeta: document.getElementById("baselineSchemaMeta"),
         baselineSchemaFields: document.getElementById("baselineSchemaFields"),
         incomingSchemaMeta: document.getElementById("incomingSchemaMeta"),

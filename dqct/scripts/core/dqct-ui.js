@@ -46,9 +46,14 @@
       function renderDashboard() {
         const profileName = activeProfile().profile_name;
         const runs = getLatestHistoryForProfile(profileName);
+        // apply history filters if available
+        const filters = state.historyFilters || {};
+        const filteredRuns = (window.dqctHistory && typeof window.dqctHistory.filterRuns === 'function')
+          ? window.dqctHistory.filterRuns(runs, { from: filters.from, to: filters.to, status: filters.status, search: filters.search })
+          : runs;
         const today = new Date().toISOString().slice(0, 10);
-        const runsToday = runs.filter((run) => run.timestamp.slice(0, 10) === today);
-        const recentRuns = runs.slice(0, 30);
+        const runsToday = filteredRuns.filter((run) => (run.timestamp || '').slice(0, 10) === today);
+        const recentRuns = filteredRuns.slice(0, 30);
         const passRate = recentRuns.length
           ? Math.round((recentRuns.reduce((sum, run) => sum + (run.passRate || 0), 0) / recentRuns.length) * 100)
           : 0;
@@ -73,8 +78,8 @@
         els.dashboardOpenIssuesMeta.textContent = latestRun ? `${latestRun.failureCount} failures on the latest run` : "No validation run yet";
         els.historyBadge.textContent = `${runs.length} stored`;
 
-        els.runHistoryBody.innerHTML = runs.slice(0, 12).length
-          ? runs.slice(0, 12).map((run) => `
+        els.runHistoryBody.innerHTML = filteredRuns.slice(0, 12).length
+          ? filteredRuns.slice(0, 12).map((run) => `
             <tr>
               <td>${escapeHtml(run.timestamp.replace("T", " ").slice(0, 19))}</td>
               <td>${escapeHtml(run.profileName)}</td>
@@ -722,6 +727,31 @@
             toastMessage: (profileName) => `Profile ${profileName} saved.`
           }, saveActiveProfile);
         });
+        // History filter bindings
+        if (els.runFilterStatus) {
+          els.runFilterStatus.addEventListener('change', (e) => {
+            state.historyFilters.status = e.target.value;
+            render();
+          });
+        }
+        if (els.runFilterFrom) {
+          els.runFilterFrom.addEventListener('change', (e) => {
+            state.historyFilters.from = e.target.value || null;
+            render();
+          });
+        }
+        if (els.runFilterTo) {
+          els.runFilterTo.addEventListener('change', (e) => {
+            state.historyFilters.to = e.target.value || null;
+            render();
+          });
+        }
+        if (els.runFilterSearch) {
+          els.runFilterSearch.addEventListener('input', (e) => {
+            state.historyFilters.search = e.target.value || '';
+            render();
+          });
+        }
         els.resetProfileButton.addEventListener("click", async () => {
           await withActionFeedback(els.resetProfileButton, {
             runningLabel: "Resetting…",
