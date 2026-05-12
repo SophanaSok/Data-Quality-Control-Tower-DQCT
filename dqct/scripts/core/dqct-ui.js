@@ -79,7 +79,7 @@
         els.historyBadge.textContent = `${runs.length} stored`;
 
         els.runHistoryBody.innerHTML = filteredRuns.slice(0, 12).length
-          ? filteredRuns.slice(0, 12).map((run) => `
+          ? filteredRuns.slice(0, 12).map((run, __hidx) => `
             <tr>
               <td>${escapeHtml(run.timestamp.replace("T", " ").slice(0, 19))}</td>
               <td>${escapeHtml(run.profileName)}</td>
@@ -88,9 +88,48 @@
               <td>${run.ruleCount ?? activeProfile().rules.filter((rule) => rule.enabled && !state.runtimeOverrides.has(rule.id)).length}</td>
               <td>${Math.round((run.passRate || 0) * 100)}%</td>
               <td>${run.anomalyCount || 0}</td>
-              <td><span class="badge ${run.failureCount > 0 ? "warn" : "good"}">${run.failureCount > 0 ? "issues" : "clean"}</span></td>
+              <td>
+                <span class="badge ${run.failureCount > 0 ? "warn" : "good"}">${run.failureCount > 0 ? "issues" : "clean"}</span>
+                <div style="margin-top:0.35rem;"><button type="button" class="ghost re-run-btn" data-run-idx="${__hidx}">Re-run</button></div>
+              </td>
             </tr>`).join("")
           : '<tr><td colspan="8" class="muted">Run validation to populate local history.</td></tr>';
+
+        // Attach Re-run handlers for history rows
+        try {
+          const reRunButtons = Array.from(els.runHistoryBody.querySelectorAll('.re-run-btn'));
+          reRunButtons.forEach((btn) => {
+            btn.addEventListener('click', async () => {
+              const idx = Number(btn.getAttribute('data-run-idx')) || 0;
+              const run = filteredRuns[idx];
+              if (!run) return;
+              // Set active profile to the historical run's profile
+              state.activeProfileId = run.profileName;
+              render();
+
+              // Check if currently loaded files match historical file names
+              const loadedNames = (state.files || []).map((f) => f.name).sort();
+              const expectedNames = (run.files || []).map((f) => f.name).sort();
+              const namesMatch = loadedNames.length === expectedNames.length && expectedNames.every((n, i) => n === loadedNames[i]);
+
+              if (!namesMatch) {
+                setActionStatus('Loaded files do not match historical run. Upload matching files to re-run.', 'warn');
+                showToast('Files mismatch. Upload the same files used in the historical run to re-run.');
+                return;
+              }
+
+              // Files match — trigger validation using withActionFeedback
+              await withActionFeedback(btn, {
+                runningLabel: 'Re-running…',
+                startMessage: `Re-running validation for profile ${run.profileName}…`,
+                successMessage: (res) => `Re-run complete: ${res.results.length} issue${res.results.length === 1 ? '' : 's'}`,
+                toastMessage: (res) => `Re-run finished — ${res.results.length} issues.`
+              }, async () => validateRun());
+            });
+          });
+        } catch (e) {
+          console.warn('Unable to attach re-run handlers', e);
+        }
 
         renderSparkline(recentRuns.map((run) => Math.round((run.passRate || 0) * 100)));
 
