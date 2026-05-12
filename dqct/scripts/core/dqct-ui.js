@@ -1,3 +1,97 @@
+      let validationResultsTable = null;
+      let recordViewerModal = null;
+
+      function getRecordForResult(result) {
+        const file = state.files.find((entry) => entry.name === result.fileName);
+        if (!file || !Array.isArray(file.records)) {
+          return null;
+        }
+        const index = Number(result.recordIndex);
+        if (!Number.isFinite(index) || index < 0) {
+          return null;
+        }
+        return file.records[index] ?? null;
+      }
+
+      function closeRecordViewer() {
+        if (recordViewerModal instanceof HTMLElement) {
+          recordViewerModal.remove();
+        }
+        recordViewerModal = null;
+      }
+
+      function openRecordViewer(result) {
+        const record = getRecordForResult(result);
+        if (!record || !window.DQCTJsonViewer?.renderRecordViewer) {
+          return;
+        }
+
+        closeRecordViewer();
+        const modal = document.createElement("div");
+        modal.className = "dqct-json-modal";
+        modal.innerHTML = `
+          <div class="dqct-json-modal__dialog" role="dialog" aria-modal="true" aria-label="Record inspector">
+            <div class="dqct-json-modal__actions">
+              <button type="button" class="ghost" data-close-record-viewer>Close</button>
+            </div>
+          </div>
+        `;
+        const dialog = modal.querySelector(".dqct-json-modal__dialog");
+        if (dialog instanceof HTMLElement) {
+          dialog.appendChild(window.DQCTJsonViewer.renderRecordViewer(record, result.field || ""));
+        }
+
+        modal.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) {
+            return;
+          }
+          if (target === modal || target.closest("[data-close-record-viewer]")) {
+            closeRecordViewer();
+          }
+        });
+
+        document.body.appendChild(modal);
+        recordViewerModal = modal;
+      }
+
+      function ensureResultsTable() {
+        if (validationResultsTable || !window.DQCTTable?.create) {
+          return;
+        }
+        const formatRecordIndex = (result) => `${result.recordIndex ?? ""}${result.documentIndex != null ? ` / doc ${result.documentIndex + 1}` : ""}`;
+        const renderEscapedColumn = (key) => (result) => escapeHtml(result[key] || "");
+        validationResultsTable = window.DQCTTable.create({
+          tableElement: els.resultsTable,
+          bodyElement: els.resultsBody,
+          pageSize: 25,
+          onRowClick: openRecordViewer,
+          columns: [
+            { key: "fileName", sortable: true },
+            {
+              key: "recordIndex",
+              sortable: true,
+              sortValue: (result) => Number(result.recordIndex),
+              render: formatRecordIndex
+            },
+            { key: "primaryId", sortable: true, render: renderEscapedColumn("primaryId") },
+            { key: "field", sortable: true, render: renderEscapedColumn("field") },
+            { key: "ruleType", sortable: true, render: renderEscapedColumn("ruleType") },
+            { key: "expected", sortable: true, render: renderEscapedColumn("expected") },
+            { key: "actual", sortable: true, render: renderEscapedColumn("actual") },
+            {
+              key: "severity",
+              sortable: true,
+              render: (result) => {
+                const severity = ["high", "medium", "low"].includes(result.severity) ? result.severity : "low";
+                return `<span class="pill ${severity}">${escapeHtml(severity)}</span>`;
+              }
+            },
+            { key: "action", sortable: false, render: (result) => `<button type="button" class="ghost" data-row-ticket="${escapeHtml(issueGroupKey(result))}">Ticket</button>` }
+          ]
+        });
+      }
+
       function renderFiles() {
         els.loadedFileCount.textContent = String(state.files.length);
         els.loadedFileMeta.textContent = state.files.length
@@ -46,14 +140,9 @@
       function renderDashboard() {
         const profileName = activeProfile().profile_name;
         const runs = getLatestHistoryForProfile(profileName);
-        // apply history filters if available
-        const filters = state.historyFilters || {};
-        const filteredRuns = (window.dqctHistory && typeof window.dqctHistory.filterRuns === 'function')
-          ? window.dqctHistory.filterRuns(runs, { from: filters.from, to: filters.to, status: filters.status, search: filters.search })
-          : runs;
         const today = new Date().toISOString().slice(0, 10);
-        const runsToday = filteredRuns.filter((run) => (run.timestamp || '').slice(0, 10) === today);
-        const recentRuns = filteredRuns.slice(0, 30);
+        const runsToday = runs.filter((run) => run.timestamp.slice(0, 10) === today);
+        const recentRuns = runs.slice(0, 30);
         const passRate = recentRuns.length
           ? Math.round((recentRuns.reduce((sum, run) => sum + (run.passRate || 0), 0) / recentRuns.length) * 100)
           : 0;
@@ -78,8 +167,8 @@
         els.dashboardOpenIssuesMeta.textContent = latestRun ? `${latestRun.failureCount} failures on the latest run` : "No validation run yet";
         els.historyBadge.textContent = `${runs.length} stored`;
 
-        els.runHistoryBody.innerHTML = filteredRuns.slice(0, 12).length
-          ? filteredRuns.slice(0, 12).map((run, __hidx) => `
+        els.runHistoryBody.innerHTML = runs.slice(0, 12).length
+          ? runs.slice(0, 12).map((run) => `
             <tr>
               <td>${escapeHtml(run.timestamp.replace("T", " ").slice(0, 19))}</td>
               <td>${escapeHtml(run.profileName)}</td>
@@ -88,48 +177,9 @@
               <td>${run.ruleCount ?? activeProfile().rules.filter((rule) => rule.enabled && !state.runtimeOverrides.has(rule.id)).length}</td>
               <td>${Math.round((run.passRate || 0) * 100)}%</td>
               <td>${run.anomalyCount || 0}</td>
-              <td>
-                <span class="badge ${run.failureCount > 0 ? "warn" : "good"}">${run.failureCount > 0 ? "issues" : "clean"}</span>
-                <div style="margin-top:0.35rem;"><button type="button" class="ghost re-run-btn" data-run-idx="${__hidx}">Re-run</button></div>
-              </td>
+              <td><span class="badge ${run.failureCount > 0 ? "warn" : "good"}">${run.failureCount > 0 ? "issues" : "clean"}</span></td>
             </tr>`).join("")
           : '<tr><td colspan="8" class="muted">Run validation to populate local history.</td></tr>';
-
-        // Attach Re-run handlers for history rows
-        try {
-          const reRunButtons = Array.from(els.runHistoryBody.querySelectorAll('.re-run-btn'));
-          reRunButtons.forEach((btn) => {
-            btn.addEventListener('click', async () => {
-              const idx = Number(btn.getAttribute('data-run-idx')) || 0;
-              const run = filteredRuns[idx];
-              if (!run) return;
-              // Set active profile to the historical run's profile
-              state.activeProfileId = run.profileName;
-              render();
-
-              // Check if currently loaded files match historical file names
-              const loadedNames = (state.files || []).map((f) => f.name).sort();
-              const expectedNames = (run.files || []).map((f) => f.name).sort();
-              const namesMatch = loadedNames.length === expectedNames.length && expectedNames.every((n, i) => n === loadedNames[i]);
-
-              if (!namesMatch) {
-                setActionStatus('Loaded files do not match historical run. Upload matching files to re-run.', 'warn');
-                showToast('Files mismatch. Upload the same files used in the historical run to re-run.');
-                return;
-              }
-
-              // Files match — trigger validation using withActionFeedback
-              await withActionFeedback(btn, {
-                runningLabel: 'Re-running…',
-                startMessage: `Re-running validation for profile ${run.profileName}…`,
-                successMessage: (res) => `Re-run complete: ${res.results.length} issue${res.results.length === 1 ? '' : 's'}`,
-                toastMessage: (res) => `Re-run finished — ${res.results.length} issues.`
-              }, async () => validateRun());
-            });
-          });
-        } catch (e) {
-          console.warn('Unable to attach re-run handlers', e);
-        }
 
         renderSparkline(recentRuns.map((run) => Math.round((run.passRate || 0) * 100)));
 
@@ -242,32 +292,8 @@
                   <div class="value">${escapeHtml(item.incoming)}</div>
                 </div>
               </div>
-              <div style="margin-top:0.5rem;"><button class="view-diff-btn" type="button">View Diff</button></div>
             </div>`).join("")
           : '<div class="drift-item"><strong>No schema drift differences</strong></div>';
-
-        // Attach click handlers to the newly created View Diff buttons.
-        (function attachDiffButtons() {
-          try {
-            const buttons = els.driftDiffList.querySelectorAll('.view-diff-btn');
-            buttons.forEach((btn, i) => {
-              btn.addEventListener('click', () => {
-                const entry = diffEntries[i];
-                if (!entry) return;
-                const field = entry.field;
-                const baseObj = { [field]: entry.baseline };
-                const incomingObj = { [field]: entry.incoming };
-                if (window.diffUI && typeof window.diffUI.openDiffModal === 'function') {
-                  window.diffUI.openDiffModal(baseObj, incomingObj, [field]);
-                } else if (window.jsonViewer && typeof window.jsonViewer.renderDiffViewer === 'function') {
-                  window.jsonViewer.renderDiffViewer(baseObj, incomingObj, [field]);
-                }
-              });
-            });
-          } catch (e) {
-            console.warn('Unable to attach diff buttons', e);
-          }
-        })();
 
         els.anomaliesList.innerHTML = (state.currentAnomalies || []).length
           ? state.currentAnomalies.map((item) => `<div class="drift-item"><strong>${escapeHtml(item.label)}</strong><div class="meta">${escapeHtml(item.detail)}</div><div style="margin-top: 0.4rem;"><span class="badge ${item.severity === "warn" ? "warn" : "good"}">${escapeHtml(item.severity)}</span></div></div>`).join("")
@@ -420,32 +446,24 @@
         if (!state.results.length) {
           els.resultsWrap.classList.add("hidden");
           els.emptyState.classList.remove("hidden");
-          els.resultsBody.innerHTML = "";
+          if (validationResultsTable) {
+            validationResultsTable.clear();
+          } else {
+            els.resultsBody.innerHTML = "";
+          }
           els.issueSummaryList.innerHTML = '<div class="issue-group"><strong>No grouped issues yet</strong><div class="meta">Run validation to generate ticket-ready issue groups.</div></div>';
           els.ticketPreview.classList.add("hidden");
           els.ticketPreview.textContent = "";
+          closeRecordViewer();
           return;
         }
 
         els.emptyState.classList.add("hidden");
         els.resultsWrap.classList.remove("hidden");
-        els.resultsBody.innerHTML = state.results
-          .map((result, __idx) => `
-            <tr>
-              <td>${escapeHtml(result.fileName || "")}</td>
-              <td>${result.recordIndex ?? ""}${result.documentIndex !== null && result.documentIndex !== undefined ? ` / doc ${result.documentIndex + 1}` : ""}</td>
-              <td>${escapeHtml(result.primaryId || "")}</td>
-              <td>${escapeHtml(result.field || "")}</td>
-              <td>${escapeHtml(result.ruleType || "")}</td>
-              <td>${escapeHtml(result.expected || "")}</td>
-              <td>${escapeHtml(result.actual || "")}</td>
-              <td><span class="pill ${result.severity || "low"}">${result.severity || "low"}</span></td>
-              <td>
-                <button type="button" class="ghost" data-row-ticket="${escapeHtml(issueGroupKey(result))}">Ticket</button>
-                <button type="button" class="ghost view-row-diff" data-row-idx="${__idx}">View Diff</button>
-              </td>
-            </tr>`)
-          .join("");
+        ensureResultsTable();
+        if (validationResultsTable) {
+          validationResultsTable.update(state.results);
+        }
 
         const grouped = state.currentIssueGroups.length ? state.currentIssueGroups : buildIssueGroups(state.results);
         state.currentIssueGroups = grouped;
@@ -470,28 +488,6 @@
               </article>`;
           })
           .join("");
-
-          // Attach per-row View Diff handlers
-          try {
-            const rowButtons = Array.from(els.resultsBody.querySelectorAll('.view-row-diff'));
-            rowButtons.forEach((btn) => {
-              btn.addEventListener('click', (ev) => {
-                const idx = Number(btn.getAttribute('data-row-idx'));
-                const result = state.results[idx];
-                if (!result) return;
-                const field = result.field || 'value';
-                const baseObj = { [field]: result.expected };
-                const incomingObj = { [field]: result.actual };
-                if (window.diffUI && typeof window.diffUI.openDiffModal === 'function') {
-                  window.diffUI.openDiffModal(baseObj, incomingObj, [field]);
-                } else if (window.jsonViewer && typeof window.jsonViewer.renderDiffViewer === 'function') {
-                  window.jsonViewer.renderDiffViewer(baseObj, incomingObj, [field]);
-                }
-              });
-            });
-          } catch (e) {
-            console.warn('Unable to attach row diff handlers', e);
-          }
       }
 
       function render() {
@@ -537,13 +533,16 @@
         }
       }
 
-      function showToast(text, timeout = 3200) {
-        const toast = document.createElement("div");
-        toast.className = "dqct-toast";
-        toast.textContent = text;
-        document.body.appendChild(toast);
-        window.setTimeout(() => toast.classList.add("dqct-toast--hide"), timeout);
-        window.setTimeout(() => toast.remove(), timeout + 350);
+      function showToast(text, tone = "success") {
+        if (tone === "error") {
+          window.DQCTToasts.showError(text);
+          return;
+        }
+        if (tone === "warning") {
+          window.DQCTToasts.showWarning(text);
+          return;
+        }
+        window.DQCTToasts.showSuccess(text);
       }
 
       async function withActionFeedback(button, options, action) {
@@ -565,12 +564,12 @@
           }
           const toastMessage = typeof options.toastMessage === "function" ? options.toastMessage(result) : options.toastMessage;
           if (toastMessage) {
-            showToast(toastMessage);
+            showToast(toastMessage, options.toastTone || "success");
           }
           return result;
         } catch (error) {
           setActionStatus(options.errorMessage || "Action failed.", "error");
-          showToast(options.errorToast || "Action failed.");
+          showToast(options.errorToast || "Action failed.", "error");
           throw error;
         } finally {
           if (button) {
@@ -674,59 +673,6 @@
             toastMessage: (result) => `Downloaded ${result.issueCount} issue${result.issueCount === 1 ? "" : "s"}.`
           }, downloadIssuesJson);
         });
-        // Export bundle buttons
-        const exportBundleHandler = async (source) => {
-          const exportsMap = {};
-          // include issues / results
-          exportsMap['results.json'] = state.results || [];
-          exportsMap['currentSchema.json'] = state.currentSchema || {};
-          exportsMap['schemaBaselines.json'] = state.schemaBaselines || {};
-          exportsMap['runStats.json'] = state.currentRunStats || {};
-          exportsMap['profiles.json'] = state.profiles || [];
-          const summary = { profile: activeProfile().profile_name, source };
-          if (window.dqctExports && typeof window.dqctExports.buildExportBundle === 'function') {
-            const { blob, filename } = await window.dqctExports.buildExportBundle(exportsMap, summary);
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-            return { filename };
-          } else {
-            // fallback: create a single JSON file
-            const { blob, filename } = await (async () => {
-              const bundle = { metadata: Object.assign({ generatedAt: new Date().toISOString() }, summary), files: {} };
-              for (const [name, content] of Object.entries(exportsMap)) bundle.files[name] = content;
-              return { blob: new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' }), filename: `dqct-export-${Date.now()}.json` };
-            })();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-            return { filename };
-          }
-        };
-
-        const exportBundleBtn = document.getElementById('exportBundleButton');
-        if (exportBundleBtn) {
-          exportBundleBtn.addEventListener('click', async () => {
-            await withActionFeedback(exportBundleBtn, { runningLabel: 'Exporting…', startMessage: 'Building export bundle…', successMessage: (res) => `Exported ${res.filename}`, toastMessage: 'Bundle exported.' }, async () => exportBundleHandler('toolbar'));
-          });
-        }
-
-        const exportBundleDriftBtn = document.getElementById('exportBundleDrift');
-        if (exportBundleDriftBtn) {
-          exportBundleDriftBtn.addEventListener('click', async () => {
-            await withActionFeedback(exportBundleDriftBtn, { runningLabel: 'Exporting…', startMessage: 'Building export bundle (drift)…', successMessage: (res) => `Exported ${res.filename}`, toastMessage: 'Bundle exported.' }, async () => exportBundleHandler('drift'));
-          });
-        }
         els.cloneProfileButton.addEventListener("click", async () => {
           await withActionFeedback(els.cloneProfileButton, {
             runningLabel: "Cloning…",
@@ -766,31 +712,6 @@
             toastMessage: (profileName) => `Profile ${profileName} saved.`
           }, saveActiveProfile);
         });
-        // History filter bindings
-        if (els.runFilterStatus) {
-          els.runFilterStatus.addEventListener('change', (e) => {
-            state.historyFilters.status = e.target.value;
-            render();
-          });
-        }
-        if (els.runFilterFrom) {
-          els.runFilterFrom.addEventListener('change', (e) => {
-            state.historyFilters.from = e.target.value || null;
-            render();
-          });
-        }
-        if (els.runFilterTo) {
-          els.runFilterTo.addEventListener('change', (e) => {
-            state.historyFilters.to = e.target.value || null;
-            render();
-          });
-        }
-        if (els.runFilterSearch) {
-          els.runFilterSearch.addEventListener('input', (e) => {
-            state.historyFilters.search = e.target.value || '';
-            render();
-          });
-        }
         els.resetProfileButton.addEventListener("click", async () => {
           await withActionFeedback(els.resetProfileButton, {
             runningLabel: "Resetting…",
@@ -1022,6 +943,10 @@
             }
             els.dropzone.classList.remove("dragging");
           });
+        });
+
+        window.addEventListener("dqct:open-reports", () => {
+          els.issueSummaryList?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
       }
 

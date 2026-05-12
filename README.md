@@ -11,14 +11,15 @@ A browser-based validation tool for scraped government IT and software bid data.
 ## 📋 Table of Contents
 
 1. [Quick Start](#quick-start)
-2. [Core Concepts](#core-concepts)
-3. [Workflow: From Upload to Export](#workflow-from-upload-to-export)
-4. [Managing Profiles & Rules](#managing-profiles--rules)
-5. [Understanding Results](#understanding-results)
-6. [Dashboard & History](#dashboard--history)
-7. [Interpreting Anomalies](#interpreting-anomalies)
-8. [Tips & Best Practices](#tips--best-practices)
-9. [Troubleshooting](#troubleshooting)
+2. [Architecture (Phase 1 Refactor Foundation)](#architecture-phase-1-refactor-foundation)
+3. [Core Concepts](#core-concepts)
+4. [Workflow: From Upload to Export](#workflow-from-upload-to-export)
+5. [Managing Profiles & Rules](#managing-profiles--rules)
+6. [Understanding Results](#understanding-results)
+7. [Dashboard & History](#dashboard--history)
+8. [Interpreting Anomalies](#interpreting-anomalies)
+9. [Tips & Best Practices](#tips--best-practices)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -49,6 +50,86 @@ A browser-based validation tool for scraped government IT and software bid data.
 
 ### 5. Download Results
 - Click **"Download all issues JSON"** to export all defects as a `.json` file for archival or further analysis
+
+---
+
+## 🧩 Architecture (Phase 1 Refactor Foundation)
+
+DQCT now keeps the same user flows and UI, while loading modular JS files from the repository root `src/` folder:
+
+```text
+src/
+  modules/
+    diff/
+      engine.js
+      ui.js
+    validation/
+      engine.js
+      profiles.js
+  shared/
+    appState.js
+    parser.js
+    exports.js
+  ui/
+    jsonViewer.js
+    toasts.js
+    table.js
+```
+
+### Module responsibilities
+- `src/shared/parser.js`: JSON parsing + root-array extraction/normalization.
+- `src/shared/appState.js`: Shared dashboard settings + recent run history localStorage helpers.
+- `src/shared/exports.js`: Report text + issue export payload/download helpers, including standard Diff export filenames.
+- `src/modules/diff/engine.js`: Diff + duplicate detection helpers (`diffRecords`, `findDuplicates`, `buildCleanExport`).
+- `src/modules/diff/ui.js`: Minimal Diff tab UI (baseline/comparison upload, key/ignore options, analyze + exports).
+- `src/modules/validation/engine.js`: Rule evaluation and per-file validation execution.
+- `src/modules/validation/profiles.js`: Profile/UI/run/schema local storage helpers.
+- `src/ui/jsonViewer.js`: Shared JSON record viewer helpers (`renderRecordViewer`, `renderDiffViewer`).
+- `src/ui/toasts.js`: Shared toast helpers (`showSuccess`, `showWarning`, `showError`).
+- `src/ui/table.js`: Shared table helper with sortable headers, paging, and row click callbacks.
+
+### Shared UI component overview
+- **JSON viewer**: Validation row clicks open a shared record inspector modal rendered by `DQCTJsonViewer.renderRecordViewer(record, highlightPath)`.
+- **Shared table**: Validation results now render through `DQCTTable.create(...)`, keeping existing columns while adding reusable sorting and paging behavior.
+- **Shared toasts**: UI actions call `DQCTToasts.showSuccess/showWarning/showError` so all modules use one notification pattern.
+
+`dqct/dqct.html` loads these modules before `dqct/scripts/core/dqct-core.js` and `dqct/scripts/core/dqct-ui.js` so behavior remains unchanged while code is now separated by concern.
+
+### Unified top-level tabs
+- **Dashboard** is now the landing view with quick-action tiles:
+  - **Run Diff**
+  - **Run Validation**
+  - **View Reports**
+  - plus a **last run summary**, shared **settings panel**, and **Recent Runs** table.
+- **Validate** keeps the existing DQCT workflow exactly as before.
+- **Diff** adds a minimal baseline-vs-comparison workflow:
+  1. Upload baseline + comparison JSON files
+  2. Configure unique key + optional ignore fields
+  3. Analyze summary counts
+  4. Export:
+     - `diff_records.json`
+     - `duplicates_file1.json`
+     - `duplicates_file2.json`
+     - `duplicates_cross.json`
+     - `changed_and_new.json`
+
+### Shared settings (localStorage)
+
+The landing dashboard includes a shared settings panel persisted in `localStorage` (`dqct.app.settings.v1`) and exposed to both Validate + Diff:
+- **Default unique key**
+- **Ignore fields** (comma-separated defaults for Diff)
+- **Theme** (light/dark)
+- **Export JSON format** (pretty/minified)
+
+### Recent runs (local only)
+
+`dqct.app.recentRuns.v1` stores the last 10 runs (no backend):
+- timestamp
+- run type (`validate` or `diff`)
+- summary counts
+- export file names
+
+The **Recent Runs** table on the landing dashboard includes **Re-open** actions to jump back into the corresponding module.
 
 ---
 
