@@ -76,3 +76,22 @@
     }, 600);
   } catch (e) {}
 })();
+
+// Auto-run dev helper: load sample data and trigger a validation run when ?autoRun=1
+(function devAutoRun() {
+  try {
+    if (typeof window === 'undefined') return;
+    if (!window.location || !window.location.search) return;
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('autoRun')) return;
+    // click the seed demo button, then run
+    setTimeout(() => {
+      const seed = document.getElementById('seedDemoButton');
+      const runBtn = document.getElementById('runButton');
+      if (seed) seed.click();
+      setTimeout(() => {
+        if (runBtn) runBtn.click();
+      }, 700);
+    }, 300);
+  } catch (e) {}
+})();
