@@ -328,11 +328,90 @@
     return { results, perFileSummary };
   }
 
+  function buildRecordSummaries(files, flatResults) {
+    const recordSummaries = [];
+    const failuresByRecord = new Map();
+
+    // Group failures by (fileName, recordIndex)
+    flatResults.forEach((failure) => {
+      const key = `${failure.fileName}:${failure.recordIndex}`;
+      if (!failuresByRecord.has(key)) {
+        failuresByRecord.set(key, []);
+      }
+      failuresByRecord.get(key).push(failure);
+    });
+
+    // Build summaries for each record in each file
+    files.forEach((file) => {
+      if (file.status === "error") {
+        // Skip error files
+        return;
+      }
+
+      const records = file.records || [];
+      records.forEach((record, recordIndex) => {
+        const key = `${file.name}:${recordIndex + 1}`;
+        const recordFailures = failuresByRecord.get(key) || [];
+
+        // Classify failures by severity
+        const errorFailures = recordFailures.filter((f) => f.severity === "high");
+        const warningFailures = recordFailures.filter((f) => f.severity === "medium");
+        const infoFailures = recordFailures.filter((f) => f.severity === "low");
+
+        // Determine qa_status
+        let qa_status = "PASS";
+        if (errorFailures.length > 0) {
+          qa_status = "FAIL";
+        } else if (warningFailures.length > 0) {
+          qa_status = "PASS_WITH_WARNINGS";
+        }
+
+        recordSummaries.push({
+          row_number: recordIndex + 1,
+          file_name: file.name,
+          AgentID: record?.AgentID || "",
+          ProjectCode: record?.ProjectCode || "",
+          Title: record?.Title || "",
+          BidStatus: record?.BidStatus || "",
+          fingerprint: "", // Will be populated when fingerprint module is added
+          qa_status,
+          error_count: errorFailures.length,
+          warning_count: warningFailures.length,
+          info_count: infoFailures.length,
+          errors: errorFailures.map((f) => ({
+            field: f.field,
+            ruleId: f.ruleId,
+            ruleType: f.ruleType,
+            expected: f.expected,
+            actual: f.actual
+          })),
+          warnings: warningFailures.map((f) => ({
+            field: f.field,
+            ruleId: f.ruleId,
+            ruleType: f.ruleType,
+            expected: f.expected,
+            actual: f.actual
+          })),
+          infos: infoFailures.map((f) => ({
+            field: f.field,
+            ruleId: f.ruleId,
+            ruleType: f.ruleType,
+            expected: f.expected,
+            actual: f.actual
+          }))
+        });
+      });
+    });
+
+    return recordSummaries;
+  }
+
   globalScope.DQCTValidationEngine = {
     isEmpty,
     formatValue,
     parseDocumentCollection,
     applyRule,
-    validateFiles
+    validateFiles,
+    buildRecordSummaries
   };
 })(window);

@@ -57,6 +57,7 @@
         files: [],
         parsedRuns: [],
         results: [],
+        recordSummaries: [],
         runHistory: [],
         schemaBaselines: loadSchemaBaselines(),
         currentSchema: null,
@@ -724,6 +725,7 @@
         const perFileSummary = validationOutput.perFileSummary;
 
         state.results = results;
+        state.recordSummaries = window.DQCTValidationEngine.buildRecordSummaries(state.files, results);
         state.currentSchema = inferSchema(records);
         if (!state.schemaBaselines[profile.profile_name]) {
           state.schemaBaselines[profile.profile_name] = {
@@ -988,6 +990,7 @@
       function clearFiles() {
         state.files = [];
         state.results = [];
+        state.recordSummaries = [];
         state.currentIssueGroups = [];
         els.ticketPreview.classList.add("hidden");
         els.ticketPreview.textContent = "";
