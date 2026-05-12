@@ -138,7 +138,7 @@ The **Recent Runs** table on the landing dashboard includes **Re-open** actions 
 
 ### 1. **Profiles**
 
-A **profile** is a collection of validation rules tailored to a specific data source (e.g., Ohio Buys, a county RFP system, etc.).
+A **profile** is a collection of validation rules tailored to a specific data source (e.g., a state portal, a county RFP system, etc.).
 
 - **Default profile (Standard Profile)** comes pre-loaded with 33 rules
 - Each profile specifies:
@@ -176,7 +176,7 @@ A **rule** is a single validation check applied to a field. Examples:
 Rules are grouped into three layers for flexibility:
 
 - **Core** (R01–R04): Always-required fundamental checks (e.g., JSON structure, primary ID exists)
-- **Domain** (R05–R24): Specific to a source (e.g., Ohio Buys project code format, document validation)
+- **Domain** (R05–R24): Specific to a source (e.g., profile-specific project code format, document validation)
 - **Diagnostic** (R25–R33): Optional deeper checks, disabled by default (e.g., "Description not empty")
 
 ---
@@ -211,7 +211,7 @@ In the **Loaded Files** panel, you see:
 ### Step 3: Select or Create a Profile
 
 On the right sidebar under **Active Profile**:
-1. **Ohio Buys** is pre-selected by default
+1. **Standard Profile** is pre-selected by default
 2. To use a different profile, click the dropdown to select one
 3. To create a new profile:
    - Enter a name in **New Profile Name** (e.g., "County RFP Board")
@@ -304,7 +304,7 @@ Issues are automatically grouped by (Rule ID, Field, Rule Type). Each group show
 1. In **Issue report builder**, click **"Copy ticket"** on any grouped issue
 2. The formatted ticket text is copied to your clipboard:
    ```
-   [DEFECT] Ohio Buys — ProjectCode failed regex
+  [DEFECT] Standard Profile — ProjectCode failed regex
    
    Date: 2026-04-28T12:34:56Z
    File: data-20260428.json
@@ -328,7 +328,7 @@ Issues are automatically grouped by (Rule ID, Field, Rule Type). Each group show
    - Schema drift information
    - Anomaly warnings
    - Run metadata (date, profile, file count, etc.)
-3. File is named: `dqct-issues-ohio-buys-2026-04-28T12-34-56Z.json`
+3. File is named: `dqct-issues-standard-profile-2026-04-28T12-34-56Z.json`
 
 #### Option C: Copy Report
 1. Click **"Copy report"** to copy a text summary of all results to clipboard
@@ -394,7 +394,7 @@ Results update instantly.
 
 ### Resetting to Default
 
-1. Click **"Reset Profile"** to restore the Ohio Buys profile to its original 33-rule configuration
+1. Click **"Reset Profile"** to restore the Standard Profile to its original 33-rule configuration
 2. All edits are discarded—use this if you've customized and want to start fresh
 
 ---
@@ -429,7 +429,7 @@ Expected: pattern ^SRC\d{10}$
 Actual: "INVALID-2026"
 Severity: Medium
 ```
-→ The `ProjectCode` doesn't match the Ohio Buys format. Likely a scraper issue or data entry error.
+→ The `ProjectCode` doesn't match the Standard Profile format. Likely a scraper issue or data entry error.
 
 #### Example 3: Conditional Requirement
 ```
@@ -617,7 +617,7 @@ Detail: Previous 85% null vs current 95% null
 Click "Load sample data" to learn the UI without uploading real files. Run validation on the sample to see how failures are reported.
 
 ### 2. **Create Profiles Per Source**
-Don't try to use one profile for all data sources. Create separate profiles for Ohio Buys, county RFPs, etc. Rules will be clearer and easier to maintain.
+Don't try to use one profile for all data sources. Create separate profiles for each data source (state portals, county RFPs, etc.). Rules will be clearer and easier to maintain.
 
 ### 3. **Use Layer Filters**
 When managing rules, filter by layer:
