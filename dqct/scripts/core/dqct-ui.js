@@ -699,7 +699,7 @@
                 toastMessage: (draftProfile) => `Schema draft ${draftProfile.profile_name} imported.`
               }, async () => importSchemaFromFile(file));
             } catch (error) {
-              console.error(error);
+              // error handled silently for UI import flow
             } finally {
               event.target.value = "";
             }
@@ -804,8 +804,6 @@
                 if (!ok) {
                   alert(`Unable to delete profile ${deleteProfileName}.`);
                 }
-              } else {
-                console.warn("deleteProfile function not available");
               }
             }
             return;
@@ -844,8 +842,6 @@
             if (typeof renameProfile === "function") {
               const ok = renameProfile(saveProfileOld, newName, newSource || "");
               if (!ok) alert(`Unable to rename profile ${saveProfileOld} to ${newName}. Name might already exist.`);
-            } else {
-              console.warn("renameProfile function not available");
             }
             state.editingProfile = null;
             render();

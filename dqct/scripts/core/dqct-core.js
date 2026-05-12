@@ -338,7 +338,7 @@
           const filtered = (runs || []).filter((r) => r.profileName !== profileName);
           saveRuns(filtered);
         } catch (err) {
-          console.warn('Failed to prune runs for deleted profile', err);
+          // silently ignore prune errors for run history cleanup
         }
 
         saveProfiles();
@@ -379,7 +379,7 @@
           const updated = runs.map((r) => (r.profileName === oldName ? { ...r, profileName: newName } : r));
           saveRuns(updated);
         } catch (err) {
-          console.warn('Failed to update runs for renamed profile', err);
+          // silently ignore errors updating run history
         }
 
         // update active profile id if necessary
