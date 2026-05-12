@@ -2,9 +2,9 @@
 
 A browser-based validation tool for scraped government IT and software bid data. Upload JSON files, run automated quality checks against configurable rule profiles, and generate Trello-ready defect reports—all in seconds.
 
-**Current Version:** 2.1 (Phase 1 & 2 Complete)  
+**Current Version:** 2.2 (Phase 1–5C Complete)  
 **Status:** Production Ready  
-**Last Updated:** April 28, 2026
+**Last Updated:** May 12, 2026
 
 ---
 
@@ -17,9 +17,10 @@ A browser-based validation tool for scraped government IT and software bid data.
 5. [Managing Profiles & Rules](#managing-profiles--rules)
 6. [Understanding Results](#understanding-results)
 7. [Dashboard & History](#dashboard--history)
-8. [Interpreting Anomalies](#interpreting-anomalies)
-9. [Tips & Best Practices](#tips--best-practices)
-10. [Troubleshooting](#troubleshooting)
+8. [Advanced Features](#advanced-features)
+9. [Interpreting Anomalies](#interpreting-anomalies)
+10. [Tips & Best Practices](#tips--best-practices)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -475,7 +476,28 @@ A table of your last 12 validation runs showing:
 | Pass % | Percentage passing all rules |
 | Drift | Number of schema drift events |
 | Anomalies | Count of statistical anomalies detected |
-| Status | "issues" or "clean" badge |
+| Status | "issues" or "clean" badge + **Re-run** button |
+
+#### Run History Filtering
+
+Above the history table, use the filter controls to narrow results:
+
+- **Status**: Filter by "All", "Issues" (runs with failures), or "Clean" (passing runs)
+- **From / To**: Filter by date range (start and end date)
+- **Search**: Search by file name, profile name, or run timestamp
+
+Filters are applied in real time and persist for the session.
+
+#### Re-running Historical Runs
+
+Each history row includes a **Re-run** button. Click it to:
+
+1. Switch the active profile to the historical run's profile
+2. Check if your currently loaded files match the historical run's files
+3. If files match, automatically trigger a new validation run with the same profile
+4. If files don't match, prompt you to upload the original files
+
+This is useful for re-validating data after fixing upstream issues or comparing results across time.
 
 #### Trend Sparkline
 A small line chart showing your pass rate over the last 30 runs. Useful for spotting quality trends:
@@ -488,9 +510,40 @@ The last 10 defects across validation runs, showing:
 - File and record reference
 - Severity level
 
-### Inspecting Historical Runs
+---
 
-The table is sorted by most recent first. Click on any row to drill into that specific run's details (planned for future version; currently visible in summary).
+## 🔍 Advanced Features
+
+### JSON Diff Viewer (Phase 5A)
+
+Compare expected vs. actual values side-by-side for any validation failure:
+
+1. In the **Validation results** tab, click the **View Diff** button on any row
+2. A modal opens showing the expected and actual values in a side-by-side JSON viewer
+3. Changed lines are highlighted in yellow for quick identification
+4. Close the modal with the X or by clicking the backdrop
+
+In the **Schema Drift & Anomalies** panel, each drift entry (added/removed/type-changed field) also includes a **View Diff** button to compare baseline vs. incoming schema.
+
+### Export Bundle (Phase 5B)
+
+Package your validation run, schema baselines, and metadata into a single ZIP file:
+
+1. After running validation, click **Export Bundle** in the toolbar or drift panel
+2. A ZIP file downloads containing:
+   - `results.json` — All validation issues
+   - `currentSchema.json` — The inferred schema from this run
+   - `schemaBaselines.json` — Saved baselines for all profiles
+   - `runStats.json` — Aggregated run statistics
+   - `profiles.json` — Active profiles at export time
+   - `metadata.json` — Run metadata (timestamp, profile name, issue count, etc.)
+   - `README.txt` — File manifest
+
+3. Extract and inspect: `unzip dqct-export-<timestamp>.zip`
+
+If your browser does not support JSZip, a JSON fallback file is downloaded instead containing all data in a single file.
+
+See [dqct/exports/README.md](dqct/exports/README.md) for detailed bundle structure and metadata fields.
 
 ---
 
