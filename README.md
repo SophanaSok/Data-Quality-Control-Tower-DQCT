@@ -70,6 +70,7 @@ src/
     parser.js
     exports.js
   ui/
+    jsonViewer.js
     toasts.js
     table.js
 ```
@@ -81,8 +82,14 @@ src/
 - `src/modules/diff/ui.js`: Minimal Diff tab UI (baseline/comparison upload, key/ignore options, analyze + exports).
 - `src/modules/validation/engine.js`: Rule evaluation and per-file validation execution.
 - `src/modules/validation/profiles.js`: Profile/UI/run/schema local storage helpers.
-- `src/ui/toasts.js`: Minimal toast helper wrapper.
-- `src/ui/table.js`: Minimal table rendering helper wrapper.
+- `src/ui/jsonViewer.js`: Shared JSON record viewer helpers (`renderRecordViewer`, `renderDiffViewer`).
+- `src/ui/toasts.js`: Shared toast helpers (`showSuccess`, `showWarning`, `showError`).
+- `src/ui/table.js`: Shared table helper with sortable headers, paging, and row click callbacks.
+
+### Shared UI component overview
+- **JSON viewer**: Validation row clicks open a shared record inspector modal rendered by `DQCTJsonViewer.renderRecordViewer(record, highlightPath)`.
+- **Shared table**: Validation results now render through `DQCTTable.create(...)`, keeping existing columns while adding reusable sorting and paging behavior.
+- **Shared toasts**: UI actions call `DQCTToasts.showSuccess/showWarning/showError` so all modules use one notification pattern.
 
 `dqct/dqct.html` loads these modules before `dqct/scripts/core/dqct-core.js` and `dqct/scripts/core/dqct-ui.js` so behavior remains unchanged while code is now separated by concern.
 

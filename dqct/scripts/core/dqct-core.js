@@ -104,6 +104,7 @@
         anomaliesList: document.getElementById("anomaliesList"),
         issueSummaryList: document.getElementById("issueSummaryList"),
         ticketPreview: document.getElementById("ticketPreview"),
+        resultsTable: document.getElementById("resultsTable"),
         resultsBody: document.getElementById("resultsBody"),
         resultsWrap: document.getElementById("resultsWrap"),
         emptyState: document.getElementById("emptyState"),
