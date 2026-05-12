@@ -239,6 +239,25 @@
       return failures;
     }
 
+    if (rule.type === "terminated_award_check") {
+      // Check if BidStatus is "Terminated" and any award-related fields are populated
+      const bidStatus = record?.BidStatus || "";
+      if (bidStatus === "Terminated") {
+        const awardDate = record?.AwardDate || "";
+        const awardedVendorName = record?.AwardedVendorName || "";
+        const awardDocuments = record?.AwardDocuments || "";
+        
+        const hasAwardData = awardDate || awardedVendorName || awardDocuments;
+        if (hasAwardData) {
+          fail(
+            "no award data when BidStatus is Terminated",
+            `AwardDate: ${awardDate || "(empty)"}, AwardedVendorName: ${awardedVendorName || "(empty)"}, AwardDocuments: ${awardDocuments || "(empty)"}`
+          );
+        }
+      }
+      return failures;
+    }
+
     return failures;
   }
 

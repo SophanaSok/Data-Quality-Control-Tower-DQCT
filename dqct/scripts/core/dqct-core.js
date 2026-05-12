@@ -45,7 +45,11 @@
           { id: "R30", layer: "diagnostic", field: "DueDate", type: "not_future", severity: "low", enabled: false, notes: "Sanity check: due dates are not unreasonably far in future" },
           { id: "R31", layer: "diagnostic", field: "PublishedDate", type: "ambiguous_date", severity: "low", enabled: false, notes: "Flag dates like 04/05/2026 where day/month order is ambiguous — useful for auditing portal-level format inconsistency" },
           { id: "R32", layer: "diagnostic", field: "DueDate", type: "ambiguous_date", severity: "low", enabled: false, notes: "Flag ambiguous due dates — enable when comparing data across multiple portal sources" },
-          { id: "R33", layer: "diagnostic", field: "AwardDate", type: "ambiguous_date", severity: "low", enabled: false, notes: "Flag ambiguous award dates" }
+          { id: "R33", layer: "diagnostic", field: "AwardDate", type: "ambiguous_date", severity: "low", enabled: false, notes: "Flag ambiguous award dates" },
+          { id: "R34", layer: "domain", field: "BidDocuments", type: "required_if", severity: "medium", enabled: true, condition: { field: "BidStatus", equals: "Open for Bidding" }, notes: "Open bids should have supporting documents" },
+          { id: "R35", layer: "domain", field: "BidDocuments", type: "required_if", severity: "medium", enabled: true, condition: { field: "BidStatus", equals: "Closed" }, notes: "Closed bids should have supporting documents" },
+          { id: "R36", layer: "domain", field: "AwardDate", type: "required_if", severity: "medium", enabled: true, condition: { field: "BidStatus", equals: "Awarded" }, notes: "Awarded bids should record the award date" },
+          { id: "R37", layer: "domain", field: "BidStatus", type: "terminated_award_check", severity: "medium", enabled: true, notes: "Flag Terminated bids that have award data (unexpected pattern)" }
         ]
       };
 
