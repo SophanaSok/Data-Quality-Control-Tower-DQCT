@@ -59,7 +59,7 @@
         if (validationResultsTable || !window.DQCTTable?.create) {
           return;
         }
-        const formatRecordIndex = (result) => `${result.recordIndex ?? ""}${result.documentIndex !== null && result.documentIndex !== undefined ? ` / doc ${result.documentIndex + 1}` : ""}`;
+        const formatRecordIndex = (result) => `${result.recordIndex ?? ""}${result.documentIndex != null ? ` / doc ${result.documentIndex + 1}` : ""}`;
         const renderEscapedColumn = (key) => (result) => escapeHtml(result[key] || "");
         validationResultsTable = window.DQCTTable.create({
           tableElement: els.resultsTable,

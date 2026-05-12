@@ -1,9 +1,12 @@
 (function attachDQCTToasts(globalScope) {
+  const VALID_TONES = new Set(["success", "warning", "error"]);
+
   function resolveToastOptions(tone = "success", timeout = 3200) {
     if (typeof tone === "number") {
       return { tone: "success", timeout: tone };
     }
-    return { tone: typeof tone === "string" ? tone : "success", timeout: Number.isFinite(timeout) ? timeout : 3200 };
+    const normalizedTone = typeof tone === "string" && VALID_TONES.has(tone) ? tone : "success";
+    return { tone: normalizedTone, timeout: Number.isFinite(timeout) ? timeout : 3200 };
   }
 
   function showToast(text, tone = "success", timeout = 3200) {

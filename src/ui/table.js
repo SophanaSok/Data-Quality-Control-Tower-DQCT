@@ -23,10 +23,7 @@
 
     const pager = document.createElement("div");
     pager.className = "dqct-table-pager";
-    const parent = tableElement.parentElement;
-    if (parent) {
-      parent.insertAdjacentElement("afterend", pager);
-    }
+    tableElement.insertAdjacentElement("afterend", pager);
 
     const state = {
       rows: [],
@@ -177,7 +174,8 @@
         state.page -= 1;
         render();
       }
-      const totalPages = Math.max(1, Math.ceil(getSortedRows().length / pageSize));
+      const sortedRows = getSortedRows();
+      const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
       if (action === "next" && state.page < totalPages) {
         state.page += 1;
         render();
