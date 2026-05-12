@@ -639,7 +639,7 @@
         els.seedDemoButton.addEventListener("click", async () => {
           await withActionFeedback(els.seedDemoButton, {
             runningLabel: "Loading…",
-            startMessage: "Loading sample Ohio Buys data…",
+            startMessage: () => `Loading sample ${activeProfile().profile_name} data…`,
             successMessage: (result) => `Loaded ${result.recordCount} sample records across ${result.fileCount} file${result.fileCount === 1 ? "" : "s"}.`,
             toastMessage: (result) => `Sample data loaded (${result.recordCount} records).`
           }, async () => loadSampleData());

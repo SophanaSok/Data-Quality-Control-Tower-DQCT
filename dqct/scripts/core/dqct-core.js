@@ -8,8 +8,8 @@
       const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
       const defaultProfile = {
-        profile_name: "Ohio Buys",
-        source: "State of Ohio Buys — ohiobuys.ohio.gov",
+        profile_name: "Standard Profile",
+        source: "Built-in standard profile",
         version: "1.0",
         root_array: "Export",
         rules: [
@@ -925,7 +925,7 @@
         const sample = {
           Export: [
             {
-              AgentName: "Ohio Buys",
+              AgentName: "Standard Profile",
               AgentID: "OH-001",
               LegacyAgentID: "LEG-1001",
               ResourceURL: "https://ohiobuys.ohio.gov/bids/1",
@@ -946,7 +946,7 @@
               Addendum: ""
             },
             {
-              AgentName: "Ohio Buys",
+              AgentName: "Standard Profile",
               AgentID: "OH-001",
               LegacyAgentID: "LEG-1001",
               ResourceURL: "https://ohiobuys.ohio.gov/bids/1",
@@ -974,7 +974,7 @@
 
         state.files = [
           {
-            name: "sample-ohio-buys.json",
+            name: "sample-standard-profile.json",
             size: JSON.stringify(sample).length,
             records: sample.Export,
             raw: sample,

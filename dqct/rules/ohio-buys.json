@@ -1,6 +1,6 @@
 {
-	"profile_name": "Ohio Buys",
-	"source": "State of Ohio Buys — ohiobuys.ohio.gov",
+	"profile_name": "Standard Profile",
+	"source": "Built-in standard profile",
 	"version": "1.0",
 	"root_array": "Export",
 	"rules": [

@@ -37,11 +37,11 @@ A browser-based validation tool for scraped government IT and software bid data.
    Then open `http://localhost:8000/` or `http://localhost:8000/dqct/dqct.html` in your browser.
 
 ### 2. Load Sample Data (Optional)
-- Click **"Load sample data"** to load 2 sample Ohio Buys bid records
+- Click **"Load sample data"** to load 2 sample Standard Profile bid records
 - Perfect for learning the workflow without uploading your own files
 
 ### 3. Run Validation
-- Click **"Run validation"** to validate the loaded data against the default Ohio Buys profile
+- Click **"Run validation"** to validate the loaded data against the default Standard Profile
 - The button changes to a running state, the top status banner explains what is happening, and a toast confirms when the run finishes
 - Results appear on the **Validation results** panel
 
@@ -140,7 +140,7 @@ The **Recent Runs** table on the landing dashboard includes **Re-open** actions 
 
 A **profile** is a collection of validation rules tailored to a specific data source (e.g., Ohio Buys, a county RFP system, etc.).
 
-- **Default Ohio Buys profile** comes pre-loaded with 33 rules
+- **Default profile (Standard Profile)** comes pre-loaded with 33 rules
 - Each profile specifies:
   - The root array field (e.g., `Export`)
   - Which rules are active
