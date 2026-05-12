@@ -11,14 +11,15 @@ A browser-based validation tool for scraped government IT and software bid data.
 ## 📋 Table of Contents
 
 1. [Quick Start](#quick-start)
-2. [Core Concepts](#core-concepts)
-3. [Workflow: From Upload to Export](#workflow-from-upload-to-export)
-4. [Managing Profiles & Rules](#managing-profiles--rules)
-5. [Understanding Results](#understanding-results)
-6. [Dashboard & History](#dashboard--history)
-7. [Interpreting Anomalies](#interpreting-anomalies)
-8. [Tips & Best Practices](#tips--best-practices)
-9. [Troubleshooting](#troubleshooting)
+2. [Architecture (Phase 1 Refactor Foundation)](#architecture-phase-1-refactor-foundation)
+3. [Core Concepts](#core-concepts)
+4. [Workflow: From Upload to Export](#workflow-from-upload-to-export)
+5. [Managing Profiles & Rules](#managing-profiles--rules)
+6. [Understanding Results](#understanding-results)
+7. [Dashboard & History](#dashboard--history)
+8. [Interpreting Anomalies](#interpreting-anomalies)
+9. [Tips & Best Practices](#tips--best-practices)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -49,6 +50,36 @@ A browser-based validation tool for scraped government IT and software bid data.
 
 ### 5. Download Results
 - Click **"Download all issues JSON"** to export all defects as a `.json` file for archival or further analysis
+
+---
+
+## 🧩 Architecture (Phase 1 Refactor Foundation)
+
+DQCT now keeps the same user flows and UI, while loading modular JS files from the repository root `src/` folder:
+
+```text
+src/
+  modules/
+    validation/
+      engine.js
+      profiles.js
+  shared/
+    parser.js
+    exports.js
+  ui/
+    toasts.js
+    table.js
+```
+
+### Module responsibilities
+- `src/shared/parser.js`: JSON parsing + root-array extraction/normalization.
+- `src/shared/exports.js`: Report text + issue export payload/download helpers.
+- `src/modules/validation/engine.js`: Rule evaluation and per-file validation execution.
+- `src/modules/validation/profiles.js`: Profile/UI/run/schema local storage helpers.
+- `src/ui/toasts.js`: Minimal toast helper wrapper.
+- `src/ui/table.js`: Minimal table rendering helper wrapper.
+
+`dqct/dqct.html` loads these modules before `dqct/scripts/core/dqct-core.js` and `dqct/scripts/core/dqct-ui.js` so behavior remains unchanged while code is now separated by concern.
 
 ---
 
