@@ -98,6 +98,7 @@
     const diffRows = [];
 
     comparisonMap.forEach((comparisonItems, key) => {
+      // Duplicate keys are reported by findDuplicates; diff comparison uses the first occurrence per key.
       const comparisonItem = comparisonItems[0];
       const baselineItem = baselineMap.get(key)?.[0];
       if (!baselineItem) {
@@ -208,7 +209,7 @@
 
     file2Map.forEach((file2Entries, key) => {
       const file1Entries = file1Map.get(key);
-      if (!file1Entries || !file2Entries.length) {
+      if (!file1Entries) {
         return;
       }
       duplicatesCross.push({

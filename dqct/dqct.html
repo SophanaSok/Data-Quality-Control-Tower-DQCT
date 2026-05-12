@@ -8,12 +8,12 @@
   </head>
   <body>
     <div class="app">
-      <nav class="top-nav-tabs" aria-label="Primary navigation">
-        <button type="button" class="top-nav-tab is-active" data-app-tab="validate" aria-selected="true">Validate</button>
-        <button type="button" class="top-nav-tab" data-app-tab="diff" aria-selected="false">Diff</button>
+      <nav class="top-nav-tabs" aria-label="Primary navigation" role="tablist">
+        <button type="button" class="top-nav-tab is-active" data-app-tab="validate" role="tab" aria-controls="validateTabPanel" aria-selected="true">Validate</button>
+        <button type="button" class="top-nav-tab" data-app-tab="diff" role="tab" aria-controls="diffTabPanel" aria-selected="false">Diff</button>
       </nav>
 
-      <div data-tab-panel="validate" id="validateTabPanel">
+      <div data-tab-panel="validate" id="validateTabPanel" role="tabpanel">
       <section class="hero">
         <div>
           <div class="eyebrow">Data Quality Control Tower</div>
@@ -304,7 +304,7 @@
       </section>
       </div>
 
-      <section data-tab-panel="diff" id="diffTabPanel" class="hidden">
+      <section data-tab-panel="diff" id="diffTabPanel" class="hidden" role="tabpanel">
         <div id="diffApp" class="panel"></div>
       </section>
     </div>
