@@ -674,6 +674,10 @@
       }
 
       function getPrimaryId(record) {
+        const uniqueKey = window.DQCTAppState?.getSettings?.()?.defaultUniqueKey;
+        if (uniqueKey && record?.[uniqueKey] !== undefined && String(record[uniqueKey]).trim() !== "") {
+          return record[uniqueKey];
+        }
         return record.ProjectCode || record.Title || record.AgentID || record.ResourceURL || "(missing primary id)";
       }
 
@@ -747,8 +751,22 @@
           issues: results.slice(0, 25),
           anomalies: state.currentAnomalies
         };
+        const issuesFilename = getIssuesFilename(historyEntry.timestamp);
 
         await saveRunHistory(historyEntry);
+        window.DQCTAppState?.addRecentRun?.({
+          timestamp: historyEntry.timestamp,
+          type: "validate",
+          summary: {
+            files: state.files.length,
+            records: state.currentRunStats.rowCount,
+            failures: results.length,
+            anomalies: state.currentAnomalies.length
+          },
+          exportFiles: [issuesFilename],
+          reopenTab: "validate",
+          label: profile.profile_name
+        });
         state.runHistory = await loadRunHistory();
         state.parsedRuns = loadRuns();
         state.parsedRuns.push({
@@ -870,6 +888,11 @@
         els.ticketPreview.classList.remove("hidden");
       }
 
+      function getIssuesFilename(timestamp) {
+        const stamp = new Date(timestamp || new Date().toISOString()).toISOString().replaceAll(":", "-");
+        return `dqct-issues-${activeProfile().profile_name.toLowerCase().replace(/\s+/g, "-")}-${stamp}.json`;
+      }
+
       function downloadIssuesJson() {
         const payload = window.DQCTExports.buildIssuesPayload({
           profileName: activeProfile().profile_name,
@@ -878,10 +901,10 @@
           results: state.results,
           currentAnomalies: state.currentAnomalies,
           currentDrift: state.currentDrift,
-          currentIssueGroups: state.currentIssueGroups
+          currentIssueGroups: state.currentIssueGroups,
+          settings: window.DQCTAppState?.getSettings?.() || null
         });
-        const stamp = new Date().toISOString().replaceAll(":", "-");
-        const filename = `dqct-issues-${activeProfile().profile_name.toLowerCase().replace(/\s+/g, "-")}-${stamp}.json`;
+        const filename = getIssuesFilename(new Date().toISOString());
         const downloadResult = window.DQCTExports.downloadJson(payload, filename);
         return { filename: downloadResult.filename, issueCount: state.results.length };
       }

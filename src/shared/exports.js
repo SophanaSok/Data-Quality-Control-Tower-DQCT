@@ -28,10 +28,11 @@
     return lines.join("\n");
   }
 
-  function buildIssuesPayload({ profileName, files, currentRunStats, results, currentAnomalies, currentDrift, currentIssueGroups }) {
+  function buildIssuesPayload({ profileName, files, currentRunStats, results, currentAnomalies, currentDrift, currentIssueGroups, settings }) {
     return {
       generatedAt: new Date().toISOString(),
       profile: profileName,
+      settings: settings || null,
       files: files.map((file) => ({ name: file.name, status: file.status, records: file.records.length })),
       totals: {
         records: currentRunStats?.rowCount || 0,
@@ -46,7 +47,9 @@
   }
 
   function downloadJson(payload, filename) {
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const exportFormat = (globalScope.DQCTAppState?.getSettings?.() || {}).exportFormat || "pretty";
+    const indent = exportFormat === "minified" ? 0 : 2;
+    const blob = new Blob([JSON.stringify(payload, null, indent)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

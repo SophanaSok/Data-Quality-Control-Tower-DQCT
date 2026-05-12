@@ -944,6 +944,10 @@
             els.dropzone.classList.remove("dragging");
           });
         });
+
+        window.addEventListener("dqct:open-reports", () => {
+          els.issueSummaryList?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
       }
 
       function updateRule(ruleId, patch) {

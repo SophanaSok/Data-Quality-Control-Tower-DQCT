@@ -67,6 +67,7 @@ src/
       engine.js
       profiles.js
   shared/
+    appState.js
     parser.js
     exports.js
   ui/
@@ -77,6 +78,7 @@ src/
 
 ### Module responsibilities
 - `src/shared/parser.js`: JSON parsing + root-array extraction/normalization.
+- `src/shared/appState.js`: Shared dashboard settings + recent run history localStorage helpers.
 - `src/shared/exports.js`: Report text + issue export payload/download helpers, including standard Diff export filenames.
 - `src/modules/diff/engine.js`: Diff + duplicate detection helpers (`diffRecords`, `findDuplicates`, `buildCleanExport`).
 - `src/modules/diff/ui.js`: Minimal Diff tab UI (baseline/comparison upload, key/ignore options, analyze + exports).
@@ -94,6 +96,11 @@ src/
 `dqct/dqct.html` loads these modules before `dqct/scripts/core/dqct-core.js` and `dqct/scripts/core/dqct-ui.js` so behavior remains unchanged while code is now separated by concern.
 
 ### Unified top-level tabs
+- **Dashboard** is now the landing view with quick-action tiles:
+  - **Run Diff**
+  - **Run Validation**
+  - **View Reports**
+  - plus a **last run summary**, shared **settings panel**, and **Recent Runs** table.
 - **Validate** keeps the existing DQCT workflow exactly as before.
 - **Diff** adds a minimal baseline-vs-comparison workflow:
   1. Upload baseline + comparison JSON files
@@ -105,6 +112,24 @@ src/
      - `duplicates_file2.json`
      - `duplicates_cross.json`
      - `changed_and_new.json`
+
+### Shared settings (localStorage)
+
+The landing dashboard includes a shared settings panel persisted in `localStorage` (`dqct.app.settings.v1`) and exposed to both Validate + Diff:
+- **Default unique key**
+- **Ignore fields** (comma-separated defaults for Diff)
+- **Theme** (light/dark)
+- **Export JSON format** (pretty/minified)
+
+### Recent runs (local only)
+
+`dqct.app.recentRuns.v1` stores the last 10 runs (no backend):
+- timestamp
+- run type (`validate` or `diff`)
+- summary counts
+- export file names
+
+The **Recent Runs** table on the landing dashboard includes **Re-open** actions to jump back into the corresponding module.
 
 ---
 
