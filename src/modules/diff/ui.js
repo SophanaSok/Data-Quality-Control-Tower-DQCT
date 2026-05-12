@@ -1,5 +1,6 @@
 (function attachDQCTDiffUI(globalScope) {
   const defaultUniqueKey = globalScope.DQCTDiffEngine?.defaultUniqueKey || "ProjectCode";
+  const TAB_STORAGE_KEY = "dqct.app.activeTab.v1";
   const state = {
     baselinePayload: null,
     comparisonPayload: null,
@@ -41,6 +42,15 @@
       duplicatesFile2: "duplicates_file2.json",
       duplicatesCross: "duplicates_cross.json",
       changedAndNew: "changed_and_new.json"
+    };
+  }
+
+  function getAppSettings() {
+    return globalScope.DQCTAppState?.getSettings?.() || {
+      defaultUniqueKey,
+      ignoreFields: [],
+      theme: "light",
+      exportFormat: "pretty"
     };
   }
 
@@ -148,6 +158,9 @@
     }
 
     const setActiveTab = (tabName) => {
+      if (!tabName) {
+        return;
+      }
       tabButtons.forEach((button) => {
         const isActive = button.getAttribute("data-app-tab") === tabName;
         button.classList.toggle("is-active", isActive);
@@ -157,13 +170,134 @@
         const isActive = panel.getAttribute("data-tab-panel") === tabName;
         panel.classList.toggle("hidden", !isActive);
       });
+      localStorage.setItem(TAB_STORAGE_KEY, tabName);
     };
 
     tabButtons.forEach((button) => {
       button.addEventListener("click", () => setActiveTab(button.getAttribute("data-app-tab")));
     });
 
-    setActiveTab("validate");
+    const lastTab = localStorage.getItem(TAB_STORAGE_KEY);
+    const tabExists = tabButtons.some((button) => button.getAttribute("data-app-tab") === lastTab);
+    setActiveTab(tabExists ? lastTab : "dashboard");
+    return setActiveTab;
+  }
+
+  function formatRunSummary(run) {
+    const summary = run?.summary || {};
+    if (run?.type === "diff") {
+      return `changed ${summary.changed ?? 0}, new ${summary.newCount ?? 0}, removed ${summary.removed ?? 0}`;
+    }
+    return `records ${summary.records ?? 0}, failures ${summary.failures ?? 0}, anomalies ${summary.anomalies ?? 0}`;
+  }
+
+  function renderDashboardLastRun() {
+    const node = document.getElementById("dashboardLastRunSummary");
+    if (!(node instanceof HTMLElement)) {
+      return;
+    }
+    const recentRuns = globalScope.DQCTAppState?.getRecentRuns?.() || [];
+    const latest = recentRuns[0];
+    if (!latest) {
+      node.textContent = "No run history yet. Run validation or diff to populate summary data.";
+      return;
+    }
+    node.textContent = `${latest.type.toUpperCase()} · ${new Date(latest.timestamp).toLocaleString()} · ${formatRunSummary(latest)}`;
+  }
+
+  function renderRecentRunsTable(setActiveTab) {
+    const body = document.getElementById("recentRunsBody");
+    if (!(body instanceof HTMLElement)) {
+      return;
+    }
+    const recentRuns = globalScope.DQCTAppState?.getRecentRuns?.() || [];
+    if (!recentRuns.length) {
+      body.innerHTML = '<tr><td colspan="5" class="muted">Run validation or diff to populate local history.</td></tr>';
+      return;
+    }
+    body.innerHTML = recentRuns.map((run, index) => `
+      <tr>
+        <td>${escapeHtml(new Date(run.timestamp).toLocaleString())}</td>
+        <td><span class="badge ${run.type === "diff" ? "good" : "warn"}">${escapeHtml(run.type)}</span></td>
+        <td>${escapeHtml(formatRunSummary(run))}</td>
+        <td>${escapeHtml((run.exportFiles || []).join(", ") || "(none)")}</td>
+        <td><button type="button" class="ghost" data-reopen-run="${index}">Re-open</button></td>
+      </tr>
+    `).join("");
+
+    body.querySelectorAll("[data-reopen-run]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const run = recentRuns[Number(button.getAttribute("data-reopen-run"))];
+        if (!run) {
+          return;
+        }
+        setActiveTab(run.reopenTab || (run.type === "diff" ? "diff" : "validate"));
+        if ((run.reopenTab || run.type) === "reports") {
+          document.getElementById("issueSummaryList")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    });
+  }
+
+  function setupDashboardUi(setActiveTab) {
+    const runDiffTile = document.getElementById("dashboardRunDiffTile");
+    const runValidationTile = document.getElementById("dashboardRunValidationTile");
+    const viewReportsTile = document.getElementById("dashboardViewReportsTile");
+    const uniqueKeyInput = document.getElementById("settingsUniqueKey");
+    const ignoreFieldsInput = document.getElementById("settingsIgnoreFields");
+    const themeInput = document.getElementById("settingsTheme");
+    const exportFormatInput = document.getElementById("settingsExportFormat");
+    const saveButton = document.getElementById("settingsSaveButton");
+    const resetButton = document.getElementById("settingsResetButton");
+
+    runDiffTile?.addEventListener("click", () => setActiveTab("diff"));
+    runValidationTile?.addEventListener("click", () => setActiveTab("validate"));
+    viewReportsTile?.addEventListener("click", () => {
+      setActiveTab("validate");
+      document.getElementById("issueSummaryList")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    const applySettingsToInputs = () => {
+      const settings = getAppSettings();
+      if (uniqueKeyInput instanceof HTMLInputElement) {
+        uniqueKeyInput.value = settings.defaultUniqueKey || defaultUniqueKey;
+      }
+      if (ignoreFieldsInput instanceof HTMLInputElement) {
+        ignoreFieldsInput.value = (settings.ignoreFields || []).join(", ");
+      }
+      if (themeInput instanceof HTMLSelectElement) {
+        themeInput.value = settings.theme === "dark" ? "dark" : "light";
+      }
+      if (exportFormatInput instanceof HTMLSelectElement) {
+        exportFormatInput.value = settings.exportFormat === "minified" ? "minified" : "pretty";
+      }
+    };
+
+    saveButton?.addEventListener("click", () => {
+      globalScope.DQCTAppState?.saveSettings?.({
+        defaultUniqueKey: uniqueKeyInput instanceof HTMLInputElement ? uniqueKeyInput.value.trim() : defaultUniqueKey,
+        ignoreFields: ignoreFieldsInput instanceof HTMLInputElement ? ignoreFieldsInput.value : "",
+        theme: themeInput instanceof HTMLSelectElement ? themeInput.value : "light",
+        exportFormat: exportFormatInput instanceof HTMLSelectElement ? exportFormatInput.value : "pretty"
+      });
+      globalScope.DQCTToasts?.showSuccess?.("Settings saved.");
+    });
+
+    resetButton?.addEventListener("click", () => {
+      globalScope.DQCTAppState?.resetSettings?.();
+      applySettingsToInputs();
+      globalScope.DQCTToasts?.showSuccess?.("Settings reset to defaults.");
+    });
+
+    globalScope.addEventListener("dqct:settings-changed", applySettingsToInputs);
+    globalScope.addEventListener("dqct:runs-changed", () => {
+      renderDashboardLastRun();
+      renderRecentRunsTable(setActiveTab);
+    });
+
+    applySettingsToInputs();
+    renderDashboardLastRun();
+    renderRecentRunsTable(setActiveTab);
   }
 
   function setupDiffUi() {
@@ -190,6 +324,12 @@
       !(summaryNode instanceof HTMLElement)) {
       return;
     }
+
+    const applySharedDefaults = () => {
+      const settings = getAppSettings();
+      uniqueKeyInput.value = settings.defaultUniqueKey || defaultUniqueKey;
+      ignoreFieldsInput.value = (settings.ignoreFields || []).join(", ");
+    };
 
     const resetAnalysisState = () => {
       state.analysis = null;
@@ -264,6 +404,27 @@
       state.analysis = { diff, duplicates, cleanExport };
       renderSummary(summaryNode);
       enableExports(true);
+      const exportFiles = getDiffExportFilenames();
+      globalScope.DQCTAppState?.addRecentRun?.({
+        timestamp: new Date().toISOString(),
+        type: "diff",
+        summary: {
+          baseline: diff.baselineCount,
+          comparison: diff.comparisonCount,
+          changed: diff.changedCount,
+          newCount: diff.newCount,
+          removed: diff.removedCount
+        },
+        exportFiles: [
+          exportFiles.diffRecords,
+          exportFiles.duplicatesFile1,
+          exportFiles.duplicatesFile2,
+          exportFiles.duplicatesCross,
+          exportFiles.changedAndNew
+        ],
+        reopenTab: "diff",
+        label: `${state.baselineName || "baseline"} vs ${state.comparisonName || "comparison"}`
+      });
     });
 
     const exportFiles = getDiffExportFilenames();
@@ -287,10 +448,14 @@
       if (!state.analysis) return;
       globalScope.DQCTExports.downloadJson(state.analysis.cleanExport, exportFiles.changedAndNew);
     });
+
+    globalScope.addEventListener("dqct:settings-changed", applySharedDefaults);
+    applySharedDefaults();
   }
 
   function initialize() {
-    setupTabs();
+    const setActiveTab = setupTabs();
+    setupDashboardUi(setActiveTab);
     setupDiffUi();
   }
 

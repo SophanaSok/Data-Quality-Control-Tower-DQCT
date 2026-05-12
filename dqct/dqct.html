@@ -9,11 +9,98 @@
   <body>
     <div class="app">
       <nav class="top-nav-tabs" aria-label="Primary navigation" role="tablist">
-        <button type="button" class="top-nav-tab is-active" data-app-tab="validate" role="tab" aria-controls="validateTabPanel" aria-selected="true">Validate</button>
+        <button type="button" class="top-nav-tab is-active" data-app-tab="dashboard" role="tab" aria-controls="dashboardTabPanel" aria-selected="true">Dashboard</button>
+        <button type="button" class="top-nav-tab" data-app-tab="validate" role="tab" aria-controls="validateTabPanel" aria-selected="false">Validate</button>
         <button type="button" class="top-nav-tab" data-app-tab="diff" role="tab" aria-controls="diffTabPanel" aria-selected="false">Diff</button>
       </nav>
 
-      <div data-tab-panel="validate" id="validateTabPanel" role="tabpanel">
+      <section data-tab-panel="dashboard" id="dashboardTabPanel" role="tabpanel" class="panel landing-panel">
+        <div class="dashboard-head">
+          <div>
+            <div class="eyebrow">Unified Control Center</div>
+            <h2>Run quality checks from one landing page</h2>
+            <p class="helper">Use quick actions, shared settings, and local recent run history for both Validate and Diff workflows.</p>
+          </div>
+        </div>
+        <div class="landing-tiles">
+          <button type="button" class="landing-tile" id="dashboardRunDiffTile">
+            <strong>Run Diff</strong>
+            <span>Compare baseline vs comparison exports.</span>
+          </button>
+          <button type="button" class="landing-tile" id="dashboardRunValidationTile">
+            <strong>Run Validation</strong>
+            <span>Validate uploaded files against active profile rules.</span>
+          </button>
+          <button type="button" class="landing-tile" id="dashboardViewReportsTile">
+            <strong>View Reports</strong>
+            <span>Open validation reports and issue exports.</span>
+          </button>
+        </div>
+        <div class="section" style="margin-top: 1rem;">
+          <h3>Last run summary</h3>
+          <p id="dashboardLastRunSummary" class="helper">No run history yet. Run validation or diff to populate summary data.</p>
+        </div>
+        <div class="dashboard-grid" style="margin-top: 1rem;">
+          <div class="dashboard-card">
+            <h3>Settings</h3>
+            <p class="helper">Settings are stored in browser localStorage and shared by Validate + Diff.</p>
+            <div class="fieldset">
+              <label for="settingsUniqueKey">Default unique key</label>
+              <input id="settingsUniqueKey" type="text" placeholder="e.g. ProjectCode" />
+            </div>
+            <div class="fieldset" style="margin-top: 0.75rem;">
+              <label for="settingsIgnoreFields">Ignore fields (comma-separated)</label>
+              <input id="settingsIgnoreFields" type="text" placeholder="e.g. LastUpdated,CreatedAt" />
+            </div>
+            <div class="split" style="margin-top: 0.75rem;">
+              <div class="fieldset">
+                <label for="settingsTheme">Theme</label>
+                <select id="settingsTheme">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </div>
+              <div class="fieldset">
+                <label for="settingsExportFormat">Export JSON format</label>
+                <select id="settingsExportFormat">
+                  <option value="pretty">Pretty (readable)</option>
+                  <option value="minified">Minified (compact)</option>
+                </select>
+              </div>
+            </div>
+            <div class="actions-row" style="justify-content: flex-start; margin-top: 0.75rem;">
+              <button id="settingsSaveButton" type="button">Save settings</button>
+              <button id="settingsResetButton" type="button" class="ghost">Reset defaults</button>
+            </div>
+          </div>
+          <div class="dashboard-card">
+            <div class="dashboard-head" style="margin-bottom: 0.5rem;">
+              <div>
+                <h3>Recent Runs</h3>
+                <p class="helper">Last 10 local runs from Diff + Validate.</p>
+              </div>
+            </div>
+            <div class="history-table table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Type</th>
+                    <th>Summary</th>
+                    <th>Export files</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="recentRunsBody">
+                  <tr><td colspan="5" class="muted">Run validation or diff to populate local history.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div data-tab-panel="validate" id="validateTabPanel" class="hidden" role="tabpanel">
       <section class="hero">
         <div>
           <div class="eyebrow">Data Quality Control Tower</div>
@@ -310,6 +397,7 @@
     </div>
 
     <script src="../src/shared/parser.js" defer></script>
+    <script src="../src/shared/appState.js" defer></script>
     <script src="../src/shared/exports.js" defer></script>
     <script src="../src/modules/validation/profiles.js" defer></script>
     <script src="../src/modules/validation/engine.js" defer></script>
