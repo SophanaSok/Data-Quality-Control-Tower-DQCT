@@ -198,8 +198,32 @@
                   <div class="value">${escapeHtml(item.incoming)}</div>
                 </div>
               </div>
+              <div style="margin-top:0.5rem;"><button class="view-diff-btn" type="button">View Diff</button></div>
             </div>`).join("")
           : '<div class="drift-item"><strong>No schema drift differences</strong></div>';
+
+        // Attach click handlers to the newly created View Diff buttons.
+        (function attachDiffButtons() {
+          try {
+            const buttons = els.driftDiffList.querySelectorAll('.view-diff-btn');
+            buttons.forEach((btn, i) => {
+              btn.addEventListener('click', () => {
+                const entry = diffEntries[i];
+                if (!entry) return;
+                const field = entry.field;
+                const baseObj = { [field]: entry.baseline };
+                const incomingObj = { [field]: entry.incoming };
+                if (window.diffUI && typeof window.diffUI.openDiffModal === 'function') {
+                  window.diffUI.openDiffModal(baseObj, incomingObj, [field]);
+                } else if (window.jsonViewer && typeof window.jsonViewer.renderDiffViewer === 'function') {
+                  window.jsonViewer.renderDiffViewer(baseObj, incomingObj, [field]);
+                }
+              });
+            });
+          } catch (e) {
+            console.warn('Unable to attach diff buttons', e);
+          }
+        })();
 
         els.anomaliesList.innerHTML = (state.currentAnomalies || []).length
           ? state.currentAnomalies.map((item) => `<div class="drift-item"><strong>${escapeHtml(item.label)}</strong><div class="meta">${escapeHtml(item.detail)}</div><div style="margin-top: 0.4rem;"><span class="badge ${item.severity === "warn" ? "warn" : "good"}">${escapeHtml(item.severity)}</span></div></div>`).join("")
