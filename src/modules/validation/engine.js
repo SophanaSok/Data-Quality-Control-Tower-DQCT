@@ -353,6 +353,12 @@
         const key = `${file.name}:${recordIndex + 1}`;
         const recordFailures = failuresByRecord.get(key) || [];
 
+        // Generate fingerprint for this record (using synchronous version for consistency in loop)
+        let fingerprint = "";
+        if (typeof window !== "undefined" && window.DQCTFingerprint?.generateFingerprintSync) {
+          fingerprint = window.DQCTFingerprint.generateFingerprintSync(record);
+        }
+
         // Classify failures by severity
         const errorFailures = recordFailures.filter((f) => f.severity === "high");
         const warningFailures = recordFailures.filter((f) => f.severity === "medium");
@@ -373,7 +379,7 @@
           ProjectCode: record?.ProjectCode || "",
           Title: record?.Title || "",
           BidStatus: record?.BidStatus || "",
-          fingerprint: "", // Will be populated when fingerprint module is added
+          fingerprint,
           qa_status,
           error_count: errorFailures.length,
           warning_count: warningFailures.length,
