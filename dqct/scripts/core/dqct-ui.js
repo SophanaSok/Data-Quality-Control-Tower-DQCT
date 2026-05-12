@@ -1,3 +1,95 @@
+      let validationResultsTable = null;
+      let recordViewerModal = null;
+
+      function getRecordForResult(result) {
+        const file = state.files.find((entry) => entry.name === result.fileName);
+        if (!file || !Array.isArray(file.records)) {
+          return null;
+        }
+        const index = Number(result.recordIndex);
+        if (!Number.isFinite(index) || index < 0) {
+          return null;
+        }
+        return file.records[index] ?? null;
+      }
+
+      function closeRecordViewer() {
+        if (recordViewerModal instanceof HTMLElement) {
+          recordViewerModal.remove();
+        }
+        recordViewerModal = null;
+      }
+
+      function openRecordViewer(result) {
+        const record = getRecordForResult(result);
+        if (!record || !window.DQCTJsonViewer?.renderRecordViewer) {
+          return;
+        }
+
+        closeRecordViewer();
+        const modal = document.createElement("div");
+        modal.className = "dqct-json-modal";
+        modal.innerHTML = `
+          <div class="dqct-json-modal__dialog" role="dialog" aria-modal="true" aria-label="Record inspector">
+            <div class="dqct-json-modal__actions">
+              <button type="button" class="ghost" data-close-record-viewer>Close</button>
+            </div>
+          </div>
+        `;
+        const dialog = modal.querySelector(".dqct-json-modal__dialog");
+        if (dialog instanceof HTMLElement) {
+          dialog.appendChild(window.DQCTJsonViewer.renderRecordViewer(record, result.field || ""));
+        }
+
+        modal.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) {
+            return;
+          }
+          if (target === modal || target.closest("[data-close-record-viewer]")) {
+            closeRecordViewer();
+          }
+        });
+
+        document.body.appendChild(modal);
+        recordViewerModal = modal;
+      }
+
+      function ensureResultsTable() {
+        if (validationResultsTable || !window.DQCTTable?.create) {
+          return;
+        }
+        validationResultsTable = window.DQCTTable.create({
+          tableElement: els.resultsTable,
+          bodyElement: els.resultsBody,
+          pageSize: 25,
+          onRowClick: openRecordViewer,
+          columns: [
+            { key: "fileName", sortable: true },
+            {
+              key: "recordIndex",
+              sortable: true,
+              sortValue: (result) => Number(result.recordIndex),
+              render: (result) => `${result.recordIndex ?? ""}${result.documentIndex !== null && result.documentIndex !== undefined ? ` / doc ${result.documentIndex + 1}` : ""}`
+            },
+            { key: "primaryId", sortable: true, render: (result) => escapeHtml(result.primaryId || "") },
+            { key: "field", sortable: true, render: (result) => escapeHtml(result.field || "") },
+            { key: "ruleType", sortable: true, render: (result) => escapeHtml(result.ruleType || "") },
+            { key: "expected", sortable: true, render: (result) => escapeHtml(result.expected || "") },
+            { key: "actual", sortable: true, render: (result) => escapeHtml(result.actual || "") },
+            {
+              key: "severity",
+              sortable: true,
+              render: (result) => {
+                const severity = ["high", "medium", "low"].includes(result.severity) ? result.severity : "low";
+                return `<span class="pill ${severity}">${escapeHtml(severity)}</span>`;
+              }
+            },
+            { key: "action", sortable: false, render: (result) => `<button type="button" class="ghost" data-row-ticket="${escapeHtml(issueGroupKey(result))}">Ticket</button>` }
+          ]
+        });
+      }
+
       function renderFiles() {
         els.loadedFileCount.textContent = String(state.files.length);
         els.loadedFileMeta.textContent = state.files.length
@@ -352,29 +444,24 @@
         if (!state.results.length) {
           els.resultsWrap.classList.add("hidden");
           els.emptyState.classList.remove("hidden");
-          els.resultsBody.innerHTML = "";
+          if (validationResultsTable) {
+            validationResultsTable.clear();
+          } else {
+            els.resultsBody.innerHTML = "";
+          }
           els.issueSummaryList.innerHTML = '<div class="issue-group"><strong>No grouped issues yet</strong><div class="meta">Run validation to generate ticket-ready issue groups.</div></div>';
           els.ticketPreview.classList.add("hidden");
           els.ticketPreview.textContent = "";
+          closeRecordViewer();
           return;
         }
 
         els.emptyState.classList.add("hidden");
         els.resultsWrap.classList.remove("hidden");
-        window.DQCTTable.setBodyHtml(els.resultsBody, state.results
-          .map((result) => `
-            <tr>
-              <td>${escapeHtml(result.fileName || "")}</td>
-              <td>${result.recordIndex ?? ""}${result.documentIndex !== null && result.documentIndex !== undefined ? ` / doc ${result.documentIndex + 1}` : ""}</td>
-              <td>${escapeHtml(result.primaryId || "")}</td>
-              <td>${escapeHtml(result.field || "")}</td>
-              <td>${escapeHtml(result.ruleType || "")}</td>
-              <td>${escapeHtml(result.expected || "")}</td>
-              <td>${escapeHtml(result.actual || "")}</td>
-              <td><span class="pill ${result.severity || "low"}">${result.severity || "low"}</span></td>
-              <td><button type="button" class="ghost" data-row-ticket="${escapeHtml(issueGroupKey(result))}">Ticket</button></td>
-            </tr>`)
-          .join(""));
+        ensureResultsTable();
+        if (validationResultsTable) {
+          validationResultsTable.update(state.results);
+        }
 
         const grouped = state.currentIssueGroups.length ? state.currentIssueGroups : buildIssueGroups(state.results);
         state.currentIssueGroups = grouped;
@@ -444,8 +531,16 @@
         }
       }
 
-      function showToast(text, timeout = 3200) {
-        window.DQCTToasts.showToast(text, timeout);
+      function showToast(text, tone = "success") {
+        if (tone === "error") {
+          window.DQCTToasts.showError(text);
+          return;
+        }
+        if (tone === "warning") {
+          window.DQCTToasts.showWarning(text);
+          return;
+        }
+        window.DQCTToasts.showSuccess(text);
       }
 
       async function withActionFeedback(button, options, action) {
@@ -467,12 +562,12 @@
           }
           const toastMessage = typeof options.toastMessage === "function" ? options.toastMessage(result) : options.toastMessage;
           if (toastMessage) {
-            showToast(toastMessage);
+            showToast(toastMessage, options.toastTone || "success");
           }
           return result;
         } catch (error) {
           setActionStatus(options.errorMessage || "Action failed.", "error");
-          showToast(options.errorToast || "Action failed.");
+          showToast(options.errorToast || "Action failed.", "error");
           throw error;
         } finally {
           if (button) {
