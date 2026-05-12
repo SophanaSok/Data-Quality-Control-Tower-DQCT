@@ -1,13 +1,19 @@
 (function attachDQCTToasts(globalScope) {
-  function showToast(text, toneOrTimeout = "success", maybeTimeout = 3200) {
-    const tone = typeof toneOrTimeout === "string" ? toneOrTimeout : "success";
-    const timeout = typeof toneOrTimeout === "number" ? toneOrTimeout : maybeTimeout;
+  function resolveToastOptions(tone = "success", timeout = 3200) {
+    if (typeof tone === "number") {
+      return { tone: "success", timeout: tone };
+    }
+    return { tone: typeof tone === "string" ? tone : "success", timeout: Number.isFinite(timeout) ? timeout : 3200 };
+  }
+
+  function showToast(text, tone = "success", timeout = 3200) {
+    const options = resolveToastOptions(tone, timeout);
     const toast = document.createElement("div");
-    toast.className = `dqct-toast dqct-toast--${tone}`;
+    toast.className = `dqct-toast dqct-toast--${options.tone}`;
     toast.textContent = text;
     document.body.appendChild(toast);
-    window.setTimeout(() => toast.classList.add("dqct-toast--hide"), timeout);
-    window.setTimeout(() => toast.remove(), timeout + 350);
+    window.setTimeout(() => toast.classList.add("dqct-toast--hide"), options.timeout);
+    window.setTimeout(() => toast.remove(), options.timeout + 350);
   }
 
   function showSuccess(message) {

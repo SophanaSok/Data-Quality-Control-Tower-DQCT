@@ -35,6 +35,10 @@
       sortDirection: "asc"
     };
 
+    function compareNaturalValues(leftValue, rightValue) {
+      return String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: "base" });
+    }
+
     function attachHeaderSort() {
       const headers = tableElement.querySelectorAll("thead th");
       headers.forEach((header, index) => {
@@ -97,7 +101,7 @@
         if (typeof leftValue === "number" && typeof rightValue === "number") {
           return (leftValue - rightValue) * multiplier;
         }
-        return String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: "base" }) * multiplier;
+        return compareNaturalValues(leftValue, rightValue) * multiplier;
       });
       return rows;
     }

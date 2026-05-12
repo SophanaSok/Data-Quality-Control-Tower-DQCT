@@ -60,6 +60,7 @@
           return;
         }
         const formatRecordIndex = (result) => `${result.recordIndex ?? ""}${result.documentIndex !== null && result.documentIndex !== undefined ? ` / doc ${result.documentIndex + 1}` : ""}`;
+        const renderEscapedColumn = (key) => (result) => escapeHtml(result[key] || "");
         validationResultsTable = window.DQCTTable.create({
           tableElement: els.resultsTable,
           bodyElement: els.resultsBody,
@@ -73,11 +74,11 @@
               sortValue: (result) => Number(result.recordIndex),
               render: formatRecordIndex
             },
-            { key: "primaryId", sortable: true, render: (result) => escapeHtml(result.primaryId || "") },
-            { key: "field", sortable: true, render: (result) => escapeHtml(result.field || "") },
-            { key: "ruleType", sortable: true, render: (result) => escapeHtml(result.ruleType || "") },
-            { key: "expected", sortable: true, render: (result) => escapeHtml(result.expected || "") },
-            { key: "actual", sortable: true, render: (result) => escapeHtml(result.actual || "") },
+            { key: "primaryId", sortable: true, render: renderEscapedColumn("primaryId") },
+            { key: "field", sortable: true, render: renderEscapedColumn("field") },
+            { key: "ruleType", sortable: true, render: renderEscapedColumn("ruleType") },
+            { key: "expected", sortable: true, render: renderEscapedColumn("expected") },
+            { key: "actual", sortable: true, render: renderEscapedColumn("actual") },
             {
               key: "severity",
               sortable: true,
