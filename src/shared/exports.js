@@ -1,4 +1,12 @@
 (function attachDQCTExports(globalScope) {
+  const DIFF_EXPORT_FILES = {
+    diffRecords: "diff_records.json",
+    duplicatesFile1: "duplicates_file1.json",
+    duplicatesFile2: "duplicates_file2.json",
+    duplicatesCross: "duplicates_cross.json",
+    changedAndNew: "changed_and_new.json"
+  };
+
   function buildReportText(profileName, files, results) {
     const lines = [];
     lines.push(`DQCT validation report: ${profileName}`);
@@ -53,6 +61,7 @@
   globalScope.DQCTExports = {
     buildReportText,
     buildIssuesPayload,
-    downloadJson
+    downloadJson,
+    diffExportFilenames: DIFF_EXPORT_FILES
   };
 })(window);

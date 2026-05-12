@@ -60,6 +60,9 @@ DQCT now keeps the same user flows and UI, while loading modular JS files from t
 ```text
 src/
   modules/
+    diff/
+      engine.js
+      ui.js
     validation/
       engine.js
       profiles.js
@@ -73,13 +76,28 @@ src/
 
 ### Module responsibilities
 - `src/shared/parser.js`: JSON parsing + root-array extraction/normalization.
-- `src/shared/exports.js`: Report text + issue export payload/download helpers.
+- `src/shared/exports.js`: Report text + issue export payload/download helpers, including standard Diff export filenames.
+- `src/modules/diff/engine.js`: Diff + duplicate detection helpers (`diffRecords`, `findDuplicates`, `buildCleanExport`).
+- `src/modules/diff/ui.js`: Minimal Diff tab UI (baseline/comparison upload, key/ignore options, analyze + exports).
 - `src/modules/validation/engine.js`: Rule evaluation and per-file validation execution.
 - `src/modules/validation/profiles.js`: Profile/UI/run/schema local storage helpers.
 - `src/ui/toasts.js`: Minimal toast helper wrapper.
 - `src/ui/table.js`: Minimal table rendering helper wrapper.
 
 `dqct/dqct.html` loads these modules before `dqct/scripts/core/dqct-core.js` and `dqct/scripts/core/dqct-ui.js` so behavior remains unchanged while code is now separated by concern.
+
+### Unified top-level tabs
+- **Validate** keeps the existing DQCT workflow exactly as before.
+- **Diff** adds a minimal baseline-vs-comparison workflow:
+  1. Upload baseline + comparison JSON files
+  2. Configure unique key + optional ignore fields
+  3. Analyze summary counts
+  4. Export:
+     - `diff_records.json`
+     - `duplicates_file1.json`
+     - `duplicates_file2.json`
+     - `duplicates_cross.json`
+     - `changed_and_new.json`
 
 ---
 
