@@ -630,6 +630,59 @@
             toastMessage: (result) => `Downloaded ${result.issueCount} issue${result.issueCount === 1 ? "" : "s"}.`
           }, downloadIssuesJson);
         });
+        // Export bundle buttons
+        const exportBundleHandler = async (source) => {
+          const exportsMap = {};
+          // include issues / results
+          exportsMap['results.json'] = state.results || [];
+          exportsMap['currentSchema.json'] = state.currentSchema || {};
+          exportsMap['schemaBaselines.json'] = state.schemaBaselines || {};
+          exportsMap['runStats.json'] = state.currentRunStats || {};
+          exportsMap['profiles.json'] = state.profiles || [];
+          const summary = { profile: activeProfile().profile_name, source };
+          if (window.dqctExports && typeof window.dqctExports.buildExportBundle === 'function') {
+            const { blob, filename } = await window.dqctExports.buildExportBundle(exportsMap, summary);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            return { filename };
+          } else {
+            // fallback: create a single JSON file
+            const { blob, filename } = await (async () => {
+              const bundle = { metadata: Object.assign({ generatedAt: new Date().toISOString() }, summary), files: {} };
+              for (const [name, content] of Object.entries(exportsMap)) bundle.files[name] = content;
+              return { blob: new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' }), filename: `dqct-export-${Date.now()}.json` };
+            })();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            return { filename };
+          }
+        };
+
+        const exportBundleBtn = document.getElementById('exportBundleButton');
+        if (exportBundleBtn) {
+          exportBundleBtn.addEventListener('click', async () => {
+            await withActionFeedback(exportBundleBtn, { runningLabel: 'Exporting…', startMessage: 'Building export bundle…', successMessage: (res) => `Exported ${res.filename}`, toastMessage: 'Bundle exported.' }, async () => exportBundleHandler('toolbar'));
+          });
+        }
+
+        const exportBundleDriftBtn = document.getElementById('exportBundleDrift');
+        if (exportBundleDriftBtn) {
+          exportBundleDriftBtn.addEventListener('click', async () => {
+            await withActionFeedback(exportBundleDriftBtn, { runningLabel: 'Exporting…', startMessage: 'Building export bundle (drift)…', successMessage: (res) => `Exported ${res.filename}`, toastMessage: 'Bundle exported.' }, async () => exportBundleHandler('drift'));
+          });
+        }
         els.cloneProfileButton.addEventListener("click", async () => {
           await withActionFeedback(els.cloneProfileButton, {
             runningLabel: "Cloning…",

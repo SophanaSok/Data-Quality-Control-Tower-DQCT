@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-05-12T12:00:00Z",
+  "runType": "validation",
+  "profile": "Ohio Buys",
+  "fileCount": 2,
+  "recordCount": 124,
+  "issueCount": 17,
+  "anomalyCount": 2,
+  "schemaBaselineSaved": true,
+  "dqctVersion": "1.0",
+  "notes": "Example metadata for DQCT export bundle"
+}
