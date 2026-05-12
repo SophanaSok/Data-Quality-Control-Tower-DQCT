@@ -361,7 +361,7 @@
 
         els.emptyState.classList.add("hidden");
         els.resultsWrap.classList.remove("hidden");
-        els.resultsBody.innerHTML = state.results
+        window.DQCTTable.setBodyHtml(els.resultsBody, state.results
           .map((result) => `
             <tr>
               <td>${escapeHtml(result.fileName || "")}</td>
@@ -374,7 +374,7 @@
               <td><span class="pill ${result.severity || "low"}">${result.severity || "low"}</span></td>
               <td><button type="button" class="ghost" data-row-ticket="${escapeHtml(issueGroupKey(result))}">Ticket</button></td>
             </tr>`)
-          .join("");
+          .join(""));
 
         const grouped = state.currentIssueGroups.length ? state.currentIssueGroups : buildIssueGroups(state.results);
         state.currentIssueGroups = grouped;
@@ -445,12 +445,7 @@
       }
 
       function showToast(text, timeout = 3200) {
-        const toast = document.createElement("div");
-        toast.className = "dqct-toast";
-        toast.textContent = text;
-        document.body.appendChild(toast);
-        window.setTimeout(() => toast.classList.add("dqct-toast--hide"), timeout);
-        window.setTimeout(() => toast.remove(), timeout + 350);
+        window.DQCTToasts.showToast(text, timeout);
       }
 
       async function withActionFeedback(button, options, action) {
