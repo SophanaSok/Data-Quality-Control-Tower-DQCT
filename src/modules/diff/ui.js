@@ -1,4 +1,5 @@
 (function attachDQCTDiffUI(globalScope) {
+  const defaultUniqueKey = globalScope.DQCTDiffEngine?.defaultUniqueKey || "ProjectCode";
   const state = {
     baselinePayload: null,
     comparisonPayload: null,
@@ -72,7 +73,7 @@
       <div class="split" style="margin-top: 0.8rem;">
         <div class="fieldset">
           <label for="diffUniqueKey">Unique key</label>
-          <input id="diffUniqueKey" type="text" value="ProjectCode" />
+          <input id="diffUniqueKey" type="text" value="${escapeHtml(defaultUniqueKey)}" />
         </div>
         <div class="fieldset">
           <label for="diffIgnoreFields">Ignore fields (comma-separated)</label>
@@ -245,7 +246,7 @@
         return;
       }
 
-      const uniqueKey = uniqueKeyInput.value.trim() || "ProjectCode";
+      const uniqueKey = uniqueKeyInput.value.trim() || defaultUniqueKey;
       const ignoreFields = ignoreFieldsInput.value
         .split(",")
         .map((field) => field.trim())

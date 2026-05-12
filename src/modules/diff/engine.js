@@ -239,6 +239,7 @@
   }
 
   globalScope.DQCTDiffEngine = {
+    defaultUniqueKey: DEFAULT_UNIQUE_KEY,
     diffRecords,
     findDuplicates,
     buildCleanExport
