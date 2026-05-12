@@ -3,7 +3,7 @@
   const RUN_HISTORY_KEY = "dqct.app.recentRuns.v1";
   const MAX_RECENT_RUNS = 10;
   const DEFAULT_SETTINGS = {
-    defaultUniqueKey: globalScope.DQCTDiffEngine?.defaultUniqueKey || "ProjectCode",
+    defaultUniqueKey: "ProjectCode",
     ignoreFields: [],
     theme: "light",
     exportFormat: "pretty"

@@ -179,7 +179,10 @@
 
     const lastTab = localStorage.getItem(TAB_STORAGE_KEY);
     const tabExists = tabButtons.some((button) => button.getAttribute("data-app-tab") === lastTab);
-    setActiveTab(tabExists ? lastTab : "dashboard");
+    const defaultTab = tabButtons.some((button) => button.getAttribute("data-app-tab") === "dashboard")
+      ? "dashboard"
+      : (tabButtons[0]?.getAttribute("data-app-tab") || "");
+    setActiveTab(tabExists ? lastTab : defaultTab);
     return setActiveTab;
   }
 
@@ -202,7 +205,7 @@
       node.textContent = "No run history yet. Run validation or diff to populate summary data.";
       return;
     }
-    node.textContent = `${latest.type.toUpperCase()} · ${new Date(latest.timestamp).toLocaleString()} · ${formatRunSummary(latest)}`;
+    node.textContent = `${latest.type.toUpperCase()} | ${new Date(latest.timestamp).toLocaleString()} | ${formatRunSummary(latest)}`;
   }
 
   function renderRecentRunsTable(setActiveTab) {
@@ -233,7 +236,7 @@
         }
         setActiveTab(run.reopenTab || (run.type === "diff" ? "diff" : "validate"));
         if ((run.reopenTab || run.type) === "reports") {
-          document.getElementById("issueSummaryList")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          globalScope.dispatchEvent(new CustomEvent("dqct:open-reports"));
         }
       });
     });
@@ -254,7 +257,7 @@
     runValidationTile?.addEventListener("click", () => setActiveTab("validate"));
     viewReportsTile?.addEventListener("click", () => {
       setActiveTab("validate");
-      document.getElementById("issueSummaryList")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      globalScope.dispatchEvent(new CustomEvent("dqct:open-reports"));
     });
 
     const applySettingsToInputs = () => {

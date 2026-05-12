@@ -47,7 +47,7 @@
   }
 
   function downloadJson(payload, filename) {
-    const exportFormat = globalScope.DQCTAppState?.getSettings?.().exportFormat || "pretty";
+    const exportFormat = (globalScope.DQCTAppState?.getSettings?.() || {}).exportFormat || "pretty";
     const indent = exportFormat === "minified" ? 0 : 2;
     const blob = new Blob([JSON.stringify(payload, null, indent)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
