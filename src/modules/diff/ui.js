@@ -145,6 +145,7 @@
     scopeExpandedPreference: readScopeExpandedPreference(),
     globalExpandedPreference: readGlobalExpandedPreference(),
     diffFilterQuery: readDiffFilterQueryPreference(),
+    changedFieldFilter: "",
     visibleScopes: readVisibleScopesPreference(),
     diffShortcutsBound: false,
     diffHelpOutsideCleanup: null
@@ -480,6 +481,7 @@
       const filterInput = resultsNode.querySelector("#diffRecordFilterInput");
       const clearButton = resultsNode.querySelector("#diffRecordFilterClear");
       if (filterInput instanceof HTMLInputElement) {
+        state.changedFieldFilter = "";
         if (filterInput.value) {
           if (clearButton instanceof HTMLButtonElement) {
             clearButton.click();
@@ -705,6 +707,18 @@
       const changed = diff.changedRecords || [];
       const showChangedFieldsOnly = Boolean(state.showChangedFieldsOnly);
       const activeFilterQuery = String(state.diffFilterQuery || '').trim();
+      const activeChangedFieldFilter = String(state.changedFieldFilter || '').trim();
+      const changedFieldCounts = changed.reduce((acc, item) => {
+        (Array.isArray(item?.changedFields) ? item.changedFields : []).forEach((field) => {
+          const normalized = String(field || '').trim();
+          if (!normalized) {
+            return;
+          }
+          acc[normalized] = (acc[normalized] || 0) + 1;
+        });
+        return acc;
+      }, {});
+      const sortedChangedFields = Object.keys(changedFieldCounts).sort((a, b) => a.localeCompare(b));
 
       const escapeRegExp = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const highlightMatch = (value, query) => {
@@ -724,7 +738,15 @@
         if (!normalizedFields.length) {
           return '<div class="meta">Changed fields: none detected</div>';
         }
-        return `<div class="meta">Changed fields: ${highlightMatch(normalizedFields.join(', '), activeFilterQuery)}</div>`;
+        return `
+          <div class="dqct-diff-inline-field-badges">
+            ${normalizedFields.map((field) => {
+              const normalizedField = String(field || '').trim();
+              const active = normalizedField === activeChangedFieldFilter;
+              return `<button type="button" class="dqct-field-badge ${active ? 'is-active' : ''}" data-diff-field-filter="${escapeHtml(normalizedField)}">${highlightMatch(normalizedField, activeFilterQuery)}</button>`;
+            }).join('')}
+          </div>
+        `;
       };
       const renderFieldValue = (value) => {
         if (value === undefined) {
@@ -779,8 +801,8 @@
         `;
       };
 
-      const renderCardStart = (scope, itemIndex, titleText, metaText, openByDefault, filterText = '') => `
-        <details class="dqct-diff-record-card" data-diff-scope="${scope}" data-diff-index="${itemIndex}" data-filter-text="${escapeHtml(String(filterText).toLowerCase())}" ${openByDefault ? 'open' : ''}>
+      const renderCardStart = (scope, itemIndex, titleText, metaText, openByDefault, filterText = '', changedFields = []) => `
+        <details class="dqct-diff-record-card" data-diff-scope="${scope}" data-diff-index="${itemIndex}" data-filter-text="${escapeHtml(String(filterText).toLowerCase())}" data-changed-fields="${escapeHtml((Array.isArray(changedFields) ? changedFields : []).map((field) => String(field || '').trim().toLowerCase()).filter(Boolean).join('||'))}" ${openByDefault ? 'open' : ''}>
           <summary class="dqct-diff-record-head">
             <div>
               <strong>${highlightMatch(titleText, activeFilterQuery)}</strong>
@@ -808,6 +830,14 @@
             <button type="button" class="dqct-chip ${state.visibleScopes.removed ? 'is-active' : ''}" data-diff-scope-toggle="removed" aria-pressed="${state.visibleScopes.removed ? 'true' : 'false'}">Removed ${removed.length}</button>
             <button type="button" class="dqct-chip ${state.visibleScopes.changed ? 'is-active' : ''}" data-diff-scope-toggle="changed" aria-pressed="${state.visibleScopes.changed ? 'true' : 'false'}">Changed ${changed.length}</button>
             <button type="button" class="ghost" data-diff-scope-show-all>Show all</button>
+          </div>
+          <div class="dqct-diff-field-badges" data-diff-field-badges>
+            <span class="meta">Changed fields:</span>
+            <button type="button" class="dqct-field-badge ${!activeChangedFieldFilter ? 'is-active' : ''}" data-diff-field-filter="">All fields</button>
+            ${sortedChangedFields.map((field) => {
+              const active = field === activeChangedFieldFilter;
+              return `<button type="button" class="dqct-field-badge ${active ? 'is-active' : ''}" data-diff-field-filter="${escapeHtml(field)}">${highlightMatch(field, activeFilterQuery)} <span class="dqct-field-badge__count">${changedFieldCounts[field]}</span></button>`;
+            }).join('')}
           </div>
           <div class="dqct-diff-global-controls">
             <button type="button" class="ghost" data-diff-expand-all>Expand all sections</button>
@@ -885,7 +915,7 @@
           <h3>Changed (<span data-diff-visible-count="changed">${changed.length}</span> / ${changed.length})</h3>
           ${renderSectionControls('changed', changed.length)}
           <div class="dqct-diff-record-list">${changed.length ? changed.map((c, idx) => `
-            ${renderCardStart('changed', idx, String(c.key), `Baseline #${String(c.baselineIndex)} -> Comparison #${String(c.comparisonIndex)}`, startsExpanded('changed', changed.length), `${String(c.key)} ${(Array.isArray(c.changedFields) ? c.changedFields.join(' ') : '')}`)}
+            ${renderCardStart('changed', idx, String(c.key), `Baseline #${String(c.baselineIndex)} -> Comparison #${String(c.comparisonIndex)}`, startsExpanded('changed', changed.length), `${String(c.key)} ${(Array.isArray(c.changedFields) ? c.changedFields.join(' ') : '')}`, c.changedFields || [])}
               ${renderChangedFields(c.changedFields)}
               ${showChangedFieldsOnly ? renderChangedFieldsCompact(c) : `
                 <div class="dqct-diff-record-grid">
@@ -966,8 +996,17 @@
         renderDiffResults(analysis);
       });
 
+      node.querySelectorAll('[data-diff-field-filter]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const selected = String(button.getAttribute('data-diff-field-filter') || '').trim();
+          state.changedFieldFilter = selected === state.changedFieldFilter ? '' : selected;
+          renderDiffResults(analysis);
+        });
+      });
+
       node.querySelector('[data-diff-empty-clear-filter]')?.addEventListener('click', () => {
         state.diffFilterQuery = '';
+        state.changedFieldFilter = '';
         saveDiffFilterQueryPreference('');
         const input = node.querySelector('#diffRecordFilterInput');
         if (input) {
@@ -1050,13 +1089,17 @@
 
       const applyRecordFilter = (query) => {
         const normalized = String(query || '').trim().toLowerCase();
+        const fieldFilter = String(state.changedFieldFilter || '').trim().toLowerCase();
         let totalVisibleAcrossScopes = 0;
         ['added', 'removed', 'changed'].forEach((scope) => {
           const cards = Array.from(node.querySelectorAll(`details[data-diff-scope="${scope}"]`));
           let visibleCount = 0;
           cards.forEach((card) => {
             const haystack = (card.getAttribute('data-filter-text') || '').toLowerCase();
-            const isVisible = !normalized || haystack.includes(normalized);
+            const queryVisible = !normalized || haystack.includes(normalized);
+            const changedFields = String(card.getAttribute('data-changed-fields') || '');
+            const fieldVisible = scope !== 'changed' || !fieldFilter || changedFields.split('||').includes(fieldFilter);
+            const isVisible = queryVisible && fieldVisible;
             card.classList.toggle('hidden', !isVisible);
             if (isVisible) {
               visibleCount += 1;
@@ -1073,7 +1116,7 @@
         });
 
         const anyScopeEnabled = Boolean(state.visibleScopes.added || state.visibleScopes.removed || state.visibleScopes.changed);
-        const shouldShowFilterEmpty = Boolean(normalized) && anyScopeEnabled && totalVisibleAcrossScopes === 0;
+        const shouldShowFilterEmpty = Boolean(normalized || fieldFilter) && anyScopeEnabled && totalVisibleAcrossScopes === 0;
         const filterEmptyNode = node.querySelector('[data-diff-filter-empty]');
         if (filterEmptyNode) {
           filterEmptyNode.classList.toggle('hidden', !shouldShowFilterEmpty);
@@ -1153,6 +1196,7 @@
 
       node.querySelector('#diffRecordFilterClear')?.addEventListener('click', () => {
         state.diffFilterQuery = '';
+        state.changedFieldFilter = '';
         saveDiffFilterQueryPreference('');
         if (recordFilterInput) {
           recordFilterInput.value = '';

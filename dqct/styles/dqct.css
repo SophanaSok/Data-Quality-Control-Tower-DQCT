@@ -682,6 +682,48 @@
         flex-wrap: wrap;
       }
 
+      .dqct-diff-field-badges,
+      .dqct-diff-inline-field-badges {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+      }
+
+      .dqct-diff-field-badges {
+        max-width: 100%;
+      }
+
+      .dqct-field-badge {
+        border: 1px solid rgba(20, 34, 58, 0.14);
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--text);
+        border-radius: 999px;
+        padding: 0.24rem 0.56rem;
+        font-size: 0.78rem;
+        line-height: 1.2;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+
+      .dqct-field-badge.is-active {
+        border-color: rgba(32, 74, 135, 0.9);
+        background: rgba(32, 74, 135, 0.14);
+      }
+
+      .dqct-field-badge__count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.1rem;
+        padding: 0 0.28rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        background: rgba(20, 34, 58, 0.08);
+      }
+
       .dqct-chip {
         border: 1px solid rgba(20, 34, 58, 0.14);
         background: rgba(255, 255, 255, 0.92);
@@ -909,6 +951,20 @@
       :root[data-theme="dark"] .dqct-chip {
         border: 1px solid rgba(255, 255, 255, 0.18);
         background: rgba(255, 255, 255, 0.04);
+      }
+
+      :root[data-theme="dark"] .dqct-field-badge {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      :root[data-theme="dark"] .dqct-field-badge.is-active {
+        border-color: rgba(110,165,255,0.85);
+        background: rgba(110,165,255,0.18);
+      }
+
+      :root[data-theme="dark"] .dqct-field-badge__count {
+        background: rgba(255, 255, 255, 0.12);
       }
 
       :root[data-theme="dark"] .dqct-chip.is-active {
