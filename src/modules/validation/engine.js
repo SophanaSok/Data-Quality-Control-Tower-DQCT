@@ -1,4 +1,6 @@
 (function attachDQCTValidationEngine(globalScope) {
+  const HEX_32_REGEX = /^[A-Fa-f0-9]{32}$/;
+
   function isEmpty(value) {
     return value === null || value === undefined || value === "" || (Array.isArray(value) && value.length === 0);
   }
@@ -280,7 +282,7 @@
         return failures;
       }
 
-      const invalidHashes = hashValues.filter((hash) => !/^[A-Fa-f0-9]{32}$/.test(hash));
+      const invalidHashes = hashValues.filter((hash) => !HEX_32_REGEX.test(hash));
       if (invalidHashes.length) {
         fail(`32-character hexadecimal hashes in ${rule.hash_field}`, invalidHashes.join(", "));
         return failures;
@@ -292,8 +294,10 @@
         return failures;
       }
 
-      const missingFromHashes = documentHashes.filter((hash) => !hashValues.includes(hash));
-      const extraInHashes = hashValues.filter((hash) => !documentHashes.includes(hash));
+      const hashSet = new Set(hashValues);
+      const documentHashSet = new Set(documentHashes);
+      const missingFromHashes = documentHashes.filter((hash) => !hashSet.has(hash));
+      const extraInHashes = hashValues.filter((hash) => !documentHashSet.has(hash));
       if (missingFromHashes.length || extraInHashes.length) {
         fail(
           `matching hash set in ${rule.hash_field}`,
