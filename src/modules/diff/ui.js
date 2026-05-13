@@ -918,11 +918,15 @@
               const activeIndex = activeChangedFieldFilters.indexOf(field);
               const isFirst = activeIndex <= 0;
               const isLast = activeIndex === activeChangedFieldFilters.length - 1;
+              const leftTitle = isFirst ? 'Already first' : 'Move left';
+              const rightTitle = isLast ? 'Already last' : 'Move right';
+              const leftAriaLabel = isFirst ? `Already first: ${field}` : `Move ${field} left`;
+              const rightAriaLabel = isLast ? `Already last: ${field}` : `Move ${field} right`;
               return `
                 <span class="dqct-field-badge-group" data-diff-field-group="${escapeHtml(field)}">
                   <button type="button" class="dqct-field-badge is-active dqct-field-badge--pinned" data-diff-field-filter="${escapeHtml(field)}" draggable="true">${highlightMatch(field, activeFilterQuery)} <span class="dqct-field-badge__count">${changedFieldCounts[field]}</span></button>
-                  <button type="button" class="dqct-field-move" aria-label="Move ${escapeHtml(field)} left" title="Move left" data-diff-field-move="left" data-diff-field-value="${escapeHtml(field)}" ${isFirst ? 'disabled aria-disabled="true"' : ''}>◀</button>
-                  <button type="button" class="dqct-field-move" aria-label="Move ${escapeHtml(field)} right" title="Move right" data-diff-field-move="right" data-diff-field-value="${escapeHtml(field)}" ${isLast ? 'disabled aria-disabled="true"' : ''}>▶</button>
+                  <button type="button" class="dqct-field-move" aria-label="${escapeHtml(leftAriaLabel)}" title="${escapeHtml(leftTitle)}" data-diff-field-move="left" data-diff-field-value="${escapeHtml(field)}" ${isFirst ? 'disabled aria-disabled="true"' : ''}>◀</button>
+                  <button type="button" class="dqct-field-move" aria-label="${escapeHtml(rightAriaLabel)}" title="${escapeHtml(rightTitle)}" data-diff-field-move="right" data-diff-field-value="${escapeHtml(field)}" ${isLast ? 'disabled aria-disabled="true"' : ''}>▶</button>
                 </span>
               `;
             }).join('')}
