@@ -1076,6 +1076,17 @@
         color: inherit;
       }
 
+      .dqct-json-diff-char {
+        background: rgba(255, 214, 102, 0.75);
+        color: inherit;
+        border-radius: 2px;
+        padding: 0 0.06rem;
+      }
+
+      :root[data-theme="dark"] .dqct-json-diff-char {
+        background: rgba(110,165,255,0.35);
+      }
+
       .fieldset {
         display: grid;
         gap: 0.35rem;

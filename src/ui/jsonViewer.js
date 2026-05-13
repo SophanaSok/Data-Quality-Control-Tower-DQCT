@@ -40,6 +40,69 @@
     return escaped.replace(pattern, '<mark class="dqct-json-highlight">$1</mark>');
   }
 
+  // Produce a character-level diff between two strings and return HTML
+  // with differing character runs wrapped in <mark class="dqct-json-diff-char">.
+  function charLevelDiffHtml(a, b) {
+    const sa = String(a ?? "");
+    const sb = String(b ?? "");
+    const m = sa.length;
+    const n = sb.length;
+    // Build LCS table
+    const dp = Array.from({ length: m + 1 }, () => new Uint32Array(n + 1));
+    for (let i = 0; i < m; i++) {
+      const ai = sa.charCodeAt(i);
+      const row = dp[i + 1];
+      const prev = dp[i];
+      for (let j = 0; j < n; j++) {
+        if (ai === sb.charCodeAt(j)) row[j + 1] = prev[j] + 1;
+        else row[j + 1] = Math.max(row[j], prev[j + 1]);
+      }
+    }
+    // Backtrack to find matched index pairs
+    const matchedA = new Array(m).fill(false);
+    const matchedB = new Array(n).fill(false);
+    let i = m, j = n;
+    while (i > 0 && j > 0) {
+      if (sa.charCodeAt(i - 1) === sb.charCodeAt(j - 1)) {
+        matchedA[i - 1] = true;
+        matchedB[j - 1] = true;
+        i--; j--;
+      } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+        i--;
+      } else {
+        j--;
+      }
+    }
+
+    function buildHtml(str, matched) {
+      let out = "";
+      let run = "";
+      let runMatched = null;
+      for (let k = 0; k < str.length; k++) {
+        const ch = str[k];
+        const isMatched = !!matched[k];
+        if (runMatched === null) { runMatched = isMatched; run = ch; }
+        else if (isMatched === runMatched) { run += ch; }
+        else {
+          const esc = escapeHtml(run);
+          if (runMatched) out += esc;
+          else out += `<mark class="dqct-json-diff-char">${esc}</mark>`;
+          run = ch; runMatched = isMatched;
+        }
+      }
+      if (run.length) {
+        const esc = escapeHtml(run);
+        out += runMatched ? esc : `<mark class="dqct-json-diff-char">${esc}</mark>`;
+      }
+      return out;
+    }
+
+    return {
+      baseHtml: buildHtml(sa, matchedA),
+      compareHtml: buildHtml(sb, matchedB)
+    };
+  }
+
   function renderRecordViewer(record, highlightPath) {
     const wrapper = document.createElement("div");
     wrapper.className = "dqct-json-viewer";
@@ -57,6 +120,9 @@
     const wrapper = document.createElement("div");
     wrapper.className = "dqct-json-diff-viewer";
     const paths = Array.isArray(changedPaths) ? changedPaths : [];
+    const baseJson = formatJson(base);
+    const compareJson = formatJson(compare);
+    const diff = charLevelDiffHtml(baseJson, compareJson);
     wrapper.innerHTML = `
       <div class="dqct-json-viewer__header">
         <strong>Diff viewer</strong>
@@ -65,11 +131,11 @@
       <div class="dqct-json-diff-viewer__grid">
         <div>
           <div class="meta">Baseline</div>
-          <pre class="dqct-json-viewer__code">${highlightJsonForPaths(formatJson(base), paths)}</pre>
+          <pre class="dqct-json-viewer__code">${diff.baseHtml}</pre>
         </div>
         <div>
           <div class="meta">Comparison</div>
-          <pre class="dqct-json-viewer__code">${highlightJsonForPaths(formatJson(compare), paths)}</pre>
+          <pre class="dqct-json-viewer__code">${diff.compareHtml}</pre>
         </div>
       </div>
       ${paths.length ? `<div class="meta">Changed paths: ${escapeHtml(paths.join(", "))}</div>` : ""}
