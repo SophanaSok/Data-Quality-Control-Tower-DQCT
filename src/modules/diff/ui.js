@@ -6,6 +6,7 @@
   const DIFF_GLOBAL_EXPANDED_KEY = "dqct.diff.globalExpanded.v1";
   const DIFF_FILTER_QUERY_KEY = "dqct.diff.filterQuery.v1";
   const DIFF_VISIBLE_SCOPES_KEY = "dqct.diff.visibleScopes.v1";
+  const DIFF_CHANGED_FIELD_FILTER_KEY = "dqct.diff.changedFieldFilter.v1";
 
   function readChangedFieldsOnlyPreference() {
     try {
@@ -135,6 +136,45 @@
     }
   }
 
+  function readChangedFieldFilterPreference() {
+    try {
+      const raw = localStorage.getItem(DIFF_CHANGED_FIELD_FILTER_KEY);
+      if (!raw) {
+        return { fields: [], mode: "or" };
+      }
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") {
+        return { fields: [], mode: "or" };
+      }
+      const fields = Array.isArray(parsed.fields)
+        ? parsed.fields.map((field) => String(field || "").trim()).filter(Boolean)
+        : [];
+      const uniqueFields = Array.from(new Set(fields));
+      const mode = parsed.mode === "and" ? "and" : "or";
+      return { fields: uniqueFields, mode };
+    } catch (error) {
+      return { fields: [], mode: "or" };
+    }
+  }
+
+  function saveChangedFieldFilterPreference(value) {
+    try {
+      const fields = Array.isArray(value?.fields)
+        ? Array.from(new Set(value.fields.map((field) => String(field || "").trim()).filter(Boolean)))
+        : [];
+      const mode = value?.mode === "and" ? "and" : "or";
+      if (!fields.length && mode === "or") {
+        localStorage.removeItem(DIFF_CHANGED_FIELD_FILTER_KEY);
+        return;
+      }
+      localStorage.setItem(DIFF_CHANGED_FIELD_FILTER_KEY, JSON.stringify({ fields, mode }));
+    } catch (error) {
+      // Ignore storage failures and keep in-memory state only.
+    }
+  }
+
+  const changedFieldFilterPreference = readChangedFieldFilterPreference();
+
   const state = {
     baselinePayload: null,
     comparisonPayload: null,
@@ -145,8 +185,8 @@
     scopeExpandedPreference: readScopeExpandedPreference(),
     globalExpandedPreference: readGlobalExpandedPreference(),
     diffFilterQuery: readDiffFilterQueryPreference(),
-    changedFieldFilter: [],
-    changedFieldFilterMode: "or",
+    changedFieldFilter: changedFieldFilterPreference.fields,
+    changedFieldFilterMode: changedFieldFilterPreference.mode,
     visibleScopes: readVisibleScopesPreference(),
     diffShortcutsBound: false,
     diffHelpOutsideCleanup: null
@@ -483,6 +523,10 @@
       const clearButton = resultsNode.querySelector("#diffRecordFilterClear");
       if (filterInput instanceof HTMLInputElement) {
         state.changedFieldFilter = [];
+        saveChangedFieldFilterPreference({
+          fields: state.changedFieldFilter,
+          mode: state.changedFieldFilterMode
+        });
         if (filterInput.value) {
           if (clearButton instanceof HTMLButtonElement) {
             clearButton.click();
@@ -1007,6 +1051,10 @@
           const selected = String(button.getAttribute('data-diff-field-filter') || '').trim();
           if (!selected) {
             state.changedFieldFilter = [];
+            saveChangedFieldFilterPreference({
+              fields: state.changedFieldFilter,
+              mode: state.changedFieldFilterMode
+            });
             renderDiffResults(analysis);
             return;
           }
@@ -1018,12 +1066,20 @@
           } else {
             state.changedFieldFilter = [...current, selected];
           }
+          saveChangedFieldFilterPreference({
+            fields: state.changedFieldFilter,
+            mode: state.changedFieldFilterMode
+          });
           renderDiffResults(analysis);
         });
       });
 
       node.querySelector('[data-diff-field-mode]')?.addEventListener('click', () => {
         state.changedFieldFilterMode = state.changedFieldFilterMode === 'and' ? 'or' : 'and';
+        saveChangedFieldFilterPreference({
+          fields: state.changedFieldFilter,
+          mode: state.changedFieldFilterMode
+        });
         renderDiffResults(analysis);
       });
 
@@ -1031,6 +1087,10 @@
         state.diffFilterQuery = '';
         state.changedFieldFilter = [];
         saveDiffFilterQueryPreference('');
+        saveChangedFieldFilterPreference({
+          fields: state.changedFieldFilter,
+          mode: state.changedFieldFilterMode
+        });
         const input = node.querySelector('#diffRecordFilterInput');
         if (input) {
           input.value = '';
@@ -1228,6 +1288,10 @@
         state.diffFilterQuery = '';
         state.changedFieldFilter = [];
         saveDiffFilterQueryPreference('');
+        saveChangedFieldFilterPreference({
+          fields: state.changedFieldFilter,
+          mode: state.changedFieldFilterMode
+        });
         if (recordFilterInput) {
           recordFilterInput.value = '';
           recordFilterInput.focus();
