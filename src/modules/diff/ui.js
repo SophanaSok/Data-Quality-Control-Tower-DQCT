@@ -1030,11 +1030,21 @@
           }
         };
 
+        const viewportChangeHandler = () => {
+          if (!helpPanel.classList.contains('hidden')) {
+            setHelpOpen(false);
+          }
+        };
+
         document.addEventListener('pointerdown', outsidePointerHandler, true);
         document.addEventListener('focusin', focusInHandler, true);
+        window.addEventListener('resize', viewportChangeHandler);
+        window.addEventListener('scroll', viewportChangeHandler, true);
         state.diffHelpOutsideCleanup = () => {
           document.removeEventListener('pointerdown', outsidePointerHandler, true);
           document.removeEventListener('focusin', focusInHandler, true);
+          window.removeEventListener('resize', viewportChangeHandler);
+          window.removeEventListener('scroll', viewportChangeHandler, true);
         };
       }
 
