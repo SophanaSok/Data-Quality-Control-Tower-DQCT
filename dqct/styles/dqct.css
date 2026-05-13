@@ -1029,6 +1029,56 @@
         border: 1px solid rgba(255, 255, 255, 0.06);
       }
 
+      :root[data-theme="dark"] .dqct-diff-record-content,
+      :root[data-theme="dark"] .dqct-diff-record-pane,
+      :root[data-theme="dark"] .dqct-diff-record-head,
+      :root[data-theme="dark"] .dqct-diff-record-card strong,
+      :root[data-theme="dark"] .dqct-diff-record-card .meta,
+      :root[data-theme="dark"] .dqct-diff-summary-hint {
+        color: var(--text);
+      }
+
+      :root[data-theme="dark"] .dqct-diff-record-pane {
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        padding: 0.7rem;
+      }
+
+      :root[data-theme="dark"] .dqct-diff-record-json {
+        background: rgba(7, 16, 24, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        color: var(--text);
+      }
+
+      :root[data-theme="dark"] .dqct-diff-field-value {
+        color: var(--text);
+      }
+
+      :root[data-theme="dark"] .dqct-diff-field-table {
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      :root[data-theme="dark"] .dqct-diff-field-table__head,
+      :root[data-theme="dark"] .dqct-diff-field-table__row {
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text);
+      }
+
+      :root[data-theme="dark"] .dqct-diff-field-table__head {
+        color: var(--muted);
+      }
+
+      :root[data-theme="dark"] .dqct-diff-pill--missing,
+      :root[data-theme="dark"] .dqct-diff-pill--null {
+        color: var(--text);
+      }
+
+      :root[data-theme="dark"] .dqct-diff-active-filters,
+      :root[data-theme="dark"] .dqct-active-filter-chip {
+        color: var(--text);
+      }
+
       :root[data-theme="dark"] .dqct-diff-results-toolbar {
         border: 1px solid rgba(255, 255, 255, 0.08);
         background: rgba(16, 24, 36, 0.88);
