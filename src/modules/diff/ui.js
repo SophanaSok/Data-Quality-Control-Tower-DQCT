@@ -768,6 +768,10 @@
         return acc;
       }, {});
       const sortedChangedFields = Object.keys(changedFieldCounts).sort((a, b) => a.localeCompare(b));
+      const orderedChangedFields = [
+        ...activeChangedFieldFilters.filter((field, index, all) => all.indexOf(field) === index && sortedChangedFields.includes(field)),
+        ...sortedChangedFields.filter((field) => !activeChangedFieldFilterSet.has(field))
+      ];
       const quickPickPriority = (field) => {
         const token = String(field || '').toLowerCase();
         if (/(status|state|stage)/.test(token)) return 100;
@@ -906,9 +910,9 @@
           <div class="dqct-diff-field-badges" data-diff-field-badges>
             <span class="meta">Changed fields:</span>
             <button type="button" class="dqct-field-badge ${activeChangedFieldFilters.length ? '' : 'is-active'}" data-diff-field-filter="">All fields</button>
-            ${sortedChangedFields.map((field) => {
+            ${orderedChangedFields.map((field) => {
               const active = activeChangedFieldFilterSet.has(field);
-              return `<button type="button" class="dqct-field-badge ${active ? 'is-active' : ''}" data-diff-field-filter="${escapeHtml(field)}">${highlightMatch(field, activeFilterQuery)} <span class="dqct-field-badge__count">${changedFieldCounts[field]}</span></button>`;
+              return `<button type="button" class="dqct-field-badge ${active ? 'is-active dqct-field-badge--pinned' : ''}" data-diff-field-filter="${escapeHtml(field)}">${highlightMatch(field, activeFilterQuery)} <span class="dqct-field-badge__count">${changedFieldCounts[field]}</span></button>`;
             }).join('')}
             <button type="button" class="ghost" data-diff-field-mode>Mode: ${activeFieldMode.toUpperCase()}</button>
           </div>
