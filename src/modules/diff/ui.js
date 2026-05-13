@@ -6,7 +6,8 @@
     comparisonPayload: null,
     baselineName: "",
     comparisonName: "",
-    analysis: null
+    analysis: null,
+    showChangedFieldsOnly: false
   };
 
   function escapeHtml(value) {
@@ -444,6 +445,7 @@
       const added = diff.newRecords || [];
       const removed = diff.removedRecords || [];
       const changed = diff.changedRecords || [];
+      const showChangedFieldsOnly = Boolean(state.showChangedFieldsOnly);
 
       const renderRecordPreview = (rec) => `<pre class="dqct-json-viewer__code dqct-diff-record-json">${escapeHtml(JSON.stringify(rec, null, 2))}</pre>`;
       const renderChangedFields = (fields) => {
@@ -452,6 +454,37 @@
           return '<div class="meta">Changed fields: none detected</div>';
         }
         return `<div class="meta">Changed fields: ${escapeHtml(normalizedFields.join(', '))}</div>`;
+      };
+      const renderFieldValue = (value) => {
+        if (value === undefined) {
+          return '<span class="dqct-diff-pill dqct-diff-pill--missing">(missing)</span>';
+        }
+        if (value === null) {
+          return '<span class="dqct-diff-pill dqct-diff-pill--null">null</span>';
+        }
+        return `<code class="dqct-diff-field-value">${escapeHtml(JSON.stringify(value))}</code>`;
+      };
+      const renderChangedFieldsCompact = (changedRecord) => {
+        const fields = Array.isArray(changedRecord?.changedFields) ? changedRecord.changedFields.filter(Boolean) : [];
+        if (!fields.length) {
+          return '<div class="meta">No changed fields available.</div>';
+        }
+        return `
+          <div class="dqct-diff-field-table" role="table" aria-label="Changed fields">
+            <div class="dqct-diff-field-table__head">
+              <span>Field</span>
+              <span>Before</span>
+              <span>After</span>
+            </div>
+            ${fields.map((field) => `
+              <div class="dqct-diff-field-table__row">
+                <span class="dqct-diff-field-name">${escapeHtml(String(field))}</span>
+                <span>${renderFieldValue(changedRecord?.before?.[field])}</span>
+                <span>${renderFieldValue(changedRecord?.after?.[field])}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
       };
       const startsExpanded = (totalItems) => totalItems <= 3;
 
@@ -482,6 +515,10 @@
       const renderCardEnd = () => '</div></details>';
 
       node.innerHTML = `
+        <div class="dqct-diff-global-controls">
+          <button type="button" class="ghost" data-diff-expand-all>Expand all sections</button>
+          <button type="button" class="ghost" data-diff-collapse-all>Collapse all sections</button>
+        </div>
         <div class="section">
           <h3>Added (${added.length})</h3>
           ${renderSectionControls('added', added.length)}
@@ -509,19 +546,25 @@
         <div class="section" style="margin-top:12px;">
           <h3>Changed (${changed.length})</h3>
           ${renderSectionControls('changed', changed.length)}
+          <label class="dqct-diff-toggle" for="diffChangedFieldsOnlyToggle">
+            <input id="diffChangedFieldsOnlyToggle" type="checkbox" ${showChangedFieldsOnly ? 'checked' : ''} />
+            Show only changed fields
+          </label>
           <div class="dqct-diff-record-list">${changed.length ? changed.map((c, idx) => `
             ${renderCardStart('changed', idx, String(c.key), `Baseline #${String(c.baselineIndex)} -> Comparison #${String(c.comparisonIndex)}`, startsExpanded(changed.length))}
               ${renderChangedFields(c.changedFields)}
-              <div class="dqct-diff-record-grid">
-                <div class="dqct-diff-record-pane">
-                  <div class="meta">Before (baseline)</div>
-                  ${renderRecordPreview(c.before)}
+              ${showChangedFieldsOnly ? renderChangedFieldsCompact(c) : `
+                <div class="dqct-diff-record-grid">
+                  <div class="dqct-diff-record-pane">
+                    <div class="meta">Before (baseline)</div>
+                    ${renderRecordPreview(c.before)}
+                  </div>
+                  <div class="dqct-diff-record-pane">
+                    <div class="meta">After (comparison)</div>
+                    ${renderRecordPreview(c.after)}
+                  </div>
                 </div>
-                <div class="dqct-diff-record-pane">
-                  <div class="meta">After (comparison)</div>
-                  ${renderRecordPreview(c.after)}
-                </div>
-              </div>
+              `}
             ${renderCardEnd()}
           `).join('') : '<div class="meta">No changed records</div>'}</div>
         </div>
@@ -547,6 +590,24 @@
           if (!scope) return;
           toggleScopeCards(scope, false);
         });
+      });
+
+      node.querySelector('[data-diff-expand-all]')?.addEventListener('click', () => {
+        node.querySelectorAll('details[data-diff-scope]').forEach((card) => {
+          card.open = true;
+        });
+      });
+
+      node.querySelector('[data-diff-collapse-all]')?.addEventListener('click', () => {
+        node.querySelectorAll('details[data-diff-scope]').forEach((card) => {
+          card.open = false;
+        });
+      });
+
+      const changedFieldsOnlyToggle = node.querySelector('#diffChangedFieldsOnlyToggle');
+      changedFieldsOnlyToggle?.addEventListener('change', () => {
+        state.showChangedFieldsOnly = Boolean(changedFieldsOnlyToggle.checked);
+        renderDiffResults(analysis);
       });
     }
 

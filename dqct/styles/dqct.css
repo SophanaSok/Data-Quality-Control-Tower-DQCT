@@ -668,6 +668,27 @@
         flex-wrap: wrap;
       }
 
+      .dqct-diff-global-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .dqct-diff-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-bottom: 0.6rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .dqct-diff-toggle input {
+        margin: 0;
+      }
+
       .dqct-diff-record-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -682,9 +703,76 @@
         max-height: 20rem;
       }
 
+      .dqct-diff-field-table {
+        display: grid;
+        border: 1px solid rgba(20, 34, 58, 0.08);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .dqct-diff-field-table__head,
+      .dqct-diff-field-table__row {
+        display: grid;
+        grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr) minmax(0, 2fr);
+        gap: 0.6rem;
+        align-items: start;
+        padding: 0.55rem 0.7rem;
+      }
+
+      .dqct-diff-field-table__head {
+        background: rgba(20, 34, 58, 0.06);
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--muted);
+      }
+
+      .dqct-diff-field-table__row {
+        border-top: 1px solid rgba(20, 34, 58, 0.06);
+      }
+
+      .dqct-diff-field-name {
+        font-weight: 600;
+        word-break: break-word;
+      }
+
+      .dqct-diff-field-value {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      .dqct-diff-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.12rem 0.4rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        line-height: 1.2;
+      }
+
+      .dqct-diff-pill--missing {
+        background: rgba(20, 34, 58, 0.08);
+      }
+
+      .dqct-diff-pill--null {
+        background: rgba(161, 92, 0, 0.14);
+      }
+
       :root[data-theme="dark"] .dqct-diff-record-card {
         background: rgba(255, 255, 255, 0.02);
         border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      :root[data-theme="dark"] .dqct-diff-field-table {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      :root[data-theme="dark"] .dqct-diff-field-table__head {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      :root[data-theme="dark"] .dqct-diff-field-table__row {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
       }
 
       .dqct-json-highlight {
@@ -1359,6 +1447,11 @@
 
         .dqct-diff-record-grid,
         .dqct-json-diff-viewer__grid {
+          grid-template-columns: 1fr;
+        }
+
+        .dqct-diff-field-table__head,
+        .dqct-diff-field-table__row {
           grid-template-columns: 1fr;
         }
 
