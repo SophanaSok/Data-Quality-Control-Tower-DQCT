@@ -88,7 +88,8 @@
     analysis: null,
     showChangedFieldsOnly: readChangedFieldsOnlyPreference(),
     scopeExpandedPreference: readScopeExpandedPreference(),
-    globalExpandedPreference: readGlobalExpandedPreference()
+    globalExpandedPreference: readGlobalExpandedPreference(),
+    diffFilterQuery: ""
   };
 
   function escapeHtml(value) {
@@ -589,8 +590,8 @@
         `;
       };
 
-      const renderCardStart = (scope, itemIndex, titleText, metaText, openByDefault) => `
-        <details class="dqct-diff-record-card" data-diff-scope="${scope}" data-diff-index="${itemIndex}" ${openByDefault ? 'open' : ''}>
+      const renderCardStart = (scope, itemIndex, titleText, metaText, openByDefault, filterText = '') => `
+        <details class="dqct-diff-record-card" data-diff-scope="${scope}" data-diff-index="${itemIndex}" data-filter-text="${escapeHtml(String(filterText).toLowerCase())}" ${openByDefault ? 'open' : ''}>
           <summary class="dqct-diff-record-head">
             <div>
               <strong>${escapeHtml(titleText)}</strong>
@@ -605,6 +606,10 @@
 
       node.innerHTML = `
         <div class="dqct-diff-results-toolbar">
+          <div class="dqct-diff-filter-wrap">
+            <label class="meta" for="diffRecordFilterInput">Filter records</label>
+            <input id="diffRecordFilterInput" class="dqct-diff-filter-input" type="search" placeholder="Search by key or changed field" value="${escapeHtml(state.diffFilterQuery)}" />
+          </div>
           <div class="dqct-diff-global-controls">
             <button type="button" class="ghost" data-diff-expand-all>Expand all sections</button>
             <button type="button" class="ghost" data-diff-collapse-all>Collapse all sections</button>
@@ -615,10 +620,10 @@
           </label>
         </div>
         <div class="section">
-          <h3>Added (${added.length})</h3>
+          <h3>Added (<span data-diff-visible-count="added">${added.length}</span> / ${added.length})</h3>
           ${renderSectionControls('added', added.length)}
           <div class="dqct-diff-record-list">${added.length ? added.map((a, idx) => `
-            ${renderCardStart('added', idx, String(a.key), `Comparison index: ${String(a.comparisonIndex)}`, startsExpanded('added', added.length))}
+            ${renderCardStart('added', idx, String(a.key), `Comparison index: ${String(a.comparisonIndex)}`, startsExpanded('added', added.length), `${String(a.key)} comparison index ${String(a.comparisonIndex)}`)}
               <div class="dqct-diff-record-pane">
                 <div class="meta">Added record</div>
                 ${renderRecordPreview(a.record)}
@@ -627,10 +632,10 @@
           `).join('') : '<div class="meta">No added records</div>'}</div>
         </div>
         <div class="section" style="margin-top:12px;">
-          <h3>Removed (${removed.length})</h3>
+          <h3>Removed (<span data-diff-visible-count="removed">${removed.length}</span> / ${removed.length})</h3>
           ${renderSectionControls('removed', removed.length)}
           <div class="dqct-diff-record-list">${removed.length ? removed.map((r, idx) => `
-            ${renderCardStart('removed', idx, String(r.key), `Baseline index: ${String(r.baselineIndex)}`, startsExpanded('removed', removed.length))}
+            ${renderCardStart('removed', idx, String(r.key), `Baseline index: ${String(r.baselineIndex)}`, startsExpanded('removed', removed.length), `${String(r.key)} baseline index ${String(r.baselineIndex)}`)}
               <div class="dqct-diff-record-pane">
                 <div class="meta">Removed record</div>
                 ${renderRecordPreview(r.record)}
@@ -639,10 +644,10 @@
           `).join('') : '<div class="meta">No removed records</div>'}</div>
         </div>
         <div class="section" style="margin-top:12px;">
-          <h3>Changed (${changed.length})</h3>
+          <h3>Changed (<span data-diff-visible-count="changed">${changed.length}</span> / ${changed.length})</h3>
           ${renderSectionControls('changed', changed.length)}
           <div class="dqct-diff-record-list">${changed.length ? changed.map((c, idx) => `
-            ${renderCardStart('changed', idx, String(c.key), `Baseline #${String(c.baselineIndex)} -> Comparison #${String(c.comparisonIndex)}`, startsExpanded('changed', changed.length))}
+            ${renderCardStart('changed', idx, String(c.key), `Baseline #${String(c.baselineIndex)} -> Comparison #${String(c.comparisonIndex)}`, startsExpanded('changed', changed.length), `${String(c.key)} ${(Array.isArray(c.changedFields) ? c.changedFields.join(' ') : '')}`)}
               ${renderChangedFields(c.changedFields)}
               ${showChangedFieldsOnly ? renderChangedFieldsCompact(c) : `
                 <div class="dqct-diff-record-grid">
@@ -696,6 +701,26 @@
           toggleScopeCards(scope, false);
         });
       });
+
+      const applyRecordFilter = (query) => {
+        const normalized = String(query || '').trim().toLowerCase();
+        ['added', 'removed', 'changed'].forEach((scope) => {
+          const cards = Array.from(node.querySelectorAll(`details[data-diff-scope="${scope}"]`));
+          let visibleCount = 0;
+          cards.forEach((card) => {
+            const haystack = (card.getAttribute('data-filter-text') || '').toLowerCase();
+            const isVisible = !normalized || haystack.includes(normalized);
+            card.classList.toggle('hidden', !isVisible);
+            if (isVisible) {
+              visibleCount += 1;
+            }
+          });
+          const counter = node.querySelector(`[data-diff-visible-count="${scope}"]`);
+          if (counter) {
+            counter.textContent = String(visibleCount);
+          }
+        });
+      };
 
       node.querySelector('[data-diff-expand-all]')?.addEventListener('click', () => {
         node.querySelectorAll('details[data-diff-scope]').forEach((card) => {
@@ -760,6 +785,13 @@
         saveChangedFieldsOnlyPreference(state.showChangedFieldsOnly);
         renderDiffResults(analysis);
       });
+
+      const recordFilterInput = node.querySelector('#diffRecordFilterInput');
+      recordFilterInput?.addEventListener('input', () => {
+        state.diffFilterQuery = String(recordFilterInput.value || '');
+        applyRecordFilter(state.diffFilterQuery);
+      });
+      applyRecordFilter(state.diffFilterQuery);
     }
 
     const exportFiles = getDiffExportFilenames();

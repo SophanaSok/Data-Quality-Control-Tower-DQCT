@@ -692,6 +692,29 @@
         backdrop-filter: blur(6px);
       }
 
+      .dqct-diff-filter-wrap {
+        display: grid;
+        gap: 0.25rem;
+        min-width: 240px;
+        flex: 1 1 320px;
+      }
+
+      .dqct-diff-filter-input {
+        width: 100%;
+        border: 1px solid rgba(20, 34, 58, 0.16);
+        border-radius: 10px;
+        padding: 0.48rem 0.6rem;
+        background: rgba(255, 255, 255, 0.96);
+        color: var(--text);
+        font: inherit;
+      }
+
+      .dqct-diff-filter-input:focus {
+        outline: none;
+        border-color: rgba(32, 74, 135, 0.9);
+        box-shadow: 0 0 0 3px rgba(32, 74, 135, 0.12);
+      }
+
       .dqct-diff-toggle {
         display: inline-flex;
         align-items: center;
@@ -782,6 +805,12 @@
       :root[data-theme="dark"] .dqct-diff-results-toolbar {
         border: 1px solid rgba(255, 255, 255, 0.08);
         background: rgba(16, 24, 36, 0.88);
+      }
+
+      :root[data-theme="dark"] .dqct-diff-filter-input {
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
       }
 
       :root[data-theme="dark"] .dqct-diff-field-table {
