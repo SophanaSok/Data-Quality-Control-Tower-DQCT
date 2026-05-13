@@ -675,6 +675,29 @@
         flex-wrap: wrap;
       }
 
+      .dqct-diff-scope-chips {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+      }
+
+      .dqct-chip {
+        border: 1px solid rgba(20, 34, 58, 0.14);
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--text);
+        border-radius: 999px;
+        padding: 0.32rem 0.62rem;
+        font-size: 0.82rem;
+        line-height: 1.2;
+        cursor: pointer;
+      }
+
+      .dqct-chip.is-active {
+        border-color: rgba(32, 74, 135, 0.9);
+        background: rgba(32, 74, 135, 0.12);
+      }
+
       .dqct-diff-results-toolbar {
         position: sticky;
         top: 0;
@@ -818,6 +841,16 @@
         border: 1px solid rgba(255, 255, 255, 0.14);
         background: rgba(255, 255, 255, 0.04);
         color: var(--text);
+      }
+
+      :root[data-theme="dark"] .dqct-chip {
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      :root[data-theme="dark"] .dqct-chip.is-active {
+        border-color: rgba(110,165,255,0.85);
+        background: rgba(110,165,255,0.16);
       }
 
       :root[data-theme="dark"] .dqct-diff-field-table {

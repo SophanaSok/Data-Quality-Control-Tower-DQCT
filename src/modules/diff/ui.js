@@ -5,6 +5,7 @@
   const DIFF_SCOPE_EXPANDED_KEY = "dqct.diff.scopeExpanded.v1";
   const DIFF_GLOBAL_EXPANDED_KEY = "dqct.diff.globalExpanded.v1";
   const DIFF_FILTER_QUERY_KEY = "dqct.diff.filterQuery.v1";
+  const DIFF_VISIBLE_SCOPES_KEY = "dqct.diff.visibleScopes.v1";
 
   function readChangedFieldsOnlyPreference() {
     try {
@@ -102,6 +103,38 @@
     }
   }
 
+  function readVisibleScopesPreference() {
+    try {
+      const raw = localStorage.getItem(DIFF_VISIBLE_SCOPES_KEY);
+      if (!raw) {
+        return { added: true, removed: true, changed: true };
+      }
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") {
+        return { added: true, removed: true, changed: true };
+      }
+      return {
+        added: parsed.added !== false,
+        removed: parsed.removed !== false,
+        changed: parsed.changed !== false
+      };
+    } catch (error) {
+      return { added: true, removed: true, changed: true };
+    }
+  }
+
+  function saveVisibleScopesPreference(value) {
+    try {
+      localStorage.setItem(DIFF_VISIBLE_SCOPES_KEY, JSON.stringify({
+        added: value?.added !== false,
+        removed: value?.removed !== false,
+        changed: value?.changed !== false
+      }));
+    } catch (error) {
+      // Ignore storage failures and keep in-memory state only.
+    }
+  }
+
   const state = {
     baselinePayload: null,
     comparisonPayload: null,
@@ -111,7 +144,8 @@
     showChangedFieldsOnly: readChangedFieldsOnlyPreference(),
     scopeExpandedPreference: readScopeExpandedPreference(),
     globalExpandedPreference: readGlobalExpandedPreference(),
-    diffFilterQuery: readDiffFilterQueryPreference()
+    diffFilterQuery: readDiffFilterQueryPreference(),
+    visibleScopes: readVisibleScopesPreference()
   };
 
   function escapeHtml(value) {
@@ -635,6 +669,12 @@
               <button id="diffRecordFilterClear" type="button" class="ghost">Clear</button>
             </div>
           </div>
+          <div class="dqct-diff-scope-chips">
+            <button type="button" class="dqct-chip ${state.visibleScopes.added ? 'is-active' : ''}" data-diff-scope-toggle="added" aria-pressed="${state.visibleScopes.added ? 'true' : 'false'}">Added ${added.length}</button>
+            <button type="button" class="dqct-chip ${state.visibleScopes.removed ? 'is-active' : ''}" data-diff-scope-toggle="removed" aria-pressed="${state.visibleScopes.removed ? 'true' : 'false'}">Removed ${removed.length}</button>
+            <button type="button" class="dqct-chip ${state.visibleScopes.changed ? 'is-active' : ''}" data-diff-scope-toggle="changed" aria-pressed="${state.visibleScopes.changed ? 'true' : 'false'}">Changed ${changed.length}</button>
+            <button type="button" class="ghost" data-diff-scope-show-all>Show all</button>
+          </div>
           <div class="dqct-diff-global-controls">
             <button type="button" class="ghost" data-diff-expand-all>Expand all sections</button>
             <button type="button" class="ghost" data-diff-collapse-all>Collapse all sections</button>
@@ -644,7 +684,7 @@
             Show only changed fields
           </label>
         </div>
-        <div class="section">
+        <div class="section ${state.visibleScopes.added ? '' : 'hidden'}" data-diff-section="added">
           <h3>Added (<span data-diff-visible-count="added">${added.length}</span> / ${added.length})</h3>
           ${renderSectionControls('added', added.length)}
           <div class="dqct-diff-record-list">${added.length ? added.map((a, idx) => `
@@ -656,7 +696,7 @@
             ${renderCardEnd()}
           `).join('') : '<div class="meta">No added records</div>'}</div>
         </div>
-        <div class="section" style="margin-top:12px;">
+        <div class="section ${state.visibleScopes.removed ? '' : 'hidden'}" data-diff-section="removed" style="margin-top:12px;">
           <h3>Removed (<span data-diff-visible-count="removed">${removed.length}</span> / ${removed.length})</h3>
           ${renderSectionControls('removed', removed.length)}
           <div class="dqct-diff-record-list">${removed.length ? removed.map((r, idx) => `
@@ -668,7 +708,7 @@
             ${renderCardEnd()}
           `).join('') : '<div class="meta">No removed records</div>'}</div>
         </div>
-        <div class="section" style="margin-top:12px;">
+        <div class="section ${state.visibleScopes.changed ? '' : 'hidden'}" data-diff-section="changed" style="margin-top:12px;">
           <h3>Changed (<span data-diff-visible-count="changed">${changed.length}</span> / ${changed.length})</h3>
           ${renderSectionControls('changed', changed.length)}
           <div class="dqct-diff-record-list">${changed.length ? changed.map((c, idx) => `
@@ -725,6 +765,26 @@
           if (!scope) return;
           toggleScopeCards(scope, false);
         });
+      });
+
+      node.querySelectorAll('[data-diff-scope-toggle]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const scope = button.getAttribute('data-diff-scope-toggle');
+          if (!scope) return;
+          const nextState = !state.visibleScopes[scope];
+          state.visibleScopes = {
+            ...state.visibleScopes,
+            [scope]: nextState
+          };
+          saveVisibleScopesPreference(state.visibleScopes);
+          renderDiffResults(analysis);
+        });
+      });
+
+      node.querySelector('[data-diff-scope-show-all]')?.addEventListener('click', () => {
+        state.visibleScopes = { added: true, removed: true, changed: true };
+        saveVisibleScopesPreference(state.visibleScopes);
+        renderDiffResults(analysis);
       });
 
       const applyRecordFilter = (query) => {
