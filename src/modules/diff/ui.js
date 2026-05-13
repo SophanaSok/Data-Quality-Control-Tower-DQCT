@@ -912,7 +912,16 @@
             <button type="button" class="dqct-field-badge ${activeChangedFieldFilters.length ? '' : 'is-active'}" data-diff-field-filter="">All fields</button>
             ${orderedChangedFields.map((field) => {
               const active = activeChangedFieldFilterSet.has(field);
-              return `<button type="button" class="dqct-field-badge ${active ? 'is-active dqct-field-badge--pinned' : ''}" data-diff-field-filter="${escapeHtml(field)}" ${active ? 'draggable="true"' : ''}>${highlightMatch(field, activeFilterQuery)} <span class="dqct-field-badge__count">${changedFieldCounts[field]}</span></button>`;
+              if (!active) {
+                return `<button type="button" class="dqct-field-badge" data-diff-field-filter="${escapeHtml(field)}">${highlightMatch(field, activeFilterQuery)} <span class="dqct-field-badge__count">${changedFieldCounts[field]}</span></button>`;
+              }
+              return `
+                <span class="dqct-field-badge-group" data-diff-field-group="${escapeHtml(field)}">
+                  <button type="button" class="dqct-field-badge is-active dqct-field-badge--pinned" data-diff-field-filter="${escapeHtml(field)}" draggable="true">${highlightMatch(field, activeFilterQuery)} <span class="dqct-field-badge__count">${changedFieldCounts[field]}</span></button>
+                  <button type="button" class="dqct-field-move" aria-label="Move ${escapeHtml(field)} left" title="Move left" data-diff-field-move="left" data-diff-field-value="${escapeHtml(field)}">◀</button>
+                  <button type="button" class="dqct-field-move" aria-label="Move ${escapeHtml(field)} right" title="Move right" data-diff-field-move="right" data-diff-field-value="${escapeHtml(field)}">▶</button>
+                </span>
+              `;
             }).join('')}
             <button type="button" class="ghost" data-diff-field-mode>Mode: ${activeFieldMode.toUpperCase()}</button>
           </div>
@@ -1131,6 +1140,44 @@
       });
 
       const pinnedFieldBadges = Array.from(node.querySelectorAll('.dqct-field-badge--pinned[data-diff-field-filter]'));
+      const moveFieldPosition = (field, direction) => {
+        const normalizedField = String(field || '').trim();
+        if (!normalizedField) {
+          return;
+        }
+        const current = Array.isArray(state.changedFieldFilter)
+          ? state.changedFieldFilter.map((item) => String(item || '').trim()).filter(Boolean)
+          : [];
+        const index = current.indexOf(normalizedField);
+        if (index < 0) {
+          return;
+        }
+        const nextIndex = direction === 'left' ? index - 1 : index + 1;
+        if (nextIndex < 0 || nextIndex >= current.length) {
+          return;
+        }
+        const next = [...current];
+        const [moved] = next.splice(index, 1);
+        next.splice(nextIndex, 0, moved);
+        state.changedFieldFilter = next;
+        saveChangedFieldFilterPreference({
+          fields: state.changedFieldFilter,
+          mode: state.changedFieldFilterMode
+        });
+        renderDiffResults(analysis);
+      };
+
+      node.querySelectorAll('[data-diff-field-move]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const direction = String(button.getAttribute('data-diff-field-move') || '').trim();
+          const field = String(button.getAttribute('data-diff-field-value') || '').trim();
+          if ((direction !== 'left' && direction !== 'right') || !field) {
+            return;
+          }
+          moveFieldPosition(field, direction);
+        });
+      });
+
       const clearDropTargets = () => {
         pinnedFieldBadges.forEach((badge) => {
           badge.classList.remove('is-drop-target');
@@ -1197,6 +1244,24 @@
           });
           clearDropTargets();
           renderDiffResults(analysis);
+        });
+
+        badge.addEventListener('keydown', (event) => {
+          if (!event.altKey || event.ctrlKey || event.metaKey) {
+            return;
+          }
+          const field = String(badge.getAttribute('data-diff-field-filter') || '').trim();
+          if (!field) {
+            return;
+          }
+          if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            moveFieldPosition(field, 'left');
+          }
+          if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            moveFieldPosition(field, 'right');
+          }
         });
       });
 
