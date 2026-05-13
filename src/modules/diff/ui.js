@@ -864,6 +864,9 @@
 
       const renderCardEnd = () => '</div></details>';
       const anyScopeVisible = Boolean(state.visibleScopes.added || state.visibleScopes.removed || state.visibleScopes.changed);
+      const hasActiveQuery = Boolean(activeFilterQuery);
+      const hasActiveFieldFilters = activeChangedFieldFilters.length > 0;
+      const hasAnyActiveFilters = hasActiveQuery || hasActiveFieldFilters;
 
       node.innerHTML = `
         <div class="dqct-diff-results-toolbar">
@@ -921,6 +924,17 @@
             </div>
           </div>
         </div>
+        ${hasAnyActiveFilters ? `
+          <div class="dqct-diff-active-filters" data-diff-active-filters>
+            <span class="meta">Active filters:</span>
+            ${hasActiveQuery ? `<span class="dqct-active-filter-chip">Query: ${escapeHtml(activeFilterQuery)}</span>` : ''}
+            ${hasActiveFieldFilters ? `<span class="dqct-active-filter-chip">Fields: ${escapeHtml(activeChangedFieldFilters.join(', '))}</span>` : ''}
+            ${hasActiveFieldFilters ? `<span class="dqct-active-filter-chip">Mode: ${activeFieldMode.toUpperCase()}</span>` : ''}
+            ${hasActiveQuery ? '<button type="button" class="ghost" data-diff-clear-query>Clear query</button>' : ''}
+            ${hasActiveFieldFilters ? '<button type="button" class="ghost" data-diff-clear-field-filters>Clear fields</button>' : ''}
+            <button type="button" class="ghost" data-diff-clear-all-filters>Clear all</button>
+          </div>
+        ` : ''}
         ${anyScopeVisible ? '' : `
           <div class="empty-state" data-diff-sections-empty>
             <h3>No sections visible</h3>
@@ -1097,6 +1111,32 @@
           input.focus();
         }
         applyRecordFilter('');
+      });
+
+      node.querySelector('[data-diff-clear-query]')?.addEventListener('click', () => {
+        state.diffFilterQuery = '';
+        saveDiffFilterQueryPreference('');
+        renderDiffResults(analysis);
+      });
+
+      node.querySelector('[data-diff-clear-field-filters]')?.addEventListener('click', () => {
+        state.changedFieldFilter = [];
+        saveChangedFieldFilterPreference({
+          fields: state.changedFieldFilter,
+          mode: state.changedFieldFilterMode
+        });
+        renderDiffResults(analysis);
+      });
+
+      node.querySelector('[data-diff-clear-all-filters]')?.addEventListener('click', () => {
+        state.diffFilterQuery = '';
+        state.changedFieldFilter = [];
+        saveDiffFilterQueryPreference('');
+        saveChangedFieldFilterPreference({
+          fields: state.changedFieldFilter,
+          mode: state.changedFieldFilterMode
+        });
+        renderDiffResults(analysis);
       });
 
       const helpToggle = node.querySelector('[data-diff-help-toggle]');

@@ -846,6 +846,28 @@
         gap: 0.2rem;
       }
 
+      .dqct-diff-active-filters {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.7rem;
+        padding: 0.5rem 0.6rem;
+        border: 1px solid rgba(20, 34, 58, 0.08);
+        border-radius: 10px;
+        background: rgba(20, 34, 58, 0.03);
+      }
+
+      .dqct-active-filter-chip {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid rgba(20, 34, 58, 0.14);
+        border-radius: 999px;
+        padding: 0.16rem 0.48rem;
+        font-size: 0.78rem;
+        background: rgba(255, 255, 255, 0.88);
+      }
+
       .dqct-diff-record-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -946,6 +968,16 @@
       :root[data-theme="dark"] .dqct-diff-help-panel {
         border: 1px solid rgba(255, 255, 255, 0.14);
         background: rgba(18, 28, 44, 0.97);
+      }
+
+      :root[data-theme="dark"] .dqct-diff-active-filters {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      :root[data-theme="dark"] .dqct-active-filter-chip {
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.06);
       }
 
       :root[data-theme="dark"] .dqct-chip {
