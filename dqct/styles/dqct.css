@@ -724,6 +724,15 @@
         box-shadow: inset 0 0 0 1px rgba(32, 74, 135, 0.22);
       }
 
+      .dqct-field-badge--pinned.is-dragging {
+        opacity: 0.65;
+      }
+
+      .dqct-field-badge--pinned.is-drop-target {
+        outline: 2px dashed rgba(32, 74, 135, 0.6);
+        outline-offset: 1px;
+      }
+
       .dqct-field-badge__count {
         display: inline-flex;
         align-items: center;
@@ -1016,6 +1025,10 @@
 
       :root[data-theme="dark"] .dqct-field-badge--pinned {
         box-shadow: inset 0 0 0 1px rgba(110,165,255,0.3);
+      }
+
+      :root[data-theme="dark"] .dqct-field-badge--pinned.is-drop-target {
+        outline: 2px dashed rgba(110,165,255,0.7);
       }
 
       :root[data-theme="dark"] .dqct-field-badge__count {

@@ -912,7 +912,7 @@
             <button type="button" class="dqct-field-badge ${activeChangedFieldFilters.length ? '' : 'is-active'}" data-diff-field-filter="">All fields</button>
             ${orderedChangedFields.map((field) => {
               const active = activeChangedFieldFilterSet.has(field);
-              return `<button type="button" class="dqct-field-badge ${active ? 'is-active dqct-field-badge--pinned' : ''}" data-diff-field-filter="${escapeHtml(field)}">${highlightMatch(field, activeFilterQuery)} <span class="dqct-field-badge__count">${changedFieldCounts[field]}</span></button>`;
+              return `<button type="button" class="dqct-field-badge ${active ? 'is-active dqct-field-badge--pinned' : ''}" data-diff-field-filter="${escapeHtml(field)}" ${active ? 'draggable="true"' : ''}>${highlightMatch(field, activeFilterQuery)} <span class="dqct-field-badge__count">${changedFieldCounts[field]}</span></button>`;
             }).join('')}
             <button type="button" class="ghost" data-diff-field-mode>Mode: ${activeFieldMode.toUpperCase()}</button>
           </div>
@@ -1128,6 +1128,76 @@
           mode: state.changedFieldFilterMode
         });
         renderDiffResults(analysis);
+      });
+
+      const pinnedFieldBadges = Array.from(node.querySelectorAll('.dqct-field-badge--pinned[data-diff-field-filter]'));
+      const clearDropTargets = () => {
+        pinnedFieldBadges.forEach((badge) => {
+          badge.classList.remove('is-drop-target');
+          badge.classList.remove('is-dragging');
+        });
+      };
+      let draggingField = '';
+
+      pinnedFieldBadges.forEach((badge) => {
+        badge.addEventListener('dragstart', (event) => {
+          draggingField = String(badge.getAttribute('data-diff-field-filter') || '').trim();
+          if (!draggingField) {
+            return;
+          }
+          badge.classList.add('is-dragging');
+          if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', draggingField);
+          }
+        });
+
+        badge.addEventListener('dragend', () => {
+          draggingField = '';
+          clearDropTargets();
+        });
+
+        badge.addEventListener('dragover', (event) => {
+          const targetField = String(badge.getAttribute('data-diff-field-filter') || '').trim();
+          if (!draggingField || draggingField === targetField) {
+            return;
+          }
+          event.preventDefault();
+          clearDropTargets();
+          badge.classList.add('is-drop-target');
+        });
+
+        badge.addEventListener('dragleave', () => {
+          badge.classList.remove('is-drop-target');
+        });
+
+        badge.addEventListener('drop', (event) => {
+          event.preventDefault();
+          const targetField = String(badge.getAttribute('data-diff-field-filter') || '').trim();
+          if (!draggingField || !targetField || draggingField === targetField) {
+            clearDropTargets();
+            return;
+          }
+          const current = Array.isArray(state.changedFieldFilter)
+            ? state.changedFieldFilter.map((field) => String(field || '').trim()).filter(Boolean)
+            : [];
+          const fromIndex = current.indexOf(draggingField);
+          const toIndex = current.indexOf(targetField);
+          if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
+            clearDropTargets();
+            return;
+          }
+          const next = [...current];
+          next.splice(fromIndex, 1);
+          next.splice(toIndex, 0, draggingField);
+          state.changedFieldFilter = next;
+          saveChangedFieldFilterPreference({
+            fields: state.changedFieldFilter,
+            mode: state.changedFieldFilterMode
+          });
+          clearDropTargets();
+          renderDiffResults(analysis);
+        });
       });
 
       node.querySelector('[data-diff-empty-clear-filter]')?.addEventListener('click', () => {
