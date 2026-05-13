@@ -443,11 +443,18 @@
       }
 
       function renderResults() {
+        const exactGroupCount = (state.exactDuplicates || []).length;
+        const nearGroupCount = (state.nearDuplicates || []).length;
+        const affectedRecordCount =
+          (state.exactDuplicates || []).reduce((sum, group) => sum + (group.recordCount || 0), 0)
+          + (state.nearDuplicates || []).reduce((sum, group) => sum + (group.recordCount || 0), 0);
+
         // Handle empty state
         if (!state.results.length && !state.recordSummaries.length) {
           els.resultsWrap.classList.add("hidden");
           els.recordSummariesWrap.classList.add("hidden");
           els.emptyState.classList.remove("hidden");
+          els.duplicateSummaryBar.classList.add("hidden");
           if (validationResultsTable) {
             validationResultsTable.clear();
           } else {
@@ -462,6 +469,10 @@
         }
 
         els.emptyState.classList.add("hidden");
+        els.duplicateSummaryBar.classList.remove("hidden");
+        els.exactDuplicateGroupCount.textContent = String(exactGroupCount);
+        els.nearDuplicateGroupCount.textContent = String(nearGroupCount);
+        els.duplicateRecordCount.textContent = String(affectedRecordCount);
 
         // Show/hide appropriate table based on viewMode
         if (state.viewMode === "records") {
