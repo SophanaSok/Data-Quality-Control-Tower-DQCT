@@ -47,7 +47,8 @@
       html,
       body {
         margin: 0;
-        min-height: 100%;
+        min-height: 100vh;
+        background-color: var(--bg);
         background:
           radial-gradient(circle at top left, rgba(32, 74, 135, 0.16), transparent 24%),
           radial-gradient(circle at 90% 0%, rgba(11, 122, 75, 0.12), transparent 20%),
@@ -57,6 +58,7 @@
 
       :root[data-theme="dark"] html,
       :root[data-theme="dark"] body {
+        background-color: #071018;
         background:
           radial-gradient(circle at top left, rgba(110, 168, 255, 0.16), transparent 24%),
           radial-gradient(circle at 90% 0%, rgba(71, 208, 154, 0.1), transparent 20%),
@@ -1792,6 +1794,19 @@
         border-radius: 16px;
         background: linear-gradient(180deg, rgba(32, 74, 135, 0.08), rgba(255, 255, 255, 0.82));
         border: 1px solid rgba(32, 74, 135, 0.08);
+      }
+
+      :root[data-theme="dark"] .summary-box {
+        background: linear-gradient(180deg, rgba(110, 168, 255, 0.14), rgba(18, 28, 40, 0.96));
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text);
+      }
+
+      :root[data-theme="dark"] .summary-box .meta,
+      :root[data-theme="dark"] .summary-box p,
+      :root[data-theme="dark"] .summary-box span,
+      :root[data-theme="dark"] .summary-box strong {
+        color: var(--text);
       }
 
       .summary-box strong {
