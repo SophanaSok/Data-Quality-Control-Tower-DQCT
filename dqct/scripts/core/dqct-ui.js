@@ -1097,6 +1097,10 @@
           const duplicateFilter = target.getAttribute && target.getAttribute('data-duplicate-filter');
           if (duplicateFilter) {
             state.duplicateFilter = duplicateFilter;
+            state.viewMode = "records";
+            if (els.viewToggle instanceof HTMLSelectElement) {
+              els.viewToggle.value = "records";
+            }
             renderResults();
             return;
           }
