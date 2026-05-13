@@ -869,13 +869,30 @@
               <span>Before</span>
               <span>After</span>
             </div>
-            ${fields.map((field) => `
-              <div class="dqct-diff-field-table__row">
-                <span class="dqct-diff-field-name">${escapeHtml(String(field))}</span>
-                <span>${renderFieldValue(changedRecord?.before?.[field])}</span>
-                <span>${renderFieldValue(changedRecord?.after?.[field])}</span>
-              </div>
-            `).join('')}
+            ${fields.map((field) => {
+              const beforeVal = changedRecord?.before?.[field];
+              const afterVal = changedRecord?.after?.[field];
+              // If both present and the JSON viewer exposes a char-level diff helper, use it
+              if (globalScope.DQCTJsonViewer?.charLevelDiffHtml && (beforeVal !== undefined || afterVal !== undefined)) {
+                const beforeText = JSON.stringify(beforeVal, null, 2);
+                const afterText = JSON.stringify(afterVal, null, 2);
+                const diff = globalScope.DQCTJsonViewer.charLevelDiffHtml(beforeText, afterText);
+                return `
+                  <div class="dqct-diff-field-table__row">
+                    <span class="dqct-diff-field-name">${escapeHtml(String(field))}</span>
+                    <span><pre class="dqct-json-viewer__code dqct-diff-record-json">${diff.baseHtml}</pre></span>
+                    <span><pre class="dqct-json-viewer__code dqct-diff-record-json">${diff.compareHtml}</pre></span>
+                  </div>
+                `;
+              }
+              return `
+                <div class="dqct-diff-field-table__row">
+                  <span class="dqct-diff-field-name">${escapeHtml(String(field))}</span>
+                  <span>${renderFieldValue(beforeVal)}</span>
+                  <span>${renderFieldValue(afterVal)}</span>
+                </div>
+              `;
+            }).join('')}
           </div>
         `;
       };

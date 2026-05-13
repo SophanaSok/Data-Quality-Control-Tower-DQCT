@@ -148,6 +148,7 @@
 
   globalScope.DQCTJsonViewer = {
     renderRecordViewer,
-    renderDiffViewer
+    renderDiffViewer,
+    charLevelDiffHtml
   };
 })(window);
