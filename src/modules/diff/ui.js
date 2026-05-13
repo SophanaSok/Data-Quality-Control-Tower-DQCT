@@ -790,6 +790,13 @@
             <input id="diffChangedFieldsOnlyToggle" type="checkbox" ${showChangedFieldsOnly ? 'checked' : ''} />
             Show only changed fields
           </label>
+          <div class="dqct-diff-shortcuts-hint" aria-label="Keyboard shortcuts hint">
+            <span class="meta">Shortcuts:</span>
+            <span>/ filter</span>
+            <span>Esc clear</span>
+            <span>Shift+E expand</span>
+            <span>Shift+C collapse</span>
+          </div>
         </div>
         ${anyScopeVisible ? '' : `
           <div class="empty-state" data-diff-sections-empty>
