@@ -145,7 +145,8 @@
     scopeExpandedPreference: readScopeExpandedPreference(),
     globalExpandedPreference: readGlobalExpandedPreference(),
     diffFilterQuery: readDiffFilterQueryPreference(),
-    visibleScopes: readVisibleScopesPreference()
+    visibleScopes: readVisibleScopesPreference(),
+    diffShortcutsBound: false
   };
 
   function escapeHtml(value) {
@@ -458,6 +459,98 @@
     const ignoreFieldsInput = document.getElementById("diffIgnoreFields");
     const analyzeButton = document.getElementById("diffAnalyzeButton");
     const summaryNode = document.getElementById("diffSummary");
+
+    const isTypingContext = (target) => {
+      if (!(target instanceof HTMLElement)) {
+        return false;
+      }
+      if (target.isContentEditable) {
+        return true;
+      }
+      const tagName = target.tagName.toLowerCase();
+      return tagName === "input" || tagName === "textarea" || tagName === "select";
+    };
+
+    const clearDiffFilter = () => {
+      const resultsNode = document.getElementById("diffResults");
+      if (!(resultsNode instanceof HTMLElement)) {
+        return;
+      }
+      const filterInput = resultsNode.querySelector("#diffRecordFilterInput");
+      const clearButton = resultsNode.querySelector("#diffRecordFilterClear");
+      if (filterInput instanceof HTMLInputElement) {
+        if (filterInput.value) {
+          if (clearButton instanceof HTMLButtonElement) {
+            clearButton.click();
+          } else {
+            filterInput.value = "";
+            filterInput.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+        }
+        filterInput.focus();
+      }
+    };
+
+    const bindDiffShortcuts = () => {
+      if (state.diffShortcutsBound) {
+        return;
+      }
+      state.diffShortcutsBound = true;
+      document.addEventListener("keydown", (event) => {
+        const diffPanel = document.getElementById("diffApp");
+        const resultsNode = document.getElementById("diffResults");
+        if (!(diffPanel instanceof HTMLElement) || !(resultsNode instanceof HTMLElement)) {
+          return;
+        }
+        if (diffPanel.classList.contains("hidden")) {
+          return;
+        }
+
+        const target = event.target;
+        const typingContext = isTypingContext(target);
+
+        if (event.key === "/" && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey && !typingContext) {
+          const filterInput = resultsNode.querySelector("#diffRecordFilterInput");
+          if (filterInput instanceof HTMLInputElement) {
+            event.preventDefault();
+            filterInput.focus();
+            filterInput.select();
+          }
+          return;
+        }
+
+        if (event.key === "Escape" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          const filterInput = resultsNode.querySelector("#diffRecordFilterInput");
+          const shouldClear = (filterInput instanceof HTMLInputElement) && (filterInput.value.length > 0 || document.activeElement === filterInput);
+          if (shouldClear) {
+            event.preventDefault();
+            clearDiffFilter();
+          }
+          return;
+        }
+
+        if (typingContext) {
+          return;
+        }
+
+        if (event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey && String(event.key).toLowerCase() === "e") {
+          const expandAllButton = resultsNode.querySelector("[data-diff-expand-all]");
+          if (expandAllButton instanceof HTMLButtonElement) {
+            event.preventDefault();
+            expandAllButton.click();
+          }
+          return;
+        }
+
+        if (event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey && String(event.key).toLowerCase() === "c") {
+          const collapseAllButton = resultsNode.querySelector("[data-diff-collapse-all]");
+          if (collapseAllButton instanceof HTMLButtonElement) {
+            event.preventDefault();
+            collapseAllButton.click();
+          }
+        }
+      });
+    };
 
     if (!(baselineInput instanceof HTMLInputElement) ||
       !(comparisonInput instanceof HTMLInputElement) ||
@@ -973,6 +1066,7 @@
 
     globalScope.addEventListener("dqct:settings-changed", applySharedDefaults);
     applySharedDefaults();
+    bindDiffShortcuts();
   }
 
   function initialize() {
