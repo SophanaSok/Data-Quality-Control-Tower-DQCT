@@ -4,6 +4,7 @@
   const DIFF_CHANGED_FIELDS_ONLY_KEY = "dqct.diff.changedFieldsOnly.v1";
   const DIFF_SCOPE_EXPANDED_KEY = "dqct.diff.scopeExpanded.v1";
   const DIFF_GLOBAL_EXPANDED_KEY = "dqct.diff.globalExpanded.v1";
+  const DIFF_FILTER_QUERY_KEY = "dqct.diff.filterQuery.v1";
 
   function readChangedFieldsOnlyPreference() {
     try {
@@ -80,6 +81,27 @@
     }
   }
 
+  function readDiffFilterQueryPreference() {
+    try {
+      return String(localStorage.getItem(DIFF_FILTER_QUERY_KEY) || "");
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function saveDiffFilterQueryPreference(value) {
+    try {
+      const normalized = String(value || "");
+      if (!normalized) {
+        localStorage.removeItem(DIFF_FILTER_QUERY_KEY);
+        return;
+      }
+      localStorage.setItem(DIFF_FILTER_QUERY_KEY, normalized);
+    } catch (error) {
+      // Ignore storage failures and keep in-memory state only.
+    }
+  }
+
   const state = {
     baselinePayload: null,
     comparisonPayload: null,
@@ -89,7 +111,7 @@
     showChangedFieldsOnly: readChangedFieldsOnlyPreference(),
     scopeExpandedPreference: readScopeExpandedPreference(),
     globalExpandedPreference: readGlobalExpandedPreference(),
-    diffFilterQuery: ""
+    diffFilterQuery: readDiffFilterQueryPreference()
   };
 
   function escapeHtml(value) {
@@ -608,7 +630,10 @@
         <div class="dqct-diff-results-toolbar">
           <div class="dqct-diff-filter-wrap">
             <label class="meta" for="diffRecordFilterInput">Filter records</label>
-            <input id="diffRecordFilterInput" class="dqct-diff-filter-input" type="search" placeholder="Search by key or changed field" value="${escapeHtml(state.diffFilterQuery)}" />
+            <div class="dqct-diff-filter-row">
+              <input id="diffRecordFilterInput" class="dqct-diff-filter-input" type="search" placeholder="Search by key or changed field" value="${escapeHtml(state.diffFilterQuery)}" />
+              <button id="diffRecordFilterClear" type="button" class="ghost">Clear</button>
+            </div>
           </div>
           <div class="dqct-diff-global-controls">
             <button type="button" class="ghost" data-diff-expand-all>Expand all sections</button>
@@ -789,7 +814,18 @@
       const recordFilterInput = node.querySelector('#diffRecordFilterInput');
       recordFilterInput?.addEventListener('input', () => {
         state.diffFilterQuery = String(recordFilterInput.value || '');
+        saveDiffFilterQueryPreference(state.diffFilterQuery);
         applyRecordFilter(state.diffFilterQuery);
+      });
+
+      node.querySelector('#diffRecordFilterClear')?.addEventListener('click', () => {
+        state.diffFilterQuery = '';
+        saveDiffFilterQueryPreference('');
+        if (recordFilterInput) {
+          recordFilterInput.value = '';
+          recordFilterInput.focus();
+        }
+        applyRecordFilter('');
       });
       applyRecordFilter(state.diffFilterQuery);
     }
