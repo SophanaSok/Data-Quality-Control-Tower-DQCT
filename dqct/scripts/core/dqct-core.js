@@ -23,7 +23,7 @@
           { id: "R08", layer: "domain", field: "Title", type: "required", severity: "high", enabled: true, notes: "Bid title required for publication" },
           { id: "R09", layer: "domain", field: "BidURL", type: "required", severity: "high", enabled: true, notes: "Direct link to bid on source portal" },
           { id: "R10", layer: "domain", field: "BidURL", type: "regex", severity: "medium", enabled: true, pattern: "^https://", notes: "Must be a secure URL" },
-          { id: "R11", layer: "domain", field: "BidStatus", type: "enum", severity: "high", enabled: true, allowed: ["Open for Bidding", "Closed", "Cancelled", "Awarded"], notes: "Known status values for this profile" },
+          { id: "R11", layer: "domain", field: "BidStatus", type: "enum", severity: "high", enabled: true, allowed: ["Open for Bidding", "Closed", "Cancelled", "Awarded", "Terminated"], notes: "Known status values for this profile" },
           { id: "R12", layer: "domain", field: "PublishedDate", type: "required", severity: "high", enabled: true, notes: "Required for publication" },
           { id: "R13", layer: "domain", field: "PublishedDate", type: "date_format", severity: "medium", enabled: true, notes: "Accepts any recognizable date format across all portals — flags only unparseable values" },
           { id: "R14", layer: "domain", field: "DueDate", type: "required_if", severity: "medium", enabled: true, condition: { field: "BidStatus", equals: "Open for Bidding" }, notes: "Open bids should have a due date" },
