@@ -694,6 +694,13 @@
             </div>
           </div>
         `}
+        <div class="empty-state hidden" data-diff-filter-empty>
+          <h3>No matching records</h3>
+          <p>The current filter did not match any visible records. Clear the search or broaden your query.</p>
+          <div class="actions-row" style="margin-top:0.5rem;">
+            <button type="button" class="ghost" data-diff-empty-clear-filter>Clear filter</button>
+          </div>
+        </div>
         <div class="section ${state.visibleScopes.added ? '' : 'hidden'}" data-diff-section="added">
           <h3>Added (<span data-diff-visible-count="added">${added.length}</span> / ${added.length})</h3>
           ${renderSectionControls('added', added.length)}
@@ -803,8 +810,20 @@
         renderDiffResults(analysis);
       });
 
+      node.querySelector('[data-diff-empty-clear-filter]')?.addEventListener('click', () => {
+        state.diffFilterQuery = '';
+        saveDiffFilterQueryPreference('');
+        const input = node.querySelector('#diffRecordFilterInput');
+        if (input) {
+          input.value = '';
+          input.focus();
+        }
+        applyRecordFilter('');
+      });
+
       const applyRecordFilter = (query) => {
         const normalized = String(query || '').trim().toLowerCase();
+        let totalVisibleAcrossScopes = 0;
         ['added', 'removed', 'changed'].forEach((scope) => {
           const cards = Array.from(node.querySelectorAll(`details[data-diff-scope="${scope}"]`));
           let visibleCount = 0;
@@ -820,7 +839,18 @@
           if (counter) {
             counter.textContent = String(visibleCount);
           }
+          const sectionVisible = state.visibleScopes?.[scope] !== false;
+          if (sectionVisible) {
+            totalVisibleAcrossScopes += visibleCount;
+          }
         });
+
+        const anyScopeEnabled = Boolean(state.visibleScopes.added || state.visibleScopes.removed || state.visibleScopes.changed);
+        const shouldShowFilterEmpty = Boolean(normalized) && anyScopeEnabled && totalVisibleAcrossScopes === 0;
+        const filterEmptyNode = node.querySelector('[data-diff-filter-empty]');
+        if (filterEmptyNode) {
+          filterEmptyNode.classList.toggle('hidden', !shouldShowFilterEmpty);
+        }
       };
 
       node.querySelector('[data-diff-expand-all]')?.addEventListener('click', () => {
