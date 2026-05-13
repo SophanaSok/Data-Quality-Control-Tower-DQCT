@@ -489,6 +489,11 @@
         color: var(--primary-strong);
       }
 
+      .pill.selected {
+        box-shadow: inset 0 0 0 2px rgba(0,0,0,0.04);
+        transform: translateY(-1px);
+      }
+
       .muted {
         color: var(--muted);
       }

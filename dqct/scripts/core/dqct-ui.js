@@ -474,6 +474,22 @@
         els.nearDuplicateGroupCount.textContent = String(nearGroupCount);
         els.duplicateRecordCount.textContent = String(affectedRecordCount);
 
+        // Reflect active duplicate filter state on the summary buttons
+        try {
+          document.querySelectorAll('[data-duplicate-filter]').forEach((btn) => {
+            const filter = btn.getAttribute('data-duplicate-filter');
+            const isActive = state.duplicateFilter === filter;
+            btn.setAttribute('aria-pressed', String(isActive));
+            if (isActive) {
+              btn.classList.add('selected');
+            } else {
+              btn.classList.remove('selected');
+            }
+          });
+        } catch (e) {
+          // ignore if DOM not ready
+        }
+
         // Show/hide appropriate table based on viewMode
         if (state.viewMode === "records") {
           els.resultsWrap.classList.add("hidden");
@@ -540,7 +556,24 @@
           return `<span class="pill ${statusClass}">${escapeHtml(status)}</span>`;
         };
 
-        els.recordSummariesBody.innerHTML = state.recordSummaries
+        // Optionally filter record summaries when a duplicate filter is active
+        let summariesToRender = state.recordSummaries;
+        if (state.duplicateFilter && state.duplicateFilter !== 'all') {
+          const set = new Set();
+          if (state.duplicateFilter === 'exact') {
+            (state.exactDuplicates || []).forEach((group) => {
+              (group.rows || []).forEach((r) => set.add(`${r.file_name}#${r.row_number}`));
+            });
+          }
+          if (state.duplicateFilter === 'near') {
+            (state.nearDuplicates || []).forEach((group) => {
+              (group.rows || []).forEach((r) => set.add(`${r.file_name}#${r.row_number}`));
+            });
+          }
+          summariesToRender = state.recordSummaries.filter((record) => set.has(`${record.file_name}#${record.row_number}`));
+        }
+
+        els.recordSummariesBody.innerHTML = summariesToRender
           .map((record) => `
             <tr>
               <td>${escapeHtml(String(record.row_number))}</td>
@@ -1059,6 +1092,13 @@
                 node.scrollIntoView({ behavior: "smooth", block: "center" });
               }
             });
+          }
+
+          const duplicateFilter = target.getAttribute && target.getAttribute('data-duplicate-filter');
+          if (duplicateFilter) {
+            state.duplicateFilter = duplicateFilter;
+            renderResults();
+            return;
           }
         });
 

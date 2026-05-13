@@ -75,7 +75,8 @@
         ruleSearch: "",
         runtimeOverrides: new Set(),
         viewMode: "failures",
-        historyFilters: { status: 'all', from: null, to: null, search: '' }
+        historyFilters: { status: 'all', from: null, to: null, search: '' },
+        duplicateFilter: "all"
       };
 
       const els = {
