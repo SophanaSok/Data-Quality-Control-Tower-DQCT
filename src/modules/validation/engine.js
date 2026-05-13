@@ -38,6 +38,51 @@
     return null;
   }
 
+  function parseHashCollection(value) {
+    if (value === "" || value === null || value === undefined) {
+      return [];
+    }
+
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed || trimmed === "[]") {
+        return [];
+      }
+
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch {
+        // Fall through to delimiter-based parsing.
+      }
+
+      return trimmed.split(/[\n,]+/).map((item) => item.trim()).filter(Boolean);
+    }
+
+    return null;
+  }
+
+  function normalizeHashCollection(value) {
+    const hashes = parseHashCollection(value);
+    if (hashes === null) {
+      return null;
+    }
+
+    return [...new Set(hashes.map((item) => String(item || "").trim()).filter(Boolean))].sort();
+  }
+
+  function extractDocumentHashes(documents) {
+    return [...new Set((documents || [])
+      .map((document) => String(document?.Hash || "").trim())
+      .filter(Boolean))].sort();
+  }
+
   function applyRule(rule, record, recordIndex, options) {
     const failures = [];
     const value = record[rule.field];
@@ -205,11 +250,34 @@
         return failures;
       }
 
-      const hashValues = parseDocumentCollection(record[rule.hash_field]);
+      const hashValues = normalizeHashCollection(record[rule.hash_field]);
       const documentCount = documents.length;
-      const hashCount = Array.isArray(hashValues) ? hashValues.length : String(record[rule.hash_field] || "").split(/[,\n]+/).filter(Boolean).length;
+      const hashCount = Array.isArray(hashValues) ? hashValues.length : 0;
+
+      if (hashValues === null) {
+        fail(`valid hash list in ${rule.hash_field}`, record[rule.hash_field]);
+        return failures;
+      }
+
+      const invalidHashes = hashValues.filter((hash) => !/^[A-Fa-f0-9]{32}$/.test(hash));
+      if (invalidHashes.length) {
+        fail(`32-character hexadecimal hashes in ${rule.hash_field}`, invalidHashes.join(", "));
+        return failures;
+      }
+
+      const documentHashes = extractDocumentHashes(documents);
       if (documentCount !== hashCount) {
         fail(`document count to match ${rule.hash_field}`, `${documentCount} documents vs ${hashCount} hashes`);
+        return failures;
+      }
+
+      const missingFromHashes = documentHashes.filter((hash) => !hashValues.includes(hash));
+      const extraInHashes = hashValues.filter((hash) => !documentHashes.includes(hash));
+      if (missingFromHashes.length || extraInHashes.length) {
+        fail(
+          `matching hash set in ${rule.hash_field}`,
+          `missing: ${missingFromHashes.join(", ") || "(none)"}; extra: ${extraInHashes.join(", ") || "(none)"}`
+        );
       }
       return failures;
     }
