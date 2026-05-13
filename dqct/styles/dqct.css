@@ -1581,6 +1581,12 @@
         overflow: hidden;
       }
 
+      :root[data-theme="dark"] .field-group {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text);
+      }
+
       .field-group-header {
         display: flex;
         justify-content: space-between;
@@ -1588,6 +1594,11 @@
         gap: 1rem;
         padding: 0.7rem 0.9rem;
         border-bottom: 1px solid rgba(20,34,58,0.04);
+      }
+
+      :root[data-theme="dark"] .field-group-header {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.02);
       }
 
       .field-title { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; flex: 1 1 auto; }
@@ -1607,6 +1618,11 @@
         white-space: nowrap;
       }
       .field-title .meta { font-size: 0.82rem; color: var(--muted); }
+
+      :root[data-theme="dark"] .field-title-row strong,
+      :root[data-theme="dark"] .rules-group {
+        color: var(--text);
+      }
 
       .rules-group { padding: 0.9rem; display: grid; gap: 0.75rem; }
 
@@ -1672,6 +1688,10 @@
 
       .field-action.toggle {
         color: rgba(16, 32, 51, 0.7);
+      }
+
+      :root[data-theme="dark"] .field-action.toggle {
+        color: var(--muted);
       }
 
       .field-action.toggle:hover {
