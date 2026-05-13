@@ -548,12 +548,32 @@
       }
 
       function renderNearDuplicates() {
-        if (!state.nearDuplicates.length) {
-          els.issueSummaryList.innerHTML = '<div class="issue-group"><strong>No near-duplicate groups found</strong><div class="meta">Near-duplicates require same Agent ID + Project Code with different fingerprints.</div></div>';
+        if (!state.exactDuplicates.length && !state.nearDuplicates.length) {
+          els.issueSummaryList.innerHTML = '<div class="issue-group"><strong>No duplicate groups found</strong><div class="meta">Exact duplicates require matching fingerprints. Near-duplicates require same Agent ID + Project Code with different fingerprints.</div></div>';
           return;
         }
 
-        els.issueSummaryList.innerHTML = state.nearDuplicates
+        const exactMarkup = state.exactDuplicates
+          .map((group) => {
+            const rowSamples = group.rows
+              .slice(0, 5)
+              .map((row) => `${row.file_name}#${row.row_number}${row.Title ? ` (${row.Title})` : ""}`)
+              .join(", ");
+            return `
+              <article class="issue-group">
+                <div class="issue-group-head">
+                  <div>
+                    <strong>Exact duplicate fingerprint: ${escapeHtml(group.fingerprint)}</strong>
+                    <div class="meta">${group.recordCount} records · ${group.fileCount} files · ${group.uniqueAgentProjectCount} AgentID/ProjectCode pairs</div>
+                    <div class="meta">Files: ${escapeHtml(group.files.join(", "))}</div>
+                  </div>
+                </div>
+                <div class="meta" style="margin-top: 0.65rem;">Samples: ${escapeHtml(rowSamples)}</div>
+              </article>`;
+          })
+          .join("");
+
+        const nearMarkup = state.nearDuplicates
           .map((group) => {
             const rowSamples = group.rows
               .slice(0, 5)
@@ -572,6 +592,8 @@
               </article>`;
           })
           .join("");
+
+        els.issueSummaryList.innerHTML = `${exactMarkup}${nearMarkup}`;
       }
 
 
@@ -773,9 +795,9 @@
         els.downloadNearDuplicatesButton.addEventListener("click", async () => {
           await withActionFeedback(els.downloadNearDuplicatesButton, {
             runningLabel: "Downloading…",
-            startMessage: "Preparing near-duplicates JSON for download…",
-            successMessage: (result) => `Downloaded ${result.groupCount} near-duplicate group${result.groupCount === 1 ? "" : "s"} (${result.recordCount} records) as ${result.filename}.`,
-            toastMessage: (result) => `Downloaded ${result.groupCount} near-duplicate group${result.groupCount === 1 ? "" : "s"}.`
+            startMessage: "Preparing duplicate groups JSON for download…",
+            successMessage: (result) => `Downloaded ${result.groupCount} duplicate group${result.groupCount === 1 ? "" : "s"} (${result.recordCount} records) as ${result.filename}.`,
+            toastMessage: (result) => `Downloaded ${result.groupCount} duplicate group${result.groupCount === 1 ? "" : "s"}.`
           }, downloadNearDuplicatesJson);
         });
         els.cloneProfileButton.addEventListener("click", async () => {

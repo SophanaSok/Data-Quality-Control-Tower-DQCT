@@ -62,6 +62,7 @@
         parsedRuns: [],
         results: [],
         recordSummaries: [],
+        exactDuplicates: [],
         nearDuplicates: [],
         runHistory: [],
         schemaBaselines: loadSchemaBaselines(),
@@ -726,6 +727,7 @@
         if (!records.length) {
           state.results = [];
           state.recordSummaries = [];
+          state.exactDuplicates = [];
           state.nearDuplicates = [];
           state.currentIssueGroups = [];
           state.currentAnomalies = [];
@@ -743,6 +745,7 @@
 
         state.results = results;
         state.recordSummaries = window.DQCTValidationEngine.buildRecordSummaries(state.files, results);
+        state.exactDuplicates = buildExactDuplicateGroups(state.recordSummaries);
         state.nearDuplicates = buildNearDuplicateGroups(state.recordSummaries);
         state.currentSchema = inferSchema(records);
         if (!state.schemaBaselines[profile.profile_name]) {
@@ -772,11 +775,13 @@
           failureCount: results.length,
           passRate: state.currentRunStats.passRate,
           anomalyCount: state.currentAnomalies.length,
+          exactDuplicateCount: state.exactDuplicates.length,
           nearDuplicateCount: state.nearDuplicates.length,
           schemaDriftCount: state.currentDrift.added.length + state.currentDrift.removed.length + state.currentDrift.typeChanges.length,
           stats: state.currentRunStats,
           issues: results.slice(0, 25),
           anomalies: state.currentAnomalies,
+          exactDuplicates: state.exactDuplicates,
           nearDuplicates: state.nearDuplicates
         };
         const issuesFilename = getIssuesFilename(historyEntry.timestamp);
@@ -790,6 +795,7 @@
             records: state.currentRunStats.rowCount,
             failures: results.length,
             anomalies: state.currentAnomalies.length,
+            exactDuplicates: state.exactDuplicates.length,
             nearDuplicates: state.nearDuplicates.length
           },
           exportFiles: [issuesFilename],
@@ -924,6 +930,54 @@
           .sort((a, b) => b.recordCount - a.recordCount);
       }
 
+      function buildExactDuplicateGroups(recordSummaries) {
+        const grouped = new Map();
+
+        (recordSummaries || []).forEach((summary) => {
+          const fingerprint = String(summary?.fingerprint || "").trim();
+          if (!fingerprint) {
+            return;
+          }
+
+          if (!grouped.has(fingerprint)) {
+            grouped.set(fingerprint, {
+              fingerprint,
+              rows: [],
+              files: new Set(),
+              agentProjectPairs: new Set()
+            });
+          }
+
+          const entry = grouped.get(fingerprint);
+          const agentId = String(summary?.AgentID || "").trim();
+          const projectCode = String(summary?.ProjectCode || "").trim();
+          entry.rows.push({
+            file_name: summary.file_name,
+            row_number: summary.row_number,
+            AgentID: agentId,
+            ProjectCode: projectCode,
+            Title: summary.Title,
+            BidStatus: summary.BidStatus,
+            fingerprint
+          });
+          entry.files.add(summary.file_name);
+          entry.agentProjectPairs.add(`${agentId}::${projectCode}`);
+        });
+
+        return Array.from(grouped.values())
+          .filter((entry) => entry.rows.length > 1)
+          .map((entry) => ({
+            type: "exact_duplicate",
+            fingerprint: entry.fingerprint,
+            recordCount: entry.rows.length,
+            fileCount: entry.files.size,
+            uniqueAgentProjectCount: entry.agentProjectPairs.size,
+            files: Array.from(entry.files),
+            rows: entry.rows
+          }))
+          .sort((a, b) => b.recordCount - a.recordCount);
+      }
+
       function issueGroupKey(result) {
         return `${result.ruleId || "unknown"}|${result.field || "unknown"}|${result.ruleType || "unknown"}`;
       }
@@ -1016,9 +1070,13 @@
           metadata: {
             profile_name: activeProfile().profile_name,
             export_date: new Date().toISOString(),
+            exact_duplicate_group_count: state.exactDuplicates.length,
             near_duplicate_group_count: state.nearDuplicates.length,
-            affected_record_count: state.nearDuplicates.reduce((sum, group) => sum + group.recordCount, 0)
+            duplicate_group_count: state.exactDuplicates.length + state.nearDuplicates.length,
+            exact_affected_record_count: state.exactDuplicates.reduce((sum, group) => sum + group.recordCount, 0),
+            near_affected_record_count: state.nearDuplicates.reduce((sum, group) => sum + group.recordCount, 0)
           },
+          exact_duplicates: state.exactDuplicates,
           near_duplicates: state.nearDuplicates
         };
         const timestamp = new Date().toISOString().split("T")[0];
@@ -1032,8 +1090,10 @@
         URL.revokeObjectURL(url);
         return {
           filename,
-          groupCount: state.nearDuplicates.length,
-          recordCount: state.nearDuplicates.reduce((sum, group) => sum + group.recordCount, 0)
+          groupCount: state.exactDuplicates.length + state.nearDuplicates.length,
+          recordCount:
+            state.exactDuplicates.reduce((sum, group) => sum + group.recordCount, 0)
+            + state.nearDuplicates.reduce((sum, group) => sum + group.recordCount, 0)
         };
       }
 
@@ -1111,6 +1171,7 @@
         state.files = [];
         state.results = [];
         state.recordSummaries = [];
+        state.exactDuplicates = [];
         state.nearDuplicates = [];
         state.currentIssueGroups = [];
         els.ticketPreview.classList.add("hidden");
