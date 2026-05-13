@@ -600,6 +600,9 @@
         background: rgba(20, 34, 58, 0.03);
         overflow: auto;
         max-height: 60vh;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
 
       :root[data-theme="dark"] .dqct-json-viewer__code {
@@ -615,6 +618,47 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.75rem;
+      }
+
+      .dqct-diff-record-list {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .dqct-diff-record-card {
+        display: grid;
+        gap: 0.7rem;
+        padding: 0.9rem;
+        border-radius: 12px;
+        border: 1px solid rgba(20, 34, 58, 0.08);
+        background: rgba(20, 34, 58, 0.03);
+      }
+
+      .dqct-diff-record-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .dqct-diff-record-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+
+      .dqct-diff-record-pane {
+        min-width: 0;
+      }
+
+      .dqct-diff-record-json {
+        max-height: 20rem;
+      }
+
+      :root[data-theme="dark"] .dqct-diff-record-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.06);
       }
 
       .dqct-json-highlight {
@@ -1284,6 +1328,11 @@
         .metric-grid,
         .drift-grid,
         .landing-tiles {
+          grid-template-columns: 1fr;
+        }
+
+        .dqct-diff-record-grid,
+        .dqct-json-diff-viewer__grid {
           grid-template-columns: 1fr;
         }
 
