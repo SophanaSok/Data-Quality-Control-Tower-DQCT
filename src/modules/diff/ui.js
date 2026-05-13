@@ -584,6 +584,19 @@
       const removed = diff.removedRecords || [];
       const changed = diff.changedRecords || [];
       const showChangedFieldsOnly = Boolean(state.showChangedFieldsOnly);
+      const activeFilterQuery = String(state.diffFilterQuery || '').trim();
+
+      const escapeRegExp = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const highlightMatch = (value, query) => {
+        const rawText = String(value ?? '');
+        const escapedText = escapeHtml(rawText);
+        const normalizedQuery = String(query || '').trim();
+        if (!normalizedQuery) {
+          return escapedText;
+        }
+        const pattern = new RegExp(`(${escapeRegExp(normalizedQuery)})`, 'gi');
+        return escapedText.replace(pattern, '<mark class="dqct-diff-match">$1</mark>');
+      };
 
       const renderRecordPreview = (rec) => `<pre class="dqct-json-viewer__code dqct-diff-record-json">${escapeHtml(JSON.stringify(rec, null, 2))}</pre>`;
       const renderChangedFields = (fields) => {
@@ -591,7 +604,7 @@
         if (!normalizedFields.length) {
           return '<div class="meta">Changed fields: none detected</div>';
         }
-        return `<div class="meta">Changed fields: ${escapeHtml(normalizedFields.join(', '))}</div>`;
+        return `<div class="meta">Changed fields: ${highlightMatch(normalizedFields.join(', '), activeFilterQuery)}</div>`;
       };
       const renderFieldValue = (value) => {
         if (value === undefined) {
@@ -650,8 +663,8 @@
         <details class="dqct-diff-record-card" data-diff-scope="${scope}" data-diff-index="${itemIndex}" data-filter-text="${escapeHtml(String(filterText).toLowerCase())}" ${openByDefault ? 'open' : ''}>
           <summary class="dqct-diff-record-head">
             <div>
-              <strong>${escapeHtml(titleText)}</strong>
-              <div class="meta">${escapeHtml(metaText)}</div>
+              <strong>${highlightMatch(titleText, activeFilterQuery)}</strong>
+              <div class="meta">${highlightMatch(metaText, activeFilterQuery)}</div>
             </div>
             <span class="meta dqct-diff-summary-hint">Click to ${openByDefault ? 'collapse' : 'expand'} record</span>
           </summary>
