@@ -2,6 +2,8 @@
   const defaultUniqueKey = globalScope.DQCTDiffEngine?.defaultUniqueKey || "ProjectCode";
   const TAB_STORAGE_KEY = "dqct.app.activeTab.v1";
   const DIFF_CHANGED_FIELDS_ONLY_KEY = "dqct.diff.changedFieldsOnly.v1";
+  const DIFF_SCOPE_EXPANDED_KEY = "dqct.diff.scopeExpanded.v1";
+  const DIFF_GLOBAL_EXPANDED_KEY = "dqct.diff.globalExpanded.v1";
 
   function readChangedFieldsOnlyPreference() {
     try {
@@ -19,13 +21,74 @@
     }
   }
 
+  function readScopeExpandedPreference() {
+    try {
+      const raw = localStorage.getItem(DIFF_SCOPE_EXPANDED_KEY);
+      if (!raw) {
+        return {};
+      }
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") {
+        return {};
+      }
+      return {
+        added: typeof parsed.added === "boolean" ? parsed.added : undefined,
+        removed: typeof parsed.removed === "boolean" ? parsed.removed : undefined,
+        changed: typeof parsed.changed === "boolean" ? parsed.changed : undefined
+      };
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function saveScopeExpandedPreference(value) {
+    try {
+      localStorage.setItem(DIFF_SCOPE_EXPANDED_KEY, JSON.stringify({
+        added: typeof value?.added === "boolean" ? value.added : undefined,
+        removed: typeof value?.removed === "boolean" ? value.removed : undefined,
+        changed: typeof value?.changed === "boolean" ? value.changed : undefined
+      }));
+    } catch (error) {
+      // Ignore storage failures and keep in-memory state only.
+    }
+  }
+
+  function readGlobalExpandedPreference() {
+    try {
+      const raw = localStorage.getItem(DIFF_GLOBAL_EXPANDED_KEY);
+      if (raw === "true") {
+        return true;
+      }
+      if (raw === "false") {
+        return false;
+      }
+      return undefined;
+    } catch (error) {
+      return undefined;
+    }
+  }
+
+  function saveGlobalExpandedPreference(value) {
+    try {
+      if (typeof value === "boolean") {
+        localStorage.setItem(DIFF_GLOBAL_EXPANDED_KEY, value ? "true" : "false");
+      } else {
+        localStorage.removeItem(DIFF_GLOBAL_EXPANDED_KEY);
+      }
+    } catch (error) {
+      // Ignore storage failures and keep in-memory state only.
+    }
+  }
+
   const state = {
     baselinePayload: null,
     comparisonPayload: null,
     baselineName: "",
     comparisonName: "",
     analysis: null,
-    showChangedFieldsOnly: readChangedFieldsOnlyPreference()
+    showChangedFieldsOnly: readChangedFieldsOnlyPreference(),
+    scopeExpandedPreference: readScopeExpandedPreference(),
+    globalExpandedPreference: readGlobalExpandedPreference()
   };
 
   function escapeHtml(value) {
@@ -504,7 +567,15 @@
           </div>
         `;
       };
-      const startsExpanded = (totalItems) => totalItems <= 3;
+      const startsExpanded = (scope, totalItems) => {
+        if (typeof state.scopeExpandedPreference?.[scope] === 'boolean') {
+          return state.scopeExpandedPreference[scope];
+        }
+        if (typeof state.globalExpandedPreference === 'boolean') {
+          return state.globalExpandedPreference;
+        }
+        return totalItems <= 3;
+      };
 
       const renderSectionControls = (scope, count) => {
         if (!count) {
@@ -541,7 +612,7 @@
           <h3>Added (${added.length})</h3>
           ${renderSectionControls('added', added.length)}
           <div class="dqct-diff-record-list">${added.length ? added.map((a, idx) => `
-            ${renderCardStart('added', idx, String(a.key), `Comparison index: ${String(a.comparisonIndex)}`, startsExpanded(added.length))}
+            ${renderCardStart('added', idx, String(a.key), `Comparison index: ${String(a.comparisonIndex)}`, startsExpanded('added', added.length))}
               <div class="dqct-diff-record-pane">
                 <div class="meta">Added record</div>
                 ${renderRecordPreview(a.record)}
@@ -553,7 +624,7 @@
           <h3>Removed (${removed.length})</h3>
           ${renderSectionControls('removed', removed.length)}
           <div class="dqct-diff-record-list">${removed.length ? removed.map((r, idx) => `
-            ${renderCardStart('removed', idx, String(r.key), `Baseline index: ${String(r.baselineIndex)}`, startsExpanded(removed.length))}
+            ${renderCardStart('removed', idx, String(r.key), `Baseline index: ${String(r.baselineIndex)}`, startsExpanded('removed', removed.length))}
               <div class="dqct-diff-record-pane">
                 <div class="meta">Removed record</div>
                 ${renderRecordPreview(r.record)}
@@ -569,7 +640,7 @@
             Show only changed fields
           </label>
           <div class="dqct-diff-record-list">${changed.length ? changed.map((c, idx) => `
-            ${renderCardStart('changed', idx, String(c.key), `Baseline #${String(c.baselineIndex)} -> Comparison #${String(c.comparisonIndex)}`, startsExpanded(changed.length))}
+            ${renderCardStart('changed', idx, String(c.key), `Baseline #${String(c.baselineIndex)} -> Comparison #${String(c.comparisonIndex)}`, startsExpanded('changed', changed.length))}
               ${renderChangedFields(c.changedFields)}
               ${showChangedFieldsOnly ? renderChangedFieldsCompact(c) : `
                 <div class="dqct-diff-record-grid">
@@ -592,6 +663,20 @@
         node.querySelectorAll(`details[data-diff-scope="${scope}"]`).forEach((card) => {
           card.open = openState;
         });
+        state.scopeExpandedPreference = {
+          ...state.scopeExpandedPreference,
+          [scope]: openState
+        };
+        saveScopeExpandedPreference(state.scopeExpandedPreference);
+
+        const scopeValues = [
+          state.scopeExpandedPreference.added,
+          state.scopeExpandedPreference.removed,
+          state.scopeExpandedPreference.changed
+        ];
+        const allSame = scopeValues.every((value) => typeof value === 'boolean') && new Set(scopeValues).size === 1;
+        state.globalExpandedPreference = allSame ? scopeValues[0] : undefined;
+        saveGlobalExpandedPreference(state.globalExpandedPreference);
       };
 
       node.querySelectorAll('[data-diff-expand]').forEach((button) => {
@@ -614,11 +699,56 @@
         node.querySelectorAll('details[data-diff-scope]').forEach((card) => {
           card.open = true;
         });
+        state.globalExpandedPreference = true;
+        state.scopeExpandedPreference = {
+          ...state.scopeExpandedPreference,
+          added: true,
+          removed: true,
+          changed: true
+        };
+        saveGlobalExpandedPreference(true);
+        saveScopeExpandedPreference(state.scopeExpandedPreference);
       });
 
       node.querySelector('[data-diff-collapse-all]')?.addEventListener('click', () => {
         node.querySelectorAll('details[data-diff-scope]').forEach((card) => {
           card.open = false;
+        });
+        state.globalExpandedPreference = false;
+        state.scopeExpandedPreference = {
+          ...state.scopeExpandedPreference,
+          added: false,
+          removed: false,
+          changed: false
+        };
+        saveGlobalExpandedPreference(false);
+        saveScopeExpandedPreference(state.scopeExpandedPreference);
+      });
+
+      node.querySelectorAll('details[data-diff-scope]').forEach((card) => {
+        card.addEventListener('toggle', () => {
+          const scope = card.getAttribute('data-diff-scope');
+          if (!scope) return;
+          const cardsForScope = Array.from(node.querySelectorAll(`details[data-diff-scope="${scope}"]`));
+          if (!cardsForScope.length) return;
+          const allOpen = cardsForScope.every((scopeCard) => scopeCard.open);
+          const allClosed = cardsForScope.every((scopeCard) => !scopeCard.open);
+          if (!allOpen && !allClosed) {
+            return;
+          }
+          state.scopeExpandedPreference = {
+            ...state.scopeExpandedPreference,
+            [scope]: allOpen
+          };
+          saveScopeExpandedPreference(state.scopeExpandedPreference);
+          const scopeValues = [
+            state.scopeExpandedPreference.added,
+            state.scopeExpandedPreference.removed,
+            state.scopeExpandedPreference.changed
+          ];
+          const allSame = scopeValues.every((value) => typeof value === 'boolean') && new Set(scopeValues).size === 1;
+          state.globalExpandedPreference = allSame ? scopeValues[0] : undefined;
+          saveGlobalExpandedPreference(state.globalExpandedPreference);
         });
       });
 
