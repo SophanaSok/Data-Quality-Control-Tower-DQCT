@@ -27,12 +27,12 @@
 
       :root[data-theme="dark"] {
         color-scheme: dark;
-        --bg: #0b1117;
-        --bg-accent: #111827;
-        --panel: rgba(12, 20, 30, 0.88);
-        --panel-border: rgba(255,255,255,0.06);
-        --text: #e9f0f8;
-        --muted: #9bb0c6;
+        --bg: #071018;
+        --bg-accent: #0f1720;
+        --panel: rgba(18, 28, 40, 0.95);
+        --panel-border: rgba(255,255,255,0.08);
+        --text: #f7fbff;
+        --muted: #c0d8ee;
         --primary: #6ea8ff;
         --primary-strong: #92bfff;
         --success: #47d09a;
