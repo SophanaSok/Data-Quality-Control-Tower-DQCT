@@ -146,7 +146,8 @@
     globalExpandedPreference: readGlobalExpandedPreference(),
     diffFilterQuery: readDiffFilterQueryPreference(),
     visibleScopes: readVisibleScopesPreference(),
-    diffShortcutsBound: false
+    diffShortcutsBound: false,
+    diffHelpOutsideCleanup: null
   };
 
   function escapeHtml(value) {
@@ -979,6 +980,12 @@
       const helpToggle = node.querySelector('[data-diff-help-toggle]');
       const helpClose = node.querySelector('[data-diff-help-close]');
       const helpPanel = node.querySelector('[data-diff-help-panel]');
+
+      if (typeof state.diffHelpOutsideCleanup === 'function') {
+        state.diffHelpOutsideCleanup();
+        state.diffHelpOutsideCleanup = null;
+      }
+
       const setHelpOpen = (open) => {
         if (!(helpPanel instanceof HTMLElement) || !(helpToggle instanceof HTMLButtonElement)) {
           return;
@@ -993,6 +1000,43 @@
       helpClose?.addEventListener('click', () => {
         setHelpOpen(false);
       });
+
+      if (helpPanel instanceof HTMLElement && helpToggle instanceof HTMLButtonElement) {
+        const outsidePointerHandler = (event) => {
+          const target = event.target;
+          if (!(target instanceof Node)) {
+            return;
+          }
+          if (helpPanel.classList.contains('hidden')) {
+            return;
+          }
+          const clickedInsideHelp = helpPanel.contains(target) || helpToggle.contains(target);
+          if (!clickedInsideHelp) {
+            setHelpOpen(false);
+          }
+        };
+
+        const focusInHandler = (event) => {
+          const target = event.target;
+          if (!(target instanceof Node)) {
+            return;
+          }
+          if (helpPanel.classList.contains('hidden')) {
+            return;
+          }
+          const focusedInsideHelp = helpPanel.contains(target) || helpToggle.contains(target);
+          if (!focusedInsideHelp) {
+            setHelpOpen(false);
+          }
+        };
+
+        document.addEventListener('pointerdown', outsidePointerHandler, true);
+        document.addEventListener('focusin', focusInHandler, true);
+        state.diffHelpOutsideCleanup = () => {
+          document.removeEventListener('pointerdown', outsidePointerHandler, true);
+          document.removeEventListener('focusin', focusInHandler, true);
+        };
+      }
 
       const applyRecordFilter = (query) => {
         const normalized = String(query || '').trim().toLowerCase();
