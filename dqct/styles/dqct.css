@@ -208,6 +208,39 @@
         color: var(--text);
       }
 
+      :root[data-theme="dark"] .dashboard-card,
+      :root[data-theme="dark"] .metric-card,
+      :root[data-theme="dark"] .landing-tile,
+      :root[data-theme="dark"] .dropzone,
+      :root[data-theme="dark"] .issue-group {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        color: var(--text);
+      }
+
+      :root[data-theme="dark"] .dashboard-card .helper,
+      :root[data-theme="dark"] .metric-card .label,
+      :root[data-theme="dark"] .metric-card span,
+      :root[data-theme="dark"] .landing-tile span,
+      :root[data-theme="dark"] .issue-group .meta,
+      :root[data-theme="dark"] .issue-group .helper,
+      :root[data-theme="dark"] .dropzone .subtle,
+      :root[data-theme="dark"] .dropzone small {
+        color: var(--muted);
+      }
+
+      :root[data-theme="dark"] .metric-card {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+      }
+
+      :root[data-theme="dark"] .landing-tile {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      :root[data-theme="dark"] .dropzone {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
+      }
+
       .stat-card {
         padding: var(--space-3);
       }
@@ -1443,6 +1476,14 @@
         border-radius: 14px;
         background: rgba(20, 34, 58, 0.04);
         border: 1px solid rgba(20, 34, 58, 0.06);
+      }
+
+      :root[data-theme="dark"] .issue-item .meta,
+      :root[data-theme="dark"] .drift-item .meta,
+      :root[data-theme="dark"] .issue-group .meta,
+      :root[data-theme="dark"] .landing-tile .meta,
+      :root[data-theme="dark"] .dashboard-card .meta {
+        color: var(--muted);
       }
 
       .issue-group-head {
