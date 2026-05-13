@@ -123,10 +123,13 @@
     const baseJson = formatJson(base);
     const compareJson = formatJson(compare);
     const diff = charLevelDiffHtml(baseJson, compareJson);
+    const hasMarks = (diff.baseHtml.indexOf('dqct-json-diff-char') !== -1) || (diff.compareHtml.indexOf('dqct-json-diff-char') !== -1);
+    wrapper.dataset.diffHasMarks = hasMarks ? "1" : "0";
     wrapper.innerHTML = `
       <div class="dqct-json-viewer__header">
         <strong>Diff viewer</strong>
         <span class="meta">${paths.length} changed path${paths.length === 1 ? "" : "s"}</span>
+        <span class="meta">Char-marks: ${hasMarks ? 'yes' : 'no'}</span>
       </div>
       <div class="dqct-json-diff-viewer__grid">
         <div>
