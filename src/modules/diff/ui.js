@@ -491,6 +491,27 @@
       }
     };
 
+    const closeDiffHelpPopover = () => {
+      const resultsNode = document.getElementById("diffResults");
+      if (!(resultsNode instanceof HTMLElement)) {
+        return false;
+      }
+      const helpPanel = resultsNode.querySelector("[data-diff-help-panel]");
+      const helpToggle = resultsNode.querySelector("[data-diff-help-toggle]");
+      if (!(helpPanel instanceof HTMLElement)) {
+        return false;
+      }
+      const isOpen = !helpPanel.classList.contains("hidden");
+      if (!isOpen) {
+        return false;
+      }
+      helpPanel.classList.add("hidden");
+      if (helpToggle instanceof HTMLButtonElement) {
+        helpToggle.setAttribute("aria-expanded", "false");
+      }
+      return true;
+    };
+
     const bindDiffShortcuts = () => {
       if (state.diffShortcutsBound) {
         return;
@@ -520,6 +541,11 @@
         }
 
         if (event.key === "Escape" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          const helpWasClosed = closeDiffHelpPopover();
+          if (helpWasClosed) {
+            event.preventDefault();
+            return;
+          }
           const filterInput = resultsNode.querySelector("#diffRecordFilterInput");
           const shouldClear = (filterInput instanceof HTMLInputElement) && (filterInput.value.length > 0 || document.activeElement === filterInput);
           if (shouldClear) {
@@ -797,6 +823,22 @@
             <span>Shift+E expand</span>
             <span>Shift+C collapse</span>
           </div>
+          <div class="dqct-diff-help" data-diff-help>
+            <button type="button" class="ghost" data-diff-help-toggle aria-expanded="false" aria-controls="dqctDiffHelpPanel">Help</button>
+            <div id="dqctDiffHelpPanel" class="dqct-diff-help-panel hidden" data-diff-help-panel role="dialog" aria-label="Diff quick help">
+              <strong>Diff quick help</strong>
+              <p>Use the filter for key and changed-field lookup. Toggle chips to focus sections, then expand or collapse cards as needed.</p>
+              <ul>
+                <li>/ focuses filter</li>
+                <li>Esc closes help, then clears filter</li>
+                <li>Shift+E expands all cards</li>
+                <li>Shift+C collapses all cards</li>
+              </ul>
+              <div class="actions-row" style="margin-top:0.35rem;">
+                <button type="button" class="ghost" data-diff-help-close>Close</button>
+              </div>
+            </div>
+          </div>
         </div>
         ${anyScopeVisible ? '' : `
           <div class="empty-state" data-diff-sections-empty>
@@ -932,6 +974,24 @@
           input.focus();
         }
         applyRecordFilter('');
+      });
+
+      const helpToggle = node.querySelector('[data-diff-help-toggle]');
+      const helpClose = node.querySelector('[data-diff-help-close]');
+      const helpPanel = node.querySelector('[data-diff-help-panel]');
+      const setHelpOpen = (open) => {
+        if (!(helpPanel instanceof HTMLElement) || !(helpToggle instanceof HTMLButtonElement)) {
+          return;
+        }
+        helpPanel.classList.toggle('hidden', !open);
+        helpToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      };
+      helpToggle?.addEventListener('click', () => {
+        const isOpen = helpPanel instanceof HTMLElement ? !helpPanel.classList.contains('hidden') : false;
+        setHelpOpen(!isOpen);
+      });
+      helpClose?.addEventListener('click', () => {
+        setHelpOpen(false);
       });
 
       const applyRecordFilter = (query) => {

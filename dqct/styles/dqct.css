@@ -774,6 +774,36 @@
         background: rgba(20, 34, 58, 0.04);
       }
 
+      .dqct-diff-help {
+        position: relative;
+      }
+
+      .dqct-diff-help-panel {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 0.35rem);
+        width: min(340px, 88vw);
+        border: 1px solid rgba(20, 34, 58, 0.12);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 14px 28px rgba(12, 24, 40, 0.14);
+        padding: 0.65rem 0.72rem;
+        z-index: 20;
+      }
+
+      .dqct-diff-help-panel p {
+        margin: 0.45rem 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .dqct-diff-help-panel ul {
+        margin: 0.35rem 0 0;
+        padding-left: 1rem;
+        display: grid;
+        gap: 0.2rem;
+      }
+
       .dqct-diff-record-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -869,6 +899,11 @@
       :root[data-theme="dark"] .dqct-diff-shortcuts-hint span:not(.meta) {
         border: 1px solid rgba(255, 255, 255, 0.16);
         background: rgba(255, 255, 255, 0.05);
+      }
+
+      :root[data-theme="dark"] .dqct-diff-help-panel {
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(18, 28, 44, 0.97);
       }
 
       :root[data-theme="dark"] .dqct-chip {
