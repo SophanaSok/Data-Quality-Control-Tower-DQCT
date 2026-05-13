@@ -488,10 +488,18 @@
           fingerprint = window.DQCTFingerprint.generateFingerprintSync(record);
         }
 
-        // Classify failures by severity
-        const errorFailures = recordFailures.filter((f) => f.severity === "high");
-        const warningFailures = recordFailures.filter((f) => f.severity === "medium");
-        const infoFailures = recordFailures.filter((f) => f.severity === "low");
+        const errorFailures = [];
+        const warningFailures = [];
+        const infoFailures = [];
+        recordFailures.forEach((failure) => {
+          if (failure.severity === "high") {
+            errorFailures.push(failure);
+          } else if (failure.severity === "medium") {
+            warningFailures.push(failure);
+          } else if (failure.severity === "low") {
+            infoFailures.push(failure);
+          }
+        });
 
         // Determine qa_status
         let qa_status = "PASS";
