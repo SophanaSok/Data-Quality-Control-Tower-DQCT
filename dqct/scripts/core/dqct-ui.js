@@ -469,16 +469,21 @@
           els.recordSummariesWrap.classList.remove("hidden");
           els.failureViewHelper.classList.add("hidden");
           els.recordViewHelper.classList.remove("hidden");
+          els.nearDuplicateHelper.classList.remove("hidden");
           els.downloadIssuesButton.classList.add("hidden");
           els.downloadRecordSummariesButton.classList.remove("hidden");
+          els.downloadNearDuplicatesButton.classList.remove("hidden");
           renderRecordSummaries();
+          renderNearDuplicates();
         } else {
           els.resultsWrap.classList.remove("hidden");
           els.recordSummariesWrap.classList.add("hidden");
           els.failureViewHelper.classList.remove("hidden");
           els.recordViewHelper.classList.add("hidden");
+          els.nearDuplicateHelper.classList.add("hidden");
           els.downloadIssuesButton.classList.remove("hidden");
           els.downloadRecordSummariesButton.classList.add("hidden");
+          els.downloadNearDuplicatesButton.classList.add("hidden");
           ensureResultsTable();
           if (validationResultsTable) {
             validationResultsTable.update(state.results);
@@ -539,6 +544,33 @@
               <td>${record.info_count}</td>
             </tr>
           `)
+          .join("");
+      }
+
+      function renderNearDuplicates() {
+        if (!state.nearDuplicates.length) {
+          els.issueSummaryList.innerHTML = '<div class="issue-group"><strong>No near-duplicate groups found</strong><div class="meta">Near-duplicates require same Agent ID + Project Code with different fingerprints.</div></div>';
+          return;
+        }
+
+        els.issueSummaryList.innerHTML = state.nearDuplicates
+          .map((group) => {
+            const rowSamples = group.rows
+              .slice(0, 5)
+              .map((row) => `${row.file_name}#${row.row_number}${row.Title ? ` (${row.Title})` : ""}`)
+              .join(", ");
+            return `
+              <article class="issue-group">
+                <div class="issue-group-head">
+                  <div>
+                    <strong>Near-duplicate: ${escapeHtml(group.agentId)} + ${escapeHtml(group.projectCode)}</strong>
+                    <div class="meta">${group.recordCount} records · ${group.fingerprintCount} distinct fingerprints · ${group.files.length} files</div>
+                    <div class="meta">Files: ${escapeHtml(group.files.join(", "))}</div>
+                  </div>
+                </div>
+                <div class="meta" style="margin-top: 0.65rem;">Samples: ${escapeHtml(rowSamples)}</div>
+              </article>`;
+          })
           .join("");
       }
 
@@ -737,6 +769,14 @@
             successMessage: (result) => `Downloaded ${result.recordCount} record${result.recordCount === 1 ? "" : "s"} as ${result.filename}.`,
             toastMessage: (result) => `Downloaded ${result.recordCount} record summary summaries.`
           }, downloadRecordSummariesJson);
+        });
+        els.downloadNearDuplicatesButton.addEventListener("click", async () => {
+          await withActionFeedback(els.downloadNearDuplicatesButton, {
+            runningLabel: "Downloading…",
+            startMessage: "Preparing near-duplicates JSON for download…",
+            successMessage: (result) => `Downloaded ${result.groupCount} near-duplicate group${result.groupCount === 1 ? "" : "s"} (${result.recordCount} records) as ${result.filename}.`,
+            toastMessage: (result) => `Downloaded ${result.groupCount} near-duplicate group${result.groupCount === 1 ? "" : "s"}.`
+          }, downloadNearDuplicatesJson);
         });
         els.cloneProfileButton.addEventListener("click", async () => {
           await withActionFeedback(els.cloneProfileButton, {

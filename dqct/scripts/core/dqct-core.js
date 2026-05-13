@@ -62,6 +62,7 @@
         parsedRuns: [],
         results: [],
         recordSummaries: [],
+        nearDuplicates: [],
         runHistory: [],
         schemaBaselines: loadSchemaBaselines(),
         currentSchema: null,
@@ -125,7 +126,9 @@
         viewToggle: document.getElementById("viewToggle"),
         failureViewHelper: document.getElementById("failureViewHelper"),
         recordViewHelper: document.getElementById("recordViewHelper"),
+        nearDuplicateHelper: document.getElementById("nearDuplicateHelper"),
         downloadRecordSummariesButton: document.getElementById("downloadRecordSummariesButton"),
+        downloadNearDuplicatesButton: document.getElementById("downloadNearDuplicatesButton"),
         emptyState: document.getElementById("emptyState"),
         dropzone: document.getElementById("dropzone"),
         runButton: document.getElementById("runButton"),
@@ -722,6 +725,8 @@
         const records = getLoadedRecords();
         if (!records.length) {
           state.results = [];
+          state.recordSummaries = [];
+          state.nearDuplicates = [];
           state.currentIssueGroups = [];
           state.currentAnomalies = [];
           state.currentRunStats = { rowCount: 0, nullRates: {}, enumValues: {}, duplicateDocumentCount: 0, failureCount: 0, passRate: 1, schema: { fields: [] } };
@@ -738,6 +743,7 @@
 
         state.results = results;
         state.recordSummaries = window.DQCTValidationEngine.buildRecordSummaries(state.files, results);
+        state.nearDuplicates = buildNearDuplicateGroups(state.recordSummaries);
         state.currentSchema = inferSchema(records);
         if (!state.schemaBaselines[profile.profile_name]) {
           state.schemaBaselines[profile.profile_name] = {
@@ -766,10 +772,12 @@
           failureCount: results.length,
           passRate: state.currentRunStats.passRate,
           anomalyCount: state.currentAnomalies.length,
+          nearDuplicateCount: state.nearDuplicates.length,
           schemaDriftCount: state.currentDrift.added.length + state.currentDrift.removed.length + state.currentDrift.typeChanges.length,
           stats: state.currentRunStats,
           issues: results.slice(0, 25),
-          anomalies: state.currentAnomalies
+          anomalies: state.currentAnomalies,
+          nearDuplicates: state.nearDuplicates
         };
         const issuesFilename = getIssuesFilename(historyEntry.timestamp);
 
@@ -781,7 +789,8 @@
             files: state.files.length,
             records: state.currentRunStats.rowCount,
             failures: results.length,
-            anomalies: state.currentAnomalies.length
+            anomalies: state.currentAnomalies.length,
+            nearDuplicates: state.nearDuplicates.length
           },
           exportFiles: [issuesFilename],
           reopenTab: "validate",
@@ -864,6 +873,55 @@
           }
           return b.count - a.count;
         });
+      }
+
+      function buildNearDuplicateGroups(recordSummaries) {
+        const grouped = new Map();
+
+        (recordSummaries || []).forEach((summary) => {
+          const agentId = String(summary?.AgentID || "").trim();
+          const projectCode = String(summary?.ProjectCode || "").trim();
+          const fingerprint = String(summary?.fingerprint || "").trim();
+          if (!agentId || !projectCode || !fingerprint) {
+            return;
+          }
+
+          const key = `${agentId}::${projectCode}`;
+          if (!grouped.has(key)) {
+            grouped.set(key, {
+              agentId,
+              projectCode,
+              rows: [],
+              fingerprints: new Set(),
+              files: new Set()
+            });
+          }
+
+          const entry = grouped.get(key);
+          entry.rows.push({
+            file_name: summary.file_name,
+            row_number: summary.row_number,
+            Title: summary.Title,
+            BidStatus: summary.BidStatus,
+            fingerprint
+          });
+          entry.fingerprints.add(fingerprint);
+          entry.files.add(summary.file_name);
+        });
+
+        return Array.from(grouped.values())
+          .filter((entry) => entry.rows.length > 1 && entry.fingerprints.size > 1)
+          .map((entry) => ({
+            type: "near_duplicate",
+            agentId: entry.agentId,
+            projectCode: entry.projectCode,
+            recordCount: entry.rows.length,
+            fingerprintCount: entry.fingerprints.size,
+            files: Array.from(entry.files),
+            fingerprints: Array.from(entry.fingerprints),
+            rows: entry.rows
+          }))
+          .sort((a, b) => b.recordCount - a.recordCount);
       }
 
       function issueGroupKey(result) {
@@ -953,6 +1011,32 @@
         return { filename, recordCount: state.recordSummaries.length };
       }
 
+      function downloadNearDuplicatesJson() {
+        const payload = {
+          metadata: {
+            profile_name: activeProfile().profile_name,
+            export_date: new Date().toISOString(),
+            near_duplicate_group_count: state.nearDuplicates.length,
+            affected_record_count: state.nearDuplicates.reduce((sum, group) => sum + group.recordCount, 0)
+          },
+          near_duplicates: state.nearDuplicates
+        };
+        const timestamp = new Date().toISOString().split("T")[0];
+        const filename = `near-duplicates_${timestamp}.json`;
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+        return {
+          filename,
+          groupCount: state.nearDuplicates.length,
+          recordCount: state.nearDuplicates.reduce((sum, group) => sum + group.recordCount, 0)
+        };
+      }
+
       async function copyReport() {
         const text = buildReportText();
         await navigator.clipboard.writeText(text);
@@ -1027,6 +1111,7 @@
         state.files = [];
         state.results = [];
         state.recordSummaries = [];
+        state.nearDuplicates = [];
         state.currentIssueGroups = [];
         els.ticketPreview.classList.add("hidden");
         els.ticketPreview.textContent = "";

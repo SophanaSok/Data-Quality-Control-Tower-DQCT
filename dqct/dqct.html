@@ -375,11 +375,13 @@
         
         <div id="failureViewHelper" class="helper">Each row records the file, record index, primary ID, violated rule, expected value, actual value, and severity.</div>
         <div id="recordViewHelper" class="helper hidden">Each row represents a validated record with aggregated status, error count, and warning count.</div>
+        <div id="nearDuplicateHelper" class="helper hidden">Near-duplicate groups use the same Agent ID + Project Code but different fingerprints.</div>
         
         <div class="actions-row" style="justify-content: space-between; margin-bottom: 0.75rem;">
           <div style="display: flex; gap: 0.5rem;">
             <button id="downloadIssuesButton" type="button" class="secondary">Download all issues JSON</button>
             <button id="downloadRecordSummariesButton" type="button" class="secondary hidden">Download record summaries JSON</button>
+            <button id="downloadNearDuplicatesButton" type="button" class="secondary hidden">Download near-duplicates JSON</button>
           </div>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
             <label for="viewToggle" style="font-size: 0.9rem; font-weight: 500;">View:</label>
