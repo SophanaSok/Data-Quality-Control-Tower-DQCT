@@ -514,6 +514,32 @@
       return tagName === "input" || tagName === "textarea" || tagName === "select";
     };
 
+    const ensureDiffStatusRegion = () => {
+      let node = document.getElementById("dqct-status");
+      if (node instanceof HTMLElement) {
+        return node;
+      }
+      node = document.createElement("div");
+      node.id = "dqct-status";
+      node.setAttribute("role", "status");
+      node.setAttribute("aria-live", "polite");
+      node.setAttribute("aria-atomic", "true");
+      document.body.appendChild(node);
+      return node;
+    };
+
+    const announceDiffStatus = (message) => {
+      const statusNode = ensureDiffStatusRegion();
+      const text = String(message || "").trim();
+      if (!text) {
+        return;
+      }
+      statusNode.textContent = "";
+      requestAnimationFrame(() => {
+        statusNode.textContent = text;
+      });
+    };
+
     const clearDiffFilter = () => {
       const resultsNode = document.getElementById("diffResults");
       if (!(resultsNode instanceof HTMLElement)) {
@@ -1167,10 +1193,13 @@
         const [moved] = next.splice(index, 1);
         next.splice(nextIndex, 0, moved);
         state.changedFieldFilter = next;
+        const oneBasedPosition = nextIndex + 1;
+        const total = next.length;
         saveChangedFieldFilterPreference({
           fields: state.changedFieldFilter,
           mode: state.changedFieldFilterMode
         });
+        announceDiffStatus(`${normalizedField} moved to position ${oneBasedPosition} of ${total}.`);
         renderDiffResults(analysis);
       };
 
@@ -1245,10 +1274,13 @@
           next.splice(fromIndex, 1);
           next.splice(toIndex, 0, draggingField);
           state.changedFieldFilter = next;
+          const oneBasedPosition = toIndex + 1;
+          const total = next.length;
           saveChangedFieldFilterPreference({
             fields: state.changedFieldFilter,
             mode: state.changedFieldFilterMode
           });
+          announceDiffStatus(`${draggingField} moved to position ${oneBasedPosition} of ${total}.`);
           clearDropTargets();
           renderDiffResults(analysis);
         });
