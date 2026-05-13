@@ -659,6 +659,7 @@
       `;
 
       const renderCardEnd = () => '</div></details>';
+      const anyScopeVisible = Boolean(state.visibleScopes.added || state.visibleScopes.removed || state.visibleScopes.changed);
 
       node.innerHTML = `
         <div class="dqct-diff-results-toolbar">
@@ -684,6 +685,15 @@
             Show only changed fields
           </label>
         </div>
+        ${anyScopeVisible ? '' : `
+          <div class="empty-state" data-diff-sections-empty>
+            <h3>No sections visible</h3>
+            <p>All scope chips are turned off. Re-enable Added, Removed, or Changed to view records.</p>
+            <div class="actions-row" style="margin-top:0.5rem;">
+              <button type="button" class="ghost" data-diff-empty-show-all>Show all sections</button>
+            </div>
+          </div>
+        `}
         <div class="section ${state.visibleScopes.added ? '' : 'hidden'}" data-diff-section="added">
           <h3>Added (<span data-diff-visible-count="added">${added.length}</span> / ${added.length})</h3>
           ${renderSectionControls('added', added.length)}
@@ -782,6 +792,12 @@
       });
 
       node.querySelector('[data-diff-scope-show-all]')?.addEventListener('click', () => {
+        state.visibleScopes = { added: true, removed: true, changed: true };
+        saveVisibleScopesPreference(state.visibleScopes);
+        renderDiffResults(analysis);
+      });
+
+      node.querySelector('[data-diff-empty-show-all]')?.addEventListener('click', () => {
         state.visibleScopes = { added: true, removed: true, changed: true };
         saveVisibleScopesPreference(state.visibleScopes);
         renderDiffResults(analysis);
