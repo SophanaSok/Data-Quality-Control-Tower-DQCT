@@ -768,6 +768,26 @@
         return acc;
       }, {});
       const sortedChangedFields = Object.keys(changedFieldCounts).sort((a, b) => a.localeCompare(b));
+      const quickPickPriority = (field) => {
+        const token = String(field || '').toLowerCase();
+        if (/(status|state|stage)/.test(token)) return 100;
+        if (/(amount|price|cost|value|total)/.test(token)) return 90;
+        if (/(date|time|timestamp|deadline)/.test(token)) return 80;
+        if (/(award|bid|project|vendor|supplier)/.test(token)) return 70;
+        return 0;
+      };
+      const quickPickFields = Object.keys(changedFieldCounts)
+        .map((field) => ({ field, priority: quickPickPriority(field), count: changedFieldCounts[field] || 0 }))
+        .filter((entry) => entry.priority > 0)
+        .sort((a, b) => (b.priority - a.priority) || (b.count - a.count) || a.field.localeCompare(b.field))
+        .slice(0, 5)
+        .map((entry) => entry.field);
+      const fallbackQuickPicks = !quickPickFields.length
+        ? Object.keys(changedFieldCounts)
+          .sort((a, b) => (changedFieldCounts[b] - changedFieldCounts[a]) || a.localeCompare(b))
+          .slice(0, 3)
+        : [];
+      const renderedQuickPicks = quickPickFields.length ? quickPickFields : fallbackQuickPicks;
 
       const escapeRegExp = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const highlightMatch = (value, query) => {
@@ -892,6 +912,15 @@
             }).join('')}
             <button type="button" class="ghost" data-diff-field-mode>Mode: ${activeFieldMode.toUpperCase()}</button>
           </div>
+          ${renderedQuickPicks.length ? `
+            <div class="dqct-diff-field-presets" data-diff-field-presets>
+              <span class="meta">Quick picks:</span>
+              ${renderedQuickPicks.map((field) => {
+                const active = activeChangedFieldFilterSet.has(field);
+                return `<button type="button" class="dqct-field-badge dqct-field-badge--preset ${active ? 'is-active' : ''}" data-diff-field-filter="${escapeHtml(field)}">${highlightMatch(field, activeFilterQuery)}</button>`;
+              }).join('')}
+            </div>
+          ` : ''}
           <div class="dqct-diff-global-controls">
             <button type="button" class="ghost" data-diff-expand-all>Expand all sections</button>
             <button type="button" class="ghost" data-diff-collapse-all>Collapse all sections</button>
