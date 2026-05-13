@@ -2,9 +2,9 @@
 
 A browser-based validation tool for scraped government IT and software bid data. Upload JSON files, run automated quality checks against configurable rule profiles, and generate Trello-ready defect reports—all in seconds.
 
-**Current Version:** 2.2 (Phase 1–5C Complete)  
+**Current Version:** 2.3 (Validation + Deduplication Refreshed)  
 **Status:** Production Ready  
-**Last Updated:** May 12, 2026
+**Last Updated:** May 13, 2026
 
 ---
 
@@ -65,6 +65,7 @@ src/
       engine.js
       ui.js
     validation/
+      fingerprint.js
       engine.js
       profiles.js
   shared/
@@ -83,7 +84,8 @@ src/
 - `src/shared/exports.js`: Report text + issue export payload/download helpers, including standard Diff export filenames.
 - `src/modules/diff/engine.js`: Diff + duplicate detection helpers (`diffRecords`, `findDuplicates`, `buildCleanExport`).
 - `src/modules/diff/ui.js`: Minimal Diff tab UI (baseline/comparison upload, key/ignore options, analyze + exports).
-- `src/modules/validation/engine.js`: Rule evaluation and per-file validation execution.
+- `src/modules/validation/engine.js`: Rule evaluation, per-record summaries, and validation execution.
+- `src/modules/validation/fingerprint.js`: Record fingerprint generation and duplicate grouping helpers.
 - `src/modules/validation/profiles.js`: Profile/UI/run/schema local storage helpers.
 - `src/ui/jsonViewer.js`: Shared JSON record viewer helpers (`renderRecordViewer`, `renderDiffViewer`).
 - `src/ui/toasts.js`: Shared toast helpers (`showSuccess`, `showWarning`, `showError`).
@@ -93,6 +95,8 @@ src/
 - **JSON viewer**: Validation row clicks open a shared record inspector modal rendered by `DQCTJsonViewer.renderRecordViewer(record, highlightPath)`.
 - **Shared table**: Validation results now render through `DQCTTable.create(...)`, keeping existing columns while adding reusable sorting and paging behavior.
 - **Shared toasts**: UI actions call `DQCTToasts.showSuccess/showWarning/showError` so all modules use one notification pattern.
+- **Validation summaries**: The Validate tab includes a record-oriented summary table with `qa_status`, counts, and fingerprints.
+- **Duplicate reporting**: Exact fingerprint matches and near-duplicates are grouped for review and export.
 
 `dqct/dqct.html` loads these modules before `dqct/scripts/core/dqct-core.js` and `dqct/scripts/core/dqct-ui.js` so behavior remains unchanged while code is now separated by concern.
 
@@ -140,7 +144,7 @@ The **Recent Runs** table on the landing dashboard includes **Re-open** actions 
 
 A **profile** is a collection of validation rules tailored to a specific data source (e.g., a state portal, a county RFP system, etc.).
 
-- **Default profile (Standard Profile)** comes pre-loaded with 33 rules
+- **Default profile (Standard Profile)** comes pre-loaded with 37 rules
 - Each profile specifies:
   - The root array field (e.g., `Export`)
   - Which rules are active
@@ -176,7 +180,7 @@ A **rule** is a single validation check applied to a field. Examples:
 Rules are grouped into three layers for flexibility:
 
 - **Core** (R01–R04): Always-required fundamental checks (e.g., JSON structure, primary ID exists)
-- **Domain** (R05–R24): Specific to a source (e.g., profile-specific project code format, document validation)
+- **Domain** (R05–R24, R34–R37): Specific to a source (e.g., profile-specific project code format, document validation, bid-state checks)
 - **Diagnostic** (R25–R33): Optional deeper checks, disabled by default (e.g., "Description not empty")
 
 ---
@@ -261,13 +265,13 @@ The main action buttons now give immediate feedback when clicked:
 
 1. Click **"Run validation"** button
 2. The app validates all loaded files in seconds
-3. Results appear on the **Run Results** panel
+3. Results appear on the **Validation results** panel
 
 ---
 
 ### Step 6: Interpret Results
 
-The **Run Results** section shows:
+The **Validation results** section shows:
 
 #### Summary Cards
 - **Records loaded**: Total records across all files
@@ -334,6 +338,15 @@ Issues are automatically grouped by (Rule ID, Field, Rule Type). Each group show
 1. Click **"Copy report"** to copy a text summary of all results to clipboard
 2. Useful for quick summaries in emails or Slack
 
+#### Option D: Download Record Summaries
+1. Switch the Validate view to **Records (summary)**
+2. Click **"Download record summaries JSON"** to export one row per record
+3. The export includes `qa_status`, error/warning counts, fingerprints, and grouped error details
+
+#### Option E: Download Duplicate Groups
+1. In the Records view, click **"Download duplicate groups JSON"**
+2. The export includes exact fingerprint matches and near-duplicate groups for manual review
+
 ---
 
 ## 🎯 Managing Profiles & Rules
@@ -378,7 +391,7 @@ Testing these actions locally:
 
 At the top of the **Rules** panel, click layer buttons to filter:
 - **Core**: Show only fundamental rules (R01–R04)
-- **Domain**: Show only domain-specific rules (R05–R24)
+- **Domain**: Show only domain-specific rules (R05–R24, R34–R37)
 - **Diagnostic**: Show only optional diagnostic rules (R25–R33)
 - **All**: Show all rules
 
@@ -403,11 +416,11 @@ Results update instantly.
 
 ### Failure Severity
 
-| Severity | What It Means | Action |
+| Severity | What It Means | Record Outcome |
 |---|---|---|
-| **High** | Critical data defect—record should not be published | Fix immediately or exclude record |
-| **Medium** | Data inconsistency or missing optional info | Address in next batch or tag for review |
-| **Low** | Informational or diagnostic flag | Monitor trends; may require team discussion |
+| **High** | Critical data defect | `FAIL` |
+| **Medium** | Warning-level issue | `PASS_WITH_WARNINGS` |
+| **Low** | Informational or diagnostic flag | Logged only; no `qa_status` change |
 
 ### Example Failures
 
@@ -439,7 +452,25 @@ Expected: required when BidStatus equals Open for Bidding
 Actual: ""
 Severity: High
 ```
-→ The `DueDate` is empty, but the bid is "Open for Bidding" and thus needs a due date.
+→ The `DueDate` is empty, but the bid is "Open for Bidding" and thus is flagged for review.
+
+### Record Summaries
+
+Validation also generates a record-oriented summary table with these fields:
+
+- `row_number`
+- `AgentID`
+- `ProjectCode`
+- `Title`
+- `BidStatus`
+- `fingerprint`
+- `qa_status`
+- `error_count`
+- `warning_count`
+- `errors[]`
+- `warnings[]`
+
+This table is used for the compact validation view and for duplicate grouping.
 
 #### Example 4: Document Validation
 ```
@@ -486,7 +517,7 @@ Above the history table, use the filter controls to narrow results:
 - **From / To**: Filter by date range (start and end date)
 - **Search**: Search by file name, profile name, or run timestamp
 
-Filters are applied in real time and persist for the session.
+Filters are applied in real time and persist in the saved UI state for the workspace.
 
 #### Re-running Historical Runs
 
@@ -703,7 +734,7 @@ On the first run with a new profile, results become your baseline for schema dri
 2. Browser scrolling — results panel might be off-screen
 
 **Fix:**
-- Scroll down to see the Run Results panel
+- Scroll down to see the Validation results panel
 - If no failures, that's good! Try the sample data to see what a failure looks like
 
 ---

@@ -140,13 +140,14 @@
       function renderDashboard() {
         const profileName = activeProfile().profile_name;
         const runs = getLatestHistoryForProfile(profileName);
+        const filteredRuns = applyHistoryFilters(runs);
         const today = new Date().toISOString().slice(0, 10);
-        const runsToday = runs.filter((run) => run.timestamp.slice(0, 10) === today);
-        const recentRuns = runs.slice(0, 30);
+        const runsToday = filteredRuns.filter((run) => run.timestamp.slice(0, 10) === today);
+        const recentRuns = filteredRuns.slice(0, 30);
         const passRate = recentRuns.length
           ? Math.round((recentRuns.reduce((sum, run) => sum + (run.passRate || 0), 0) / recentRuns.length) * 100)
           : 0;
-        const latestRun = runs[0] || null;
+        const latestRun = filteredRuns[0] || null;
         const openIssues = (state.results.length || 0) + (state.currentAnomalies.length || 0);
         const formatRunFiles = (run) => {
           const files = run.files || [];
@@ -165,10 +166,10 @@
         els.dashboardPassRateMeta.textContent = recentRuns.length ? `${recentRuns.length} recent runs averaged` : "No validated runs yet";
         els.dashboardOpenIssues.textContent = String(openIssues);
         els.dashboardOpenIssuesMeta.textContent = latestRun ? `${latestRun.failureCount} failures on the latest run` : "No validation run yet";
-        els.historyBadge.textContent = `${runs.length} stored`;
+        els.historyBadge.textContent = `${filteredRuns.length}/${runs.length} stored`;
 
-        els.runHistoryBody.innerHTML = runs.slice(0, 12).length
-          ? runs.slice(0, 12).map((run) => `
+        els.runHistoryBody.innerHTML = filteredRuns.slice(0, 12).length
+          ? filteredRuns.slice(0, 12).map((run) => `
             <tr>
               <td>${escapeHtml(run.timestamp.replace("T", " ").slice(0, 19))}</td>
               <td>${escapeHtml(run.profileName)}</td>
@@ -200,6 +201,44 @@
               <div class="meta">${escapeHtml(item.detail)}</div>
             </div>`).join("")
           : '<div class="issue-item"><strong>No current issues</strong><div class="meta">Validated runs and anomaly warnings will appear here.</div></div>';
+      }
+
+      function applyHistoryFilters(runs) {
+        const filters = state.historyFilters || {};
+        const status = filters.status || "all";
+        const from = filters.from ? new Date(filters.from) : null;
+        const to = filters.to ? new Date(filters.to) : null;
+        const search = String(filters.search || "").trim().toLowerCase();
+
+        return (runs || []).filter((run) => {
+          if (status === "issues" && !(run.failureCount > 0)) {
+            return false;
+          }
+          if (status === "clean" && !(run.failureCount === 0)) {
+            return false;
+          }
+
+          const timestamp = new Date(run.timestamp || 0);
+          if (from && !Number.isNaN(from.valueOf()) && timestamp < from) {
+            return false;
+          }
+          if (to && !Number.isNaN(to.valueOf())) {
+            const inclusiveTo = new Date(to);
+            inclusiveTo.setHours(23, 59, 59, 999);
+            if (timestamp > inclusiveTo) {
+              return false;
+            }
+          }
+
+          if (search) {
+            const haystack = [run.profileName, run.timestamp, (run.files || []).map((file) => file.name).join(" "), String(run.id || "")].join(" ").toLowerCase();
+            if (!haystack.includes(search)) {
+              return false;
+            }
+          }
+
+          return true;
+        });
       }
 
       function renderSparkline(values) {
@@ -908,6 +947,24 @@
           renderRules();
         });
 
+        const syncHistoryFilters = () => {
+          state.historyFilters = {
+            status: els.runFilterStatus?.value || "all",
+            from: els.runFilterFrom?.value || null,
+            to: els.runFilterTo?.value || null,
+            search: els.runFilterSearch?.value || ""
+          };
+          if (typeof saveUiState === "function") {
+            saveUiState();
+          }
+          renderDashboard();
+        };
+
+        els.runFilterStatus?.addEventListener("change", syncHistoryFilters);
+        els.runFilterFrom?.addEventListener("change", syncHistoryFilters);
+        els.runFilterTo?.addEventListener("change", syncHistoryFilters);
+        els.runFilterSearch?.addEventListener("input", syncHistoryFilters);
+
         document.addEventListener("change", (event) => {
           const target = event.target;
           if (!(target instanceof HTMLElement)) {
@@ -1184,6 +1241,18 @@
         state.runHistory = await loadRunHistory();
         bindEventHandlers();
         els.newRootArray.value = activeProfile().root_array || "Export";
+        if (els.runFilterStatus) {
+          els.runFilterStatus.value = state.historyFilters?.status || "all";
+        }
+        if (els.runFilterFrom) {
+          els.runFilterFrom.value = state.historyFilters?.from || "";
+        }
+        if (els.runFilterTo) {
+          els.runFilterTo.value = state.historyFilters?.to || "";
+        }
+        if (els.runFilterSearch) {
+          els.runFilterSearch.value = state.historyFilters?.search || "";
+        }
         updateRuntimeOverrides();
         setActionStatus(defaultActionStatus, "info", true);
         render();

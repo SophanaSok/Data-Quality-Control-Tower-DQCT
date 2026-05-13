@@ -75,7 +75,7 @@
         ruleSearch: "",
         runtimeOverrides: new Set(),
         viewMode: "failures",
-        historyFilters: { status: 'all', from: null, to: null, search: '' },
+        historyFilters: loadUiState().historyFilters || { status: 'all', from: null, to: null, search: '' },
         duplicateFilter: "all"
       };
 
@@ -172,7 +172,10 @@
       }
 
       function saveUiState() {
-        window.DQCTProfiles.saveUiState(UI_STATE_KEY, { expandedFields: Array.from(state.expandedFields || []) });
+        window.DQCTProfiles.saveUiState(UI_STATE_KEY, {
+          expandedFields: Array.from(state.expandedFields || []),
+          historyFilters: state.historyFilters
+        });
       }
 
       function saveRuns(runs) {
