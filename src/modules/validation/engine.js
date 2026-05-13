@@ -83,6 +83,27 @@
       .filter(Boolean))].sort();
   }
 
+  function getFingerprintFields() {
+    const fallbackFields = [
+      "AgentID",
+      "ProjectCode",
+      "Title",
+      "BidStatus",
+      "DueDate",
+      "PublishedDate",
+      "AwardedVendorName",
+      "LegacyAgentID",
+      "ResourceURL",
+      "BidDocumentHashes",
+      "AddendumDocumentHashes",
+      "BidDocuments"
+    ];
+
+    return Array.isArray(globalScope?.DQCTFingerprint?.FINGERPRINT_FIELDS) && globalScope.DQCTFingerprint.FINGERPRINT_FIELDS.length
+      ? globalScope.DQCTFingerprint.FINGERPRINT_FIELDS
+      : fallbackFields;
+  }
+
   function applyRule(rule, record, recordIndex, options) {
     const failures = [];
     const value = record[rule.field];
@@ -406,6 +427,23 @@
               ...failure
             });
           });
+        });
+
+        const fingerprintFields = getFingerprintFields();
+        fingerprintFields.forEach((fieldName) => {
+          if (!Object.prototype.hasOwnProperty.call(record, fieldName)) {
+            results.push({
+              fileName: file.name,
+              recordIndex: recordIndex + 1,
+              primaryId: getPrimaryId(record),
+              field: fieldName,
+              ruleType: "required_fingerprint_field",
+              expected: "field to exist on every record",
+              actual: "(missing field)",
+              severity: "high",
+              ruleId: "FINGERPRINT_FIELDS"
+            });
+          }
         });
       });
 
