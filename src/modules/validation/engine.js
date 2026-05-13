@@ -356,6 +356,7 @@
     const runtimeOverrides = options?.runtimeOverrides || new Set();
     const getPrimaryId = options?.getPrimaryId || (() => "(missing primary id)");
     const inferFieldType = options?.inferFieldType || ((input) => typeof input);
+    const fingerprintFields = getFingerprintFields();
 
     files.forEach((file) => {
       if (file.status === "error") {
@@ -429,7 +430,6 @@
           });
         });
 
-        const fingerprintFields = getFingerprintFields();
         fingerprintFields.forEach((fieldName) => {
           if (!Object.prototype.hasOwnProperty.call(record, fieldName)) {
             results.push({

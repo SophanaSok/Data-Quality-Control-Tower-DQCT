@@ -54,6 +54,10 @@
     return value;
   }
 
+  function comparableSignature(value) {
+    return JSON.stringify(canonicalize(value));
+  }
+
   function comparableRecord(record, ignoreSet) {
     const next = {};
     Object.keys(record || {}).forEach((key) => {
@@ -110,8 +114,8 @@
       seen.add(key);
       const beforeComparable = comparableRecord(baselineItem.record, ignoreSet);
       const afterComparable = comparableRecord(comparisonItem.record, ignoreSet);
-      const beforeText = JSON.stringify(beforeComparable);
-      const afterText = JSON.stringify(afterComparable);
+      const beforeText = comparableSignature(beforeComparable);
+      const afterText = comparableSignature(afterComparable);
 
       if (beforeText === afterText) {
         unchangedRecords.push({ key, record: comparisonItem.record, baselineIndex: baselineItem.index, comparisonIndex: comparisonItem.index });
@@ -120,7 +124,7 @@
 
       const changedFields = Array.from(
         new Set([...Object.keys(beforeComparable || {}), ...Object.keys(afterComparable || {})])
-      ).filter((field) => JSON.stringify(beforeComparable?.[field]) !== JSON.stringify(afterComparable?.[field]));
+      ).filter((field) => comparableSignature(beforeComparable?.[field]) !== comparableSignature(afterComparable?.[field]));
 
       changedRecords.push({
         key,

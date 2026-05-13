@@ -92,8 +92,8 @@
       const pageRows = ordered.slice(start, start + pageSize);
 
       bodyElement.innerHTML = pageRows
-        .map((row) => {
-          const originalIndex = rows.indexOf(row);
+        .map((row, pageIndex) => {
+          const originalIndex = start + pageIndex;
           const cells = columns
             .map((column) => {
               if (typeof column.render === "function") {
