@@ -94,6 +94,7 @@
         <button id="diffAnalyzeButton" type="button">Analyze</button>
       </div>
       <div id="diffSummary" class="summary-layout hidden" style="margin-top: 1rem;"></div>
+      <div id="diffResults" style="margin-top:1rem;"></div>
       <div class="actions-row" style="margin-top: 1rem;">
         <button id="diffExportRecords" type="button" class="secondary" disabled>Export diff records</button>
         <button id="diffExportDupFile1" type="button" class="secondary" disabled>Export duplicates file1</button>
@@ -406,6 +407,7 @@
 
       state.analysis = { diff, duplicates, cleanExport };
       renderSummary(summaryNode);
+      renderDiffResults(state.analysis);
       enableExports(true);
       const exportFiles = getDiffExportFilenames();
       globalScope.DQCTAppState?.addRecentRun?.({
@@ -429,6 +431,81 @@
         label: `${state.baselineName || "baseline"} vs ${state.comparisonName || "comparison"}`
       });
     });
+
+    function renderDiffResults(analysis) {
+      const node = document.getElementById('diffResults');
+      if (!node) return;
+      if (!analysis || !analysis.diff) {
+        node.innerHTML = '';
+        return;
+      }
+      const diff = analysis.diff;
+      // Build sections: Added (new), Removed, Changed
+      const added = diff.newRecords || [];
+      const removed = diff.removedRecords || [];
+      const changed = diff.changedRecords || [];
+
+      const renderRecordPreview = (rec) => `<pre class="dqct-json-viewer__code" style="max-height:200px;">${escapeHtml(JSON.stringify(rec, null, 2))}</pre>`;
+
+      node.innerHTML = `
+        <div class="section">
+          <h3>Added (${added.length})</h3>
+          <div class="profile-list">${added.length ? added.map(a=>`<div class="profile-item"><div style="min-width:0"><strong>${escapeHtml(String(a.key))}</strong><div class="meta">Index: ${a.comparisonIndex}</div></div><div>${renderRecordPreview(a.record)}</div></div>`).join('') : '<div class="meta">No added records</div>'}</div>
+        </div>
+        <div class="section" style="margin-top:12px;">
+          <h3>Removed (${removed.length})</h3>
+          <div class="profile-list">${removed.length ? removed.map(r=>`<div class="profile-item"><div style="min-width:0"><strong>${escapeHtml(String(r.key))}</strong><div class="meta">Baseline index: ${r.baselineIndex}</div></div><div>${renderRecordPreview(r.record)}</div></div>`).join('') : '<div class="meta">No removed records</div>'}</div>
+        </div>
+        <div class="section" style="margin-top:12px;">
+          <h3>Changed (${changed.length})</h3>
+          <div class="profile-list">${changed.length ? changed.map((c, idx)=>`<div class="profile-item" data-changed-index="${idx}" style="align-items:flex-start"><div style="min-width:0;flex:1"><strong>${escapeHtml(String(c.key))}</strong><div class="meta">Changed fields: ${escapeHtml((c.changedFields||[]).join(', ') )}</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;"><button type="button" class="ghost" data-open-diff="${idx}">Open</button></div></div>`).join('') : '<div class="meta">No changed records</div>'}</div>
+        </div>
+      `;
+
+      // Attach handlers for changed record open buttons
+      node.querySelectorAll('[data-open-diff]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const idx = Number(btn.getAttribute('data-open-diff'));
+          const item = (diff.changedRecords || [])[idx];
+          if (!item) return;
+          // open modal showing Summary / Field changes / JSON preview
+          const modal = document.createElement('div');
+          modal.className = 'dqct-json-modal';
+          modal.innerHTML = `
+            <div class="dqct-json-modal__dialog" role="dialog" aria-modal="true" aria-label="Diff record">
+              <div class="dqct-json-modal__actions"><button type="button" class="ghost" data-close-diff>Close</button></div>
+              <div class="dqct-json-viewer__header"><strong>Changed record: ${escapeHtml(String(item.key))}</strong><div class="meta">Fields changed: ${(item.changedFields||[]).length}</div></div>
+              <div style="display:grid;gap:10px;">
+                <div><strong>Field changes</strong><div class="meta">Click a field to highlight in JSON</div></div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">${(item.changedFields||[]).map(f=>`<button type="button" class="pill info" data-diff-field="${escapeHtml(f)}">${escapeHtml(f)}</button>`).join('')}</div>
+                <div style="margin-top:8px;" class="dqct-json-diff-viewer__grid">
+                  <div><div class="meta">Before</div><pre class="dqct-json-viewer__code">${escapeHtml(JSON.stringify(item.before, null, 2))}</pre></div>
+                  <div><div class="meta">After</div><pre class="dqct-json-viewer__code">${escapeHtml(JSON.stringify(item.after, null, 2))}</pre></div>
+                </div>
+              </div>
+            </div>
+          `;
+          modal.addEventListener('click', (ev)=>{ if (ev.target===modal || ev.target.closest('[data-close-diff]')) modal.remove(); });
+          document.body.appendChild(modal);
+          // wire field buttons to highlight both sides by re-rendering with DQCTJsonViewer.renderDiffViewer
+          modal.querySelectorAll('[data-diff-field]').forEach((fb)=>{
+            fb.addEventListener('click', ()=>{
+              const field = fb.getAttribute('data-diff-field');
+              const dialog = modal.querySelector('.dqct-json-modal__dialog');
+              if (!dialog) return;
+              // replace diff viewer area with DQCTJsonViewer.renderDiffViewer to highlight field key
+              const grid = dialog.querySelector('.dqct-json-diff-viewer__grid');
+              if (grid) {
+                grid.innerHTML = '';
+                const viewer = window.DQCTJsonViewer.renderDiffViewer(item.before||{}, item.after||{}, [field]);
+                // viewer is a wrapper with grid inside; append its grid children to our dialog under the header
+                dialog.appendChild(viewer);
+              }
+            });
+          });
+        });
+      });
+    }
 
     const exportFiles = getDiffExportFilenames();
     document.getElementById("diffExportRecords")?.addEventListener("click", () => {

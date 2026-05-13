@@ -29,6 +29,17 @@
     return escaped.replace(pattern, '<mark class="dqct-json-highlight">$1</mark>');
   }
 
+  function highlightJsonForPaths(text, paths) {
+    const escaped = escapeHtml(text);
+    if (!Array.isArray(paths) || !paths.length) return escaped;
+    // Highlight all tokens (use last token of dotted paths)
+    const tokens = Array.from(new Set(paths.map((p) => String(p).split('.').filter(Boolean).at(-1)).filter(Boolean)));
+    if (!tokens.length) return escaped;
+    // Build a single regex to avoid repeated passes
+    const pattern = new RegExp(`(&quot;(?:${tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})&quot;\\s*:)`, 'g');
+    return escaped.replace(pattern, '<mark class="dqct-json-highlight">$1</mark>');
+  }
+
   function renderRecordViewer(record, highlightPath) {
     const wrapper = document.createElement("div");
     wrapper.className = "dqct-json-viewer";
@@ -54,11 +65,11 @@
       <div class="dqct-json-diff-viewer__grid">
         <div>
           <div class="meta">Baseline</div>
-          <pre class="dqct-json-viewer__code">${escapeHtml(formatJson(base))}</pre>
+          <pre class="dqct-json-viewer__code">${highlightJsonForPaths(formatJson(base), paths)}</pre>
         </div>
         <div>
           <div class="meta">Comparison</div>
-          <pre class="dqct-json-viewer__code">${escapeHtml(formatJson(compare))}</pre>
+          <pre class="dqct-json-viewer__code">${highlightJsonForPaths(formatJson(compare), paths)}</pre>
         </div>
       </div>
       ${paths.length ? `<div class="meta">Changed paths: ${escapeHtml(paths.join(", "))}</div>` : ""}

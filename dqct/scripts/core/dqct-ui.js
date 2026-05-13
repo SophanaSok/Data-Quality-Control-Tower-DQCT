@@ -25,8 +25,9 @@
         if (!record || !window.DQCTJsonViewer?.renderRecordViewer) {
           return;
         }
-
         closeRecordViewer();
+
+        // Build enhanced modal with Summary / Issues / Record JSON tabs
         const modal = document.createElement("div");
         modal.className = "dqct-json-modal";
         modal.innerHTML = `
@@ -34,25 +35,141 @@
             <div class="dqct-json-modal__actions">
               <button type="button" class="ghost" data-close-record-viewer>Close</button>
             </div>
+            <div class="dqct-json-viewer__header">
+              <div style="display:flex;gap:1rem;align-items:center;">
+                <strong>Record inspector</strong>
+                <span class="meta">${escapeHtml(result.fileName || "")} · #${escapeHtml(String(result.recordIndex || ""))}</span>
+              </div>
+              <div style="display:flex;gap:0.5rem;">
+                <button type="button" data-record-tab="summary" class="ghost">Summary</button>
+                <button type="button" data-record-tab="issues" class="ghost">Issues</button>
+                <button type="button" data-record-tab="json" class="ghost">Record JSON</button>
+              </div>
+            </div>
+            <div class="dqct-json-viewer__content">
+              <div id="recordSummary" data-record-panel class="meta"></div>
+              <div id="recordIssues" data-record-panel class="profile-list" style="display:none;"></div>
+              <div id="recordJson" data-record-panel style="display:none;"></div>
+            </div>
           </div>
         `;
-        const dialog = modal.querySelector(".dqct-json-modal__dialog");
-        if (dialog instanceof HTMLElement) {
-          dialog.appendChild(window.DQCTJsonViewer.renderRecordViewer(record, result.field || ""));
+
+        const dialog = modal.querySelector('.dqct-json-modal__dialog');
+        document.body.appendChild(modal);
+        recordViewerModal = modal;
+
+        // Populate summary and issues
+        const summaryNode = modal.querySelector('#recordSummary');
+        const issuesNode = modal.querySelector('#recordIssues');
+        const jsonNode = modal.querySelector('#recordJson');
+
+        // Try to find a prebuilt summary in state.recordSummaries
+        let recordSummary = null;
+        try {
+          recordSummary = (typeof state !== 'undefined' && Array.isArray(state.recordSummaries))
+            ? state.recordSummaries.find((s) => s.file_name === result.fileName && Number(s.row_number) === Number(result.recordIndex))
+            : null;
+        } catch (e) {
+          recordSummary = null;
         }
 
-        modal.addEventListener("click", (event) => {
-          const target = event.target;
-          if (!(target instanceof HTMLElement)) {
-            return;
+        const primary = escapeHtml(result.primaryId || (recordSummary && (recordSummary.ProjectCode || recordSummary.Title || recordSummary.AgentID)) || "(unknown)");
+        const status = escapeHtml(recordSummary?.qa_status || result.qa_status || "(unknown)");
+        const errorCount = recordSummary?.error_count ?? (state.results.filter(r=>r.fileName===result.fileName && Number(r.recordIndex)===Number(result.recordIndex) && r.severity==='high').length);
+        const warningCount = recordSummary?.warning_count ?? (state.results.filter(r=>r.fileName===result.fileName && Number(r.recordIndex)===Number(result.recordIndex) && r.severity==='medium').length);
+
+        if (summaryNode instanceof HTMLElement) {
+          summaryNode.innerHTML = `
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+              <div><div class="meta">Primary ID</div><strong>${primary}</strong></div>
+              <div><div class="meta">Status</div><strong>${status}</strong></div>
+              <div><div class="meta">Issues</div><strong>${errorCount} errors · ${warningCount} warnings</strong></div>
+            </div>
+          `;
+        }
+
+        // Build issues list from recordSummary if available, otherwise from state.results
+        const issues = [];
+        if (recordSummary) {
+          (recordSummary.errors || []).forEach((it) => issues.push({ severity: 'high', ...it }));
+          (recordSummary.warnings || []).forEach((it) => issues.push({ severity: 'medium', ...it }));
+          (recordSummary.infos || []).forEach((it) => issues.push({ severity: 'low', ...it }));
+        } else {
+          state.results.filter(r=>r.fileName===result.fileName && Number(r.recordIndex)===Number(result.recordIndex)).forEach((r)=>issues.push({ severity: r.severity || 'low', field: r.field, expected: r.expected, actual: r.actual }));
+        }
+
+        if (issuesNode instanceof HTMLElement) {
+          if (!issues.length) {
+            issuesNode.innerHTML = '<div class="summary-item"><div><strong>No issues for this record</strong><div class="meta">This record passed validation.</div></div></div>';
+          } else {
+            issuesNode.innerHTML = issues.map((issue, i) => `
+              <div class="profile-item" style="align-items:flex-start;">
+                <div style="flex:1;min-width:0;">
+                  <strong>${escapeHtml(issue.field || '(field)')} <span style="font-weight:600;">· ${escapeHtml(issue.ruleId || issue.ruleType || '')}</span></strong>
+                  <div class="meta">${escapeHtml(issue.message || issue.expected || '')}</div>
+                  <div class="meta">Current: <code>${escapeHtml(issue.actual || '')}</code></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+                  <button type="button" class="pill ${issue.severity==='high'?'high':issue.severity==='medium'?'medium':'info'}" data-issue-index="${i}" data-issue-field="${escapeHtml(issue.field||'')}">${escapeHtml(issue.severity)}</button>
+                </div>
+              </div>
+            `).join('');
+
+            // Add click handlers to issue buttons
+            issuesNode.querySelectorAll('[data-issue-index]').forEach((btn) => {
+              btn.addEventListener('click', (ev) => {
+                const field = btn.getAttribute('data-issue-field') || '';
+                // render JSON viewer with highlight
+                if (jsonNode instanceof HTMLElement) {
+                  jsonNode.innerHTML = '';
+                  jsonNode.appendChild(window.DQCTJsonViewer.renderRecordViewer(record, field));
+                  // switch to JSON tab
+                  switchToTab('json');
+                  // try to scroll to highlighted element
+                  setTimeout(() => {
+                    const mark = jsonNode.querySelector('.dqct-json-highlight');
+                    if (mark && mark.scrollIntoView) mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }, 100);
+                }
+              });
+            });
           }
-          if (target === modal || target.closest("[data-close-record-viewer]")) {
+        }
+
+        // Initially render JSON view hidden
+        if (jsonNode instanceof HTMLElement) {
+          jsonNode.innerHTML = '';
+          jsonNode.appendChild(window.DQCTJsonViewer.renderRecordViewer(record, result.field || ''));
+        }
+
+        // Tab switching helper
+        function switchToTab(name) {
+          modal.querySelectorAll('[data-record-panel]').forEach((el) => {
+            if (!(el instanceof HTMLElement)) return;
+            el.style.display = el.id === 'record' + name.charAt(0).toUpperCase() + name.slice(1) ? 'block' : 'none';
+          });
+          // also update button active states
+          modal.querySelectorAll('[data-record-tab]').forEach((b) => {
+            b.classList.toggle('selected', b.getAttribute('data-record-tab') === name);
+          });
+        }
+
+        // wire tab buttons
+        modal.querySelectorAll('[data-record-tab]').forEach((b) => {
+          b.addEventListener('click', () => switchToTab(b.getAttribute('data-record-tab')));
+        });
+
+        // wire close
+        modal.addEventListener('click', (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) return;
+          if (target === modal || target.closest('[data-close-record-viewer]')) {
             closeRecordViewer();
           }
         });
 
-        document.body.appendChild(modal);
-        recordViewerModal = modal;
+        // start on Summary
+        switchToTab('summary');
       }
 
       function ensureResultsTable() {

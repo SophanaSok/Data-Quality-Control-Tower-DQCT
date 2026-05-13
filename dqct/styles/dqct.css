@@ -27,14 +27,14 @@
 
       :root[data-theme="dark"] {
         color-scheme: dark;
-        --bg: #0f1621;
-        --bg-accent: #1b2a3d;
-        --panel: rgba(18, 28, 40, 0.9);
-        --panel-border: rgba(164, 188, 216, 0.2);
-        --text: #e6edf5;
-        --muted: #9db0c7;
-        --primary: #77a8ff;
-        --primary-strong: #9ec0ff;
+        --bg: #0b1117;
+        --bg-accent: #111827;
+        --panel: rgba(12, 20, 30, 0.88);
+        --panel-border: rgba(255,255,255,0.06);
+        --text: #e9f0f8;
+        --muted: #9bb0c6;
+        --primary: #6ea8ff;
+        --primary-strong: #92bfff;
         --success: #47d09a;
         --warning: #ffbe6e;
         --danger: #ff8f8f;
@@ -177,6 +177,20 @@
         border-radius: var(--radius-lg);
       }
 
+      /* Dark-theme overrides for commonly used surface elements */
+      :root[data-theme="dark"] .stat-card,
+      :root[data-theme="dark"] .toolbar,
+      :root[data-theme="dark"] .section,
+      :root[data-theme="dark"] .profile-card,
+      :root[data-theme="dark"] .file-card,
+      :root[data-theme="dark"] .table-card,
+      :root[data-theme="dark"] .notice,
+      :root[data-theme="dark"] .empty-state {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        color: var(--text);
+      }
+
       .stat-card {
         padding: var(--space-3);
       }
@@ -264,6 +278,16 @@
         padding: 0.82rem 0.92rem;
         color: var(--text);
         font: inherit;
+      }
+
+      :root[data-theme="dark"] select,
+      :root[data-theme="dark"] input[type="text"],
+      :root[data-theme="dark"] input[type="search"],
+      :root[data-theme="dark"] input[type="number"],
+      :root[data-theme="dark"] textarea {
+        border: 1px solid rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.02);
+        color: var(--text);
       }
 
       textarea {
@@ -431,6 +455,12 @@
         color: var(--muted);
       }
 
+      :root[data-theme="dark"] th {
+        background: rgba(255,255,255,0.03);
+        color: var(--muted);
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+      }
+
       th.dqct-sortable {
         cursor: pointer;
         user-select: none;
@@ -457,6 +487,13 @@
         background: rgba(20, 34, 58, 0.05);
         padding: 0.16rem 0.4rem;
         border-radius: 6px;
+      }
+
+      :root[data-theme="dark"] td code,
+      :root[data-theme="dark"] .code {
+        background: rgba(255,255,255,0.02);
+        color: var(--text);
+        border: 1px solid rgba(255,255,255,0.03);
       }
 
       .pill {
@@ -535,6 +572,12 @@
         padding: 0.9rem;
       }
 
+      :root[data-theme="dark"] .dqct-json-modal__dialog {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        color: var(--text);
+      }
+
       .dqct-json-modal__actions {
         display: flex;
         justify-content: flex-end;
@@ -559,6 +602,15 @@
         max-height: 60vh;
       }
 
+      :root[data-theme="dark"] .dqct-json-viewer__code {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.04);
+        color: var(--text);
+        font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+
       .dqct-json-diff-viewer__grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -567,6 +619,11 @@
 
       .dqct-json-highlight {
         background: rgba(161, 92, 0, 0.22);
+        color: inherit;
+      }
+
+      :root[data-theme="dark"] .dqct-json-highlight {
+        background: rgba(110,165,255,0.16);
         color: inherit;
       }
 
