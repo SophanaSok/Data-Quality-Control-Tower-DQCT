@@ -604,9 +604,15 @@
       const renderCardEnd = () => '</div></details>';
 
       node.innerHTML = `
-        <div class="dqct-diff-global-controls">
-          <button type="button" class="ghost" data-diff-expand-all>Expand all sections</button>
-          <button type="button" class="ghost" data-diff-collapse-all>Collapse all sections</button>
+        <div class="dqct-diff-results-toolbar">
+          <div class="dqct-diff-global-controls">
+            <button type="button" class="ghost" data-diff-expand-all>Expand all sections</button>
+            <button type="button" class="ghost" data-diff-collapse-all>Collapse all sections</button>
+          </div>
+          <label class="dqct-diff-toggle" for="diffChangedFieldsOnlyToggle">
+            <input id="diffChangedFieldsOnlyToggle" type="checkbox" ${showChangedFieldsOnly ? 'checked' : ''} />
+            Show only changed fields
+          </label>
         </div>
         <div class="section">
           <h3>Added (${added.length})</h3>
@@ -635,10 +641,6 @@
         <div class="section" style="margin-top:12px;">
           <h3>Changed (${changed.length})</h3>
           ${renderSectionControls('changed', changed.length)}
-          <label class="dqct-diff-toggle" for="diffChangedFieldsOnlyToggle">
-            <input id="diffChangedFieldsOnlyToggle" type="checkbox" ${showChangedFieldsOnly ? 'checked' : ''} />
-            Show only changed fields
-          </label>
           <div class="dqct-diff-record-list">${changed.length ? changed.map((c, idx) => `
             ${renderCardStart('changed', idx, String(c.key), `Baseline #${String(c.baselineIndex)} -> Comparison #${String(c.comparisonIndex)}`, startsExpanded('changed', changed.length))}
               ${renderChangedFields(c.changedFields)}
