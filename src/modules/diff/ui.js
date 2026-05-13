@@ -453,40 +453,65 @@
         }
         return `<div class="meta">Changed fields: ${escapeHtml(normalizedFields.join(', '))}</div>`;
       };
+      const startsExpanded = (totalItems) => totalItems <= 3;
+
+      const renderSectionControls = (scope, count) => {
+        if (!count) {
+          return '';
+        }
+        return `
+          <div class="dqct-diff-controls" data-diff-controls="${scope}">
+            <button type="button" class="ghost" data-diff-expand="${scope}">Expand all</button>
+            <button type="button" class="ghost" data-diff-collapse="${scope}">Collapse all</button>
+          </div>
+        `;
+      };
+
+      const renderCardStart = (scope, itemIndex, titleText, metaText, openByDefault) => `
+        <details class="dqct-diff-record-card" data-diff-scope="${scope}" data-diff-index="${itemIndex}" ${openByDefault ? 'open' : ''}>
+          <summary class="dqct-diff-record-head">
+            <div>
+              <strong>${escapeHtml(titleText)}</strong>
+              <div class="meta">${escapeHtml(metaText)}</div>
+            </div>
+            <span class="meta dqct-diff-summary-hint">Click to ${openByDefault ? 'collapse' : 'expand'} record</span>
+          </summary>
+          <div class="dqct-diff-record-content">
+      `;
+
+      const renderCardEnd = () => '</div></details>';
 
       node.innerHTML = `
         <div class="section">
           <h3>Added (${added.length})</h3>
-          <div class="dqct-diff-record-list">${added.length ? added.map((a) => `
-            <article class="dqct-diff-record-card">
-              <div class="dqct-diff-record-head">
-                <div>
-                  <strong>${escapeHtml(String(a.key))}</strong>
-                  <div class="meta">Comparison index: ${escapeHtml(String(a.comparisonIndex))}</div>
-                </div>
-              </div>
+          ${renderSectionControls('added', added.length)}
+          <div class="dqct-diff-record-list">${added.length ? added.map((a, idx) => `
+            ${renderCardStart('added', idx, String(a.key), `Comparison index: ${String(a.comparisonIndex)}`, startsExpanded(added.length))}
               <div class="dqct-diff-record-pane">
                 <div class="meta">Added record</div>
                 ${renderRecordPreview(a.record)}
               </div>
-            </article>
+            ${renderCardEnd()}
           `).join('') : '<div class="meta">No added records</div>'}</div>
         </div>
         <div class="section" style="margin-top:12px;">
           <h3>Removed (${removed.length})</h3>
-          <div class="profile-list">${removed.length ? removed.map(r=>`<div class="profile-item"><div style="min-width:0"><strong>${escapeHtml(String(r.key))}</strong><div class="meta">Baseline index: ${r.baselineIndex}</div></div><div>${renderRecordPreview(r.record)}</div></div>`).join('') : '<div class="meta">No removed records</div>'}</div>
+          ${renderSectionControls('removed', removed.length)}
+          <div class="dqct-diff-record-list">${removed.length ? removed.map((r, idx) => `
+            ${renderCardStart('removed', idx, String(r.key), `Baseline index: ${String(r.baselineIndex)}`, startsExpanded(removed.length))}
+              <div class="dqct-diff-record-pane">
+                <div class="meta">Removed record</div>
+                ${renderRecordPreview(r.record)}
+              </div>
+            ${renderCardEnd()}
+          `).join('') : '<div class="meta">No removed records</div>'}</div>
         </div>
         <div class="section" style="margin-top:12px;">
           <h3>Changed (${changed.length})</h3>
-          <div class="dqct-diff-record-list">${changed.length ? changed.map((c) => `
-            <article class="dqct-diff-record-card">
-              <div class="dqct-diff-record-head">
-                <div>
-                  <strong>${escapeHtml(String(c.key))}</strong>
-                  ${renderChangedFields(c.changedFields)}
-                </div>
-                <div class="meta">Baseline #${escapeHtml(String(c.baselineIndex))} -> Comparison #${escapeHtml(String(c.comparisonIndex))}</div>
-              </div>
+          ${renderSectionControls('changed', changed.length)}
+          <div class="dqct-diff-record-list">${changed.length ? changed.map((c, idx) => `
+            ${renderCardStart('changed', idx, String(c.key), `Baseline #${String(c.baselineIndex)} -> Comparison #${String(c.comparisonIndex)}`, startsExpanded(changed.length))}
+              ${renderChangedFields(c.changedFields)}
               <div class="dqct-diff-record-grid">
                 <div class="dqct-diff-record-pane">
                   <div class="meta">Before (baseline)</div>
@@ -497,10 +522,32 @@
                   ${renderRecordPreview(c.after)}
                 </div>
               </div>
-            </article>
+            ${renderCardEnd()}
           `).join('') : '<div class="meta">No changed records</div>'}</div>
         </div>
       `;
+
+      const toggleScopeCards = (scope, openState) => {
+        node.querySelectorAll(`details[data-diff-scope="${scope}"]`).forEach((card) => {
+          card.open = openState;
+        });
+      };
+
+      node.querySelectorAll('[data-diff-expand]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const scope = button.getAttribute('data-diff-expand');
+          if (!scope) return;
+          toggleScopeCards(scope, true);
+        });
+      });
+
+      node.querySelectorAll('[data-diff-collapse]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const scope = button.getAttribute('data-diff-collapse');
+          if (!scope) return;
+          toggleScopeCards(scope, false);
+        });
+      });
     }
 
     const exportFiles = getDiffExportFilenames();
