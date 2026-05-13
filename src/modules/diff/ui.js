@@ -1,13 +1,31 @@
 (function attachDQCTDiffUI(globalScope) {
   const defaultUniqueKey = globalScope.DQCTDiffEngine?.defaultUniqueKey || "ProjectCode";
   const TAB_STORAGE_KEY = "dqct.app.activeTab.v1";
+  const DIFF_CHANGED_FIELDS_ONLY_KEY = "dqct.diff.changedFieldsOnly.v1";
+
+  function readChangedFieldsOnlyPreference() {
+    try {
+      return localStorage.getItem(DIFF_CHANGED_FIELDS_ONLY_KEY) === "true";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function saveChangedFieldsOnlyPreference(value) {
+    try {
+      localStorage.setItem(DIFF_CHANGED_FIELDS_ONLY_KEY, value ? "true" : "false");
+    } catch (error) {
+      // Ignore storage failures and keep in-memory state only.
+    }
+  }
+
   const state = {
     baselinePayload: null,
     comparisonPayload: null,
     baselineName: "",
     comparisonName: "",
     analysis: null,
-    showChangedFieldsOnly: false
+    showChangedFieldsOnly: readChangedFieldsOnlyPreference()
   };
 
   function escapeHtml(value) {
@@ -607,6 +625,7 @@
       const changedFieldsOnlyToggle = node.querySelector('#diffChangedFieldsOnlyToggle');
       changedFieldsOnlyToggle?.addEventListener('change', () => {
         state.showChangedFieldsOnly = Boolean(changedFieldsOnlyToggle.checked);
+        saveChangedFieldsOnlyPreference(state.showChangedFieldsOnly);
         renderDiffResults(analysis);
       });
     }
