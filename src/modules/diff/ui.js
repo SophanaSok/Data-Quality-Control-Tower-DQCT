@@ -188,6 +188,7 @@
     changedFieldFilter: changedFieldFilterPreference.fields,
     changedFieldFilterMode: changedFieldFilterPreference.mode,
     visibleScopes: readVisibleScopesPreference(),
+    shouldAnnounceFilterSummary: false,
     diffShortcutsBound: false,
     diffHelpOutsideCleanup: null
   };
@@ -1138,6 +1139,7 @@
       node.querySelectorAll('[data-diff-field-filter]').forEach((button) => {
         button.addEventListener('click', () => {
           const selected = String(button.getAttribute('data-diff-field-filter') || '').trim();
+          state.shouldAnnounceFilterSummary = true;
           if (!selected) {
             state.changedFieldFilter = [];
             saveChangedFieldFilterPreference({
@@ -1167,6 +1169,7 @@
       });
 
       node.querySelector('[data-diff-field-mode]')?.addEventListener('click', () => {
+        state.shouldAnnounceFilterSummary = true;
         state.changedFieldFilterMode = state.changedFieldFilterMode === 'and' ? 'or' : 'and';
         saveChangedFieldFilterPreference({
           fields: state.changedFieldFilter,
@@ -1309,6 +1312,7 @@
       });
 
       node.querySelector('[data-diff-empty-clear-filter]')?.addEventListener('click', () => {
+        state.shouldAnnounceFilterSummary = true;
         state.diffFilterQuery = '';
         state.changedFieldFilter = [];
         saveDiffFilterQueryPreference('');
@@ -1326,6 +1330,7 @@
       });
 
       node.querySelector('[data-diff-clear-query]')?.addEventListener('click', () => {
+        state.shouldAnnounceFilterSummary = true;
         state.diffFilterQuery = '';
         saveDiffFilterQueryPreference('');
         announceDiffStatus('Query filter cleared.');
@@ -1333,6 +1338,7 @@
       });
 
       node.querySelector('[data-diff-clear-field-filters]')?.addEventListener('click', () => {
+        state.shouldAnnounceFilterSummary = true;
         state.changedFieldFilter = [];
         saveChangedFieldFilterPreference({
           fields: state.changedFieldFilter,
@@ -1343,6 +1349,7 @@
       });
 
       node.querySelector('[data-diff-clear-all-filters]')?.addEventListener('click', () => {
+        state.shouldAnnounceFilterSummary = true;
         state.diffFilterQuery = '';
         state.changedFieldFilter = [];
         saveDiffFilterQueryPreference('');
@@ -1432,6 +1439,7 @@
           .filter(Boolean);
         const fieldMode = state.changedFieldFilterMode === 'and' ? 'and' : 'or';
         let totalVisibleAcrossScopes = 0;
+        const visibleByScope = { added: 0, removed: 0, changed: 0 };
         ['added', 'removed', 'changed'].forEach((scope) => {
           const cards = Array.from(node.querySelectorAll(`details[data-diff-scope="${scope}"]`));
           let visibleCount = 0;
@@ -1454,6 +1462,7 @@
           if (counter) {
             counter.textContent = String(visibleCount);
           }
+          visibleByScope[scope] = visibleCount;
           const sectionVisible = state.visibleScopes?.[scope] !== false;
           if (sectionVisible) {
             totalVisibleAcrossScopes += visibleCount;
@@ -1465,6 +1474,12 @@
         const filterEmptyNode = node.querySelector('[data-diff-filter-empty]');
         if (filterEmptyNode) {
           filterEmptyNode.classList.toggle('hidden', !shouldShowFilterEmpty);
+        }
+
+        if (state.shouldAnnounceFilterSummary) {
+          const summary = `${totalVisibleAcrossScopes} records visible. Added ${visibleByScope.added}, Removed ${visibleByScope.removed}, Changed ${visibleByScope.changed}.`;
+          announceDiffStatus(summary);
+          state.shouldAnnounceFilterSummary = false;
         }
       };
 
@@ -1534,12 +1549,14 @@
 
       const recordFilterInput = node.querySelector('#diffRecordFilterInput');
       recordFilterInput?.addEventListener('input', () => {
+        state.shouldAnnounceFilterSummary = true;
         state.diffFilterQuery = String(recordFilterInput.value || '');
         saveDiffFilterQueryPreference(state.diffFilterQuery);
         applyRecordFilter(state.diffFilterQuery);
       });
 
       node.querySelector('#diffRecordFilterClear')?.addEventListener('click', () => {
+        state.shouldAnnounceFilterSummary = true;
         state.diffFilterQuery = '';
         state.changedFieldFilter = [];
         saveDiffFilterQueryPreference('');
