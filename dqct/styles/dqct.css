@@ -341,6 +341,16 @@
         color: var(--text);
       }
 
+      :root[data-theme="dark"] select option {
+        background: #122031;
+        color: #f7fbff;
+      }
+
+      :root[data-theme="dark"] select optgroup {
+        background: #0f1a28;
+        color: #cfe3f7;
+      }
+
       textarea {
         min-height: 180px;
         resize: vertical;
