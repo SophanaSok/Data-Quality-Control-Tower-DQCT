@@ -194,10 +194,6 @@
         return window.DQCTProfiles.loadRuns(RUN_KEY);
       }
 
-      function pruneRuns(runs) {
-        return window.DQCTProfiles.pruneRuns(runs);
-      }
-
       function openHistoryDb() {
         return new Promise((resolve, reject) => {
           if (!window.indexedDB) {
@@ -478,10 +474,6 @@
         render();
       }
 
-      function parseDocumentCollection(value) {
-        return window.DQCTValidationEngine.parseDocumentCollection(value);
-      }
-
       function inferFieldType(value) {
         if (value === null || value === undefined || value === "") {
           return "empty";
@@ -714,18 +706,6 @@
 
       function isEmpty(value) {
         return window.DQCTValidationEngine.isEmpty(value);
-      }
-
-      function formatValue(value) {
-        return window.DQCTValidationEngine.formatValue(value);
-      }
-
-      function applyRule(rule, record, recordIndex) {
-        return window.DQCTValidationEngine.applyRule(rule, record, recordIndex, {
-          runtimeOverrides: state.runtimeOverrides,
-          getPrimaryId,
-          inferFieldType
-        });
       }
 
       async function validateRun() {
