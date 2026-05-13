@@ -1144,6 +1144,7 @@
               fields: state.changedFieldFilter,
               mode: state.changedFieldFilterMode
             });
+            announceDiffStatus('Changed field filters cleared.');
             renderDiffResults(analysis);
             return;
           }
@@ -1152,8 +1153,10 @@
             : [];
           if (current.includes(selected)) {
             state.changedFieldFilter = current.filter((field) => field !== selected);
+            announceDiffStatus(`${selected} removed from changed field filters.`);
           } else {
             state.changedFieldFilter = [...current, selected];
+            announceDiffStatus(`${selected} added to changed field filters.`);
           }
           saveChangedFieldFilterPreference({
             fields: state.changedFieldFilter,
@@ -1169,6 +1172,7 @@
           fields: state.changedFieldFilter,
           mode: state.changedFieldFilterMode
         });
+        announceDiffStatus(`Changed field filter mode set to ${state.changedFieldFilterMode.toUpperCase()}.`);
         renderDiffResults(analysis);
       });
 
@@ -1312,6 +1316,7 @@
           fields: state.changedFieldFilter,
           mode: state.changedFieldFilterMode
         });
+        announceDiffStatus('All filters cleared.');
         const input = node.querySelector('#diffRecordFilterInput');
         if (input) {
           input.value = '';
@@ -1323,6 +1328,7 @@
       node.querySelector('[data-diff-clear-query]')?.addEventListener('click', () => {
         state.diffFilterQuery = '';
         saveDiffFilterQueryPreference('');
+        announceDiffStatus('Query filter cleared.');
         renderDiffResults(analysis);
       });
 
@@ -1332,6 +1338,7 @@
           fields: state.changedFieldFilter,
           mode: state.changedFieldFilterMode
         });
+        announceDiffStatus('Changed field filters cleared.');
         renderDiffResults(analysis);
       });
 
@@ -1343,6 +1350,7 @@
           fields: state.changedFieldFilter,
           mode: state.changedFieldFilterMode
         });
+        announceDiffStatus('All filters cleared.');
         renderDiffResults(analysis);
       });
 
@@ -1539,6 +1547,7 @@
           fields: state.changedFieldFilter,
           mode: state.changedFieldFilterMode
         });
+        announceDiffStatus('All filters cleared.');
         if (recordFilterInput) {
           recordFilterInput.value = '';
           recordFilterInput.focus();
