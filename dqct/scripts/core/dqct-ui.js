@@ -1,5 +1,7 @@
       let validationResultsTable = null;
+      let recordSummariesTable = null;
       let recordViewerModal = null;
+      let _lastIssueGroupsKey = null;
 
       function getRecordForResult(result) {
         const file = state.files.find((entry) => entry.name === result.fileName);
@@ -205,6 +207,34 @@
               }
             },
             { key: "action", sortable: false, render: (result) => `<button type="button" class="ghost" data-row-ticket="${escapeHtml(issueGroupKey(result))}">Ticket</button>` }
+          ]
+        });
+      }
+
+      function ensureRecordSummariesTable() {
+        if (recordSummariesTable || !window.DQCTTable?.create) {
+          return;
+        }
+        const formatQaStatus = (record) => {
+          const status = record.qa_status;
+          const statusClass = status === 'FAIL' ? 'high' : status === 'PASS_WITH_WARNINGS' ? 'medium' : 'info';
+          return `<span class="pill ${statusClass}">${escapeHtml(status)}</span>`;
+        };
+        recordSummariesTable = window.DQCTTable.create({
+          tableElement: els.recordSummariesTable,
+          bodyElement: els.recordSummariesBody,
+          pageSize: 25,
+          columns: [
+            { key: 'row_number', label: '#' },
+            { key: 'file_name', label: 'File' },
+            { key: 'AgentID', label: 'Agent ID' },
+            { key: 'ProjectCode', label: 'Project Code' },
+            { key: 'Title', label: 'Title' },
+            { key: 'BidStatus', label: 'Bid Status' },
+            { key: 'qa_status', label: 'QA Status', render: formatQaStatus },
+            { key: 'error_count', label: 'Errors' },
+            { key: 'warning_count', label: 'Warnings' },
+            { key: 'info_count', label: 'Info' }
           ]
         });
       }
@@ -675,42 +705,45 @@
 
         // Always render issue groups for failures view
         if (state.viewMode === "failures") {
-          const grouped = state.currentIssueGroups.length ? state.currentIssueGroups : buildIssueGroups(state.results);
-          state.currentIssueGroups = grouped;
-          els.issueSummaryList.innerHTML = grouped
-            .map((issue) => {
-              const ticketText = buildTicketText(issue);
-              return `
-                <article class="issue-group">
-                  <div class="issue-group-head">
-                    <div>
-                      <strong>${escapeHtml(issue.field)} failed ${escapeHtml(issue.ruleType)}</strong>
-                      <div class="meta">Rule ${escapeHtml(issue.ruleId)} · ${escapeHtml(issue.severity)} severity · ${issue.count} affected rows</div>
-                      <div class="meta">Expected: ${escapeHtml(issue.expected || "See rule configuration")}</div>
+          const issueKey = state.results.length + ':' + (state.results[0]?.ruleId ?? '') + ':' + state.viewMode;
+          if (issueKey !== _lastIssueGroupsKey) {
+            _lastIssueGroupsKey = issueKey;
+            const grouped = state.currentIssueGroups.length ? state.currentIssueGroups : buildIssueGroups(state.results);
+            state.currentIssueGroups = grouped;
+            els.issueSummaryList.innerHTML = grouped
+              .map((issue) => {
+                const ticketText = buildTicketText(issue);
+                return `
+                  <article class="issue-group">
+                    <div class="issue-group-head">
+                      <div>
+                        <strong>${escapeHtml(issue.field)} failed ${escapeHtml(issue.ruleType)}</strong>
+                        <div class="meta">Rule ${escapeHtml(issue.ruleId)} · ${escapeHtml(issue.severity)} severity · ${issue.count} affected rows</div>
+                        <div class="meta">Expected: ${escapeHtml(issue.expected || "See rule configuration")}</div>
+                      </div>
+                      <div class="issue-actions">
+                        <button type="button" class="secondary" data-preview-ticket="${escapeHtml(issue.key)}">Preview ticket</button>
+                        <button type="button" data-copy-ticket="${escapeHtml(issue.key)}">Copy ticket</button>
+                      </div>
                     </div>
-                    <div class="issue-actions">
-                      <button type="button" class="secondary" data-preview-ticket="${escapeHtml(issue.key)}">Preview ticket</button>
-                      <button type="button" data-copy-ticket="${escapeHtml(issue.key)}">Copy ticket</button>
-                    </div>
-                  </div>
-                  <div class="meta" style="margin-top: 0.65rem;">Samples: ${escapeHtml(issue.samples.map((sample) => `${sample.primaryId || sample.recordIndex}`).join(", "))}</div>
-                  <div class="ticket-preview hidden" data-ticket-preview="${escapeHtml(issue.key)}">${escapeHtml(ticketText)}</div>
-                </article>`;
-            })
-            .join("");
+                    <div class="meta" style="margin-top: 0.65rem;">Samples: ${escapeHtml(issue.samples.map((sample) => `${sample.primaryId || sample.recordIndex}`).join(", "))}</div>
+                    <div class="ticket-preview hidden" data-ticket-preview="${escapeHtml(issue.key)}">${escapeHtml(ticketText)}</div>
+                  </article>`;
+              })
+              .join("");
+          }
         }
       }
 
       function renderRecordSummaries() {
         if (!state.recordSummaries.length) {
-          els.recordSummariesBody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 2rem;">No record summaries available.</td></tr>';
+          if (recordSummariesTable) {
+            recordSummariesTable.clear();
+          } else {
+            els.recordSummariesBody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 2rem;">No record summaries available.</td></tr>';
+          }
           return;
         }
-
-        const formatQaStatus = (status) => {
-          const statusClass = status === "FAIL" ? "high" : status === "PASS_WITH_WARNINGS" ? "medium" : "info";
-          return `<span class="pill ${statusClass}">${escapeHtml(status)}</span>`;
-        };
 
         // Optionally filter record summaries when a duplicate filter is active
         let summariesToRender = state.recordSummaries;
@@ -729,23 +762,12 @@
           summariesToRender = state.recordSummaries.filter((record) => set.has(`${record.file_name}#${record.row_number}`));
         }
 
-        els.recordSummariesBody.innerHTML = summariesToRender
-          .map((record) => `
-            <tr>
-              <td>${escapeHtml(String(record.row_number))}</td>
-              <td>${escapeHtml(record.file_name)}</td>
-              <td>${escapeHtml(record.AgentID)}</td>
-              <td>${escapeHtml(record.ProjectCode)}</td>
-              <td>${escapeHtml(record.Title)}</td>
-              <td>${escapeHtml(record.BidStatus)}</td>
-              <td>${formatQaStatus(record.qa_status)}</td>
-              <td>${record.error_count}</td>
-              <td>${record.warning_count}</td>
-              <td>${record.info_count}</td>
-            </tr>
-          `)
-          .join("");
+        ensureRecordSummariesTable();
+        if (recordSummariesTable) {
+          recordSummariesTable.update(summariesToRender);
+        }
       }
+
 
       function renderNearDuplicates() {
         if (!state.exactDuplicates.length && !state.nearDuplicates.length) {
