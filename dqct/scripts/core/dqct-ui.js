@@ -2,6 +2,8 @@
       let recordSummariesTable = null;
       let recordViewerModal = null;
       let _lastIssueGroupsKey = null;
+      let _lastHistoryKey = null;
+      let _lastIssuesFeedKey = null;
 
       function getRecordForResult(result) {
         const file = state.files.find((entry) => entry.name === result.fileName);
@@ -315,19 +317,23 @@
         els.dashboardOpenIssuesMeta.textContent = latestRun ? `${latestRun.failureCount} failures on the latest run` : "No validation run yet";
         els.historyBadge.textContent = `${filteredRuns.length}/${runs.length} stored`;
 
-        els.runHistoryBody.innerHTML = filteredRuns.slice(0, 12).length
-          ? filteredRuns.slice(0, 12).map((run) => `
-            <tr>
-              <td>${escapeHtml(run.timestamp.replace("T", " ").slice(0, 19))}</td>
-              <td>${escapeHtml(run.profileName)}</td>
-              <td>${escapeHtml(formatRunFiles(run))}</td>
-              <td>${run.rowCount || 0}</td>
-              <td>${run.ruleCount ?? activeProfile().rules.filter((rule) => rule.enabled && !state.runtimeOverrides.has(rule.id)).length}</td>
-              <td>${Math.round((run.passRate || 0) * 100)}%</td>
-              <td>${run.anomalyCount || 0}</td>
-              <td><span class="badge ${run.failureCount > 0 ? "warn" : "good"}">${run.failureCount > 0 ? "issues" : "clean"}</span></td>
-            </tr>`).join("")
-          : '<tr><td colspan="8" class="muted">Run validation to populate local history.</td></tr>';
+        const historyKey = filteredRuns.length + ':' + (filteredRuns[0]?.timestamp ?? '');
+        if (historyKey !== _lastHistoryKey) {
+          _lastHistoryKey = historyKey;
+          els.runHistoryBody.innerHTML = filteredRuns.slice(0, 12).length
+            ? filteredRuns.slice(0, 12).map((run) => `
+              <tr>
+                <td>${escapeHtml(run.timestamp.replace("T", " ").slice(0, 19))}</td>
+                <td>${escapeHtml(run.profileName)}</td>
+                <td>${escapeHtml(formatRunFiles(run))}</td>
+                <td>${run.rowCount || 0}</td>
+                <td>${run.ruleCount ?? activeProfile().rules.filter((rule) => rule.enabled && !state.runtimeOverrides.has(rule.id)).length}</td>
+                <td>${Math.round((run.passRate || 0) * 100)}%</td>
+                <td>${run.anomalyCount || 0}</td>
+                <td><span class="badge ${run.failureCount > 0 ? "warn" : "good"}">${run.failureCount > 0 ? "issues" : "clean"}</span></td>
+              </tr>`).join("")
+            : '<tr><td colspan="8" class="muted">Run validation to populate local history.</td></tr>';
+        }
 
         renderSparkline(recentRuns.map((run) => Math.round((run.passRate || 0) * 100)));
 
@@ -341,13 +347,17 @@
         }));
         const issueItems = [...latestIssues, ...anomalyIssues].slice(0, 10);
 
-        els.recentIssuesFeed.innerHTML = issueItems.length
-          ? issueItems.map((item) => `
-            <div class="issue-item">
-              <strong>${escapeHtml(item.title)}</strong>
-              <div class="meta">${escapeHtml(item.detail)}</div>
-            </div>`).join("")
-          : '<div class="issue-item"><strong>No current issues</strong><div class="meta">Validated runs and anomaly warnings will appear here.</div></div>';
+        const issuesFeedKey = state.results.length + ':' + state.currentAnomalies.length + ':' + (state.results[0]?.ruleId ?? '');
+        if (issuesFeedKey !== _lastIssuesFeedKey) {
+          _lastIssuesFeedKey = issuesFeedKey;
+          els.recentIssuesFeed.innerHTML = issueItems.length
+            ? issueItems.map((item) => `
+              <div class="issue-item">
+                <strong>${escapeHtml(item.title)}</strong>
+                <div class="meta">${escapeHtml(item.detail)}</div>
+              </div>`).join("")
+            : '<div class="issue-item"><strong>No current issues</strong><div class="meta">Validated runs and anomaly warnings will appear here.</div></div>';
+        }
       }
 
       function applyHistoryFilters(runs) {
@@ -1193,7 +1203,7 @@
           const editProfileName = target.getAttribute("data-edit-profile");
           if (editProfileName) {
             state.editingProfile = editProfileName;
-            render();
+            renderProfileList();
             return;
           }
 
@@ -1211,7 +1221,8 @@
               if (!ok) alert(`Unable to rename profile ${saveProfileOld} to ${newName}. Name might already exist.`);
             }
             state.editingProfile = null;
-            render();
+            renderProfileList();
+            renderSummary();
             return;
           }
 
@@ -1225,7 +1236,7 @@
             if (typeof saveUiState === "function") {
               saveUiState();
             }
-            render();
+            renderRules();
             return;
           }
 
@@ -1237,14 +1248,14 @@
             if (typeof saveUiState === "function") {
               saveUiState();
             }
-            render();
+            renderRules();
             return;
           }
 
           const cancelEdit = target.getAttribute("data-cancel-edit");
           if (cancelEdit) {
             state.editingProfile = null;
-            render();
+            renderProfileList();
             return;
           }
 
@@ -1330,7 +1341,8 @@
         const nextProfile = { ...profile, rules: nextRules };
         state.profiles = state.profiles.map((item) => (item.profile_name === profile.profile_name ? nextProfile : item));
         saveProfiles();
-        render();
+        renderRules();
+        renderResults();
       }
 
       function patchRuleExtras(ruleId, text) {
@@ -1372,7 +1384,8 @@
         const nextProfile = { ...profile, rules: nextRules };
         state.profiles = state.profiles.map((item) => (item.profile_name === profile.profile_name ? nextProfile : item));
         saveProfiles();
-        render();
+        renderRules();
+        renderResults();
       }
 
       async function initialize() {

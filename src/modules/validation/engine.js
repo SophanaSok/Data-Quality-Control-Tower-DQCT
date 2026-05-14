@@ -160,7 +160,11 @@
     }
 
     if (rule.type === "regex") {
-      if (!isEmpty(value) && !new RegExp(rule.pattern).test(String(value))) {
+      const compiledPatterns = options?.compiledPatterns || new Map();
+      const regex = compiledPatterns.get(rule.id);
+      if (!isEmpty(value) && regex && !regex.test(String(value))) {
+        fail(`pattern ${rule.pattern}`, value);
+      } else if (!isEmpty(value) && !regex) {
         fail(`pattern ${rule.pattern}`, value);
       }
       return failures;
@@ -362,6 +366,18 @@
     const inferFieldType = options?.inferFieldType || ((input) => typeof input);
     const fingerprintFields = getFingerprintFields();
 
+    // Pre-compile regex patterns to avoid recompilation per record
+    const compiledPatterns = new Map();
+    rules.forEach((rule) => {
+      if (rule.type === 'regex' && rule.pattern) {
+        try {
+          compiledPatterns.set(rule.id, new RegExp(rule.pattern));
+        } catch (e) {
+          compiledPatterns.set(rule.id, null);
+        }
+      }
+    });
+
     files.forEach((file) => {
       if (file.status === "error") {
         results.push({
@@ -425,7 +441,7 @@
           if (rule.type === "unique") {
             return;
           }
-          const failures = applyRule(rule, record, recordIndex + 1, { runtimeOverrides, getPrimaryId, inferFieldType });
+          const failures = applyRule(rule, record, recordIndex + 1, { runtimeOverrides, getPrimaryId, inferFieldType, compiledPatterns });
           failures.forEach((failure) => {
             results.push({
               fileName: file.name,
