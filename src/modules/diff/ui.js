@@ -1202,39 +1202,114 @@
         updateScopeVisibility('changed', true);
       });
 
-      node.querySelectorAll('[data-diff-field-filter]').forEach((button) => {
-        button.addEventListener('click', () => {
-          const selected = String(button.getAttribute('data-diff-field-filter') || '').trim();
-          state.shouldAnnounceFilterSummary = true;
-          if (!selected) {
-            state.changedFieldFilter = [];
-            saveChangedFieldFilterPreference({
-              fields: state.changedFieldFilter,
-              mode: state.changedFieldFilterMode
-            });
-            announceDiffStatus('Changed field filters cleared.');
-            applyRecordFilter(state.diffFilterQuery);
-            return;
-          }
-          const current = Array.isArray(state.changedFieldFilter)
-            ? state.changedFieldFilter.map((field) => String(field || '').trim()).filter(Boolean)
-            : [];
-          if (current.includes(selected)) {
-            state.changedFieldFilter = current.filter((field) => field !== selected);
-            announceDiffStatus(`${selected} removed from changed field filters.`);
+      const updateFieldBadgeUI = () => {
+        const activeChangedFieldFilters = Array.isArray(state.changedFieldFilter)
+          ? state.changedFieldFilter.map((field) => String(field || '').trim()).filter(Boolean)
+          : [];
+        const activeChangedFieldFilterSet = new Set(activeChangedFieldFilters);
+        const activeFieldMode = state.changedFieldFilterMode === 'and' ? 'and' : 'or';
+        const hasActiveFieldFilters = activeChangedFieldFilters.length > 0;
+        const hasActiveQuery = Boolean(state.diffFilterQuery && state.diffFilterQuery.trim());
+        const hasAnyActiveFilters = hasActiveQuery || hasActiveFieldFilters;
+
+        const badgeContainer = node.querySelector('[data-diff-field-badges]');
+        if (badgeContainer) {
+          const sortedChangedFields = Array.from(changedFieldsSet || new Set()).sort((a, b) => String(a).localeCompare(String(b)));
+          const orderedChangedFields = [
+            ...activeChangedFieldFilters.filter((field, index, all) => all.indexOf(field) === index && sortedChangedFields.includes(field)),
+            ...sortedChangedFields.filter((field) => !activeChangedFieldFilterSet.has(field))
+          ];
+          badgeContainer.innerHTML = `
+            <span class="meta">Changed fields:</span>
+            <button type="button" class="dqct-field-badge ${activeChangedFieldFilters.length ? '' : 'is-active'}" data-diff-field-filter="">All fields</button>
+            ${orderedChangedFields.map((field) => {
+              const active = activeChangedFieldFilterSet.has(field);
+              if (!active) {
+                return `<button type="button" class="dqct-field-badge" data-diff-field-filter="${escapeHtml(field)}">${escapeHtml(field)} <span class="dqct-field-badge__count">${changedFieldCounts[field]}</span></button>`;
+              }
+              const activeIndex = activeChangedFieldFilters.indexOf(field);
+              const isFirst = activeIndex <= 0;
+              const isLast = activeIndex === activeChangedFieldFilters.length - 1;
+              const leftTitle = isFirst ? 'Already first' : 'Move left';
+              const rightTitle = isLast ? 'Already last' : 'Move right';
+              const leftAriaLabel = isFirst ? `Already first: ${field}` : `Move ${field} left`;
+              const rightAriaLabel = isLast ? `Already last: ${field}` : `Move ${field} right`;
+              return `
+                <span class="dqct-field-badge-group" data-diff-field-group="${escapeHtml(field)}">
+                  <button type="button" class="dqct-field-badge is-active dqct-field-badge--pinned" data-diff-field-filter="${escapeHtml(field)}" draggable="true">${escapeHtml(field)} <span class="dqct-field-badge__count">${changedFieldCounts[field]}</span></button>
+                  <button type="button" class="dqct-field-move" aria-label="${escapeHtml(leftAriaLabel)}" title="${escapeHtml(leftTitle)}" data-diff-field-move="left" data-diff-field-value="${escapeHtml(field)}" ${isFirst ? 'disabled aria-disabled="true"' : ''}>◀</button>
+                  <button type="button" class="dqct-field-move" aria-label="${escapeHtml(rightAriaLabel)}" title="${escapeHtml(rightTitle)}" data-diff-field-move="right" data-diff-field-value="${escapeHtml(field)}" ${isLast ? 'disabled aria-disabled="true"' : ''}>▶</button>
+                </span>
+              `;
+            }).join('')}
+            <button type="button" class="ghost" data-diff-field-mode>Mode: ${activeFieldMode.toUpperCase()}</button>
+          `;
+        }
+
+        const activeFiltersNode = node.querySelector('[data-diff-active-filters]');
+        if (hasAnyActiveFilters) {
+          const activeFilterHTML = `
+            <div class="dqct-diff-active-filters" data-diff-active-filters>
+              <span class="meta">Active filters:</span>
+              ${hasActiveQuery ? `<span class="dqct-active-filter-chip">Query: ${escapeHtml(state.diffFilterQuery)}</span>` : ''}
+              ${hasActiveFieldFilters ? `<span class="dqct-active-filter-chip">Fields: ${escapeHtml(activeChangedFieldFilters.join(', '))}</span>` : ''}
+              ${hasActiveFieldFilters ? `<span class="dqct-active-filter-chip">Mode: ${activeFieldMode.toUpperCase()}</span>` : ''}
+              ${hasActiveQuery ? '<button type="button" class="ghost" data-diff-clear-query>Clear query</button>' : ''}
+              ${hasActiveFieldFilters ? '<button type="button" class="ghost" data-diff-clear-field-filters>Clear fields</button>' : ''}
+              <button type="button" class="ghost" data-diff-clear-all-filters>Clear all</button>
+            </div>
+          `;
+          if (activeFiltersNode) {
+            activeFiltersNode.outerHTML = activeFilterHTML;
           } else {
-            state.changedFieldFilter = [...current, selected];
-            announceDiffStatus(`${selected} added to changed field filters.`);
+            const toolbar = node.querySelector('.dqct-diff-results-toolbar');
+            if (toolbar) {
+              const filterEmpty = node.querySelector('[data-diff-filter-empty]');
+              if (filterEmpty) {
+                filterEmpty.insertAdjacentHTML('beforebegin', activeFilterHTML);
+              }
+            }
           }
+        } else if (activeFiltersNode) {
+          activeFiltersNode.remove();
+        }
+
+        attachFieldBadgeListeners();
+      };
+
+      const fieldBadgeClickHandler = function() {
+        const selected = String(this.getAttribute('data-diff-field-filter') || '').trim();
+        state.shouldAnnounceFilterSummary = true;
+        if (!selected) {
+          state.changedFieldFilter = [];
           saveChangedFieldFilterPreference({
             fields: state.changedFieldFilter,
             mode: state.changedFieldFilterMode
           });
+          announceDiffStatus('Changed field filters cleared.');
           applyRecordFilter(state.diffFilterQuery);
+          updateFieldBadgeUI();
+          return;
+        }
+        const current = Array.isArray(state.changedFieldFilter)
+          ? state.changedFieldFilter.map((field) => String(field || '').trim()).filter(Boolean)
+          : [];
+        if (current.includes(selected)) {
+          state.changedFieldFilter = current.filter((field) => field !== selected);
+          announceDiffStatus(`${selected} removed from changed field filters.`);
+        } else {
+          state.changedFieldFilter = [...current, selected];
+          announceDiffStatus(`${selected} added to changed field filters.`);
+        }
+        saveChangedFieldFilterPreference({
+          fields: state.changedFieldFilter,
+          mode: state.changedFieldFilterMode
         });
-      });
+        applyRecordFilter(state.diffFilterQuery);
+        updateFieldBadgeUI();
+      };
 
-      node.querySelector('[data-diff-field-mode]')?.addEventListener('click', () => {
+      const fieldModeClickHandler = function() {
         state.shouldAnnounceFilterSummary = true;
         state.changedFieldFilterMode = state.changedFieldFilterMode === 'and' ? 'or' : 'and';
         saveChangedFieldFilterPreference({
@@ -1243,7 +1318,23 @@
         });
         announceDiffStatus(`Changed field filter mode set to ${state.changedFieldFilterMode.toUpperCase()}.`);
         applyRecordFilter(state.diffFilterQuery);
-      });
+        updateFieldBadgeUI();
+      };
+
+      const attachFieldBadgeListeners = () => {
+        node.querySelectorAll('[data-diff-field-filter]').forEach((button) => {
+          button.removeEventListener('click', fieldBadgeClickHandler);
+          button.addEventListener('click', fieldBadgeClickHandler);
+        });
+        node.querySelector('[data-diff-field-mode]')?.removeEventListener('click', fieldModeClickHandler);
+        node.querySelector('[data-diff-field-mode]')?.addEventListener('click', fieldModeClickHandler);
+        node.querySelectorAll('[data-diff-field-move]').forEach((button) => {
+          button.removeEventListener('click', fieldMoveClickHandler);
+          button.addEventListener('click', fieldMoveClickHandler);
+        });
+      };
+
+      attachFieldBadgeListeners();
 
       const pinnedFieldBadges = Array.from(node.querySelectorAll('.dqct-field-badge--pinned[data-diff-field-filter]'));
       const moveFieldPosition = (field, direction) => {
@@ -1274,18 +1365,9 @@
         });
         announceDiffStatus(`${normalizedField} moved to position ${oneBasedPosition} of ${total}.`);
         applyRecordFilter(state.diffFilterQuery);
+        updateFieldBadgeUI();
       };
 
-      node.querySelectorAll('[data-diff-field-move]').forEach((button) => {
-        button.addEventListener('click', () => {
-          const direction = String(button.getAttribute('data-diff-field-move') || '').trim();
-          const field = String(button.getAttribute('data-diff-field-value') || '').trim();
-          if ((direction !== 'left' && direction !== 'right') || !field) {
-            return;
-          }
-          moveFieldPosition(field, direction);
-        });
-      });
 
       const clearDropTargets = () => {
         pinnedFieldBadges.forEach((badge) => {
@@ -1356,6 +1438,7 @@
           announceDiffStatus(`${draggingField} moved to position ${oneBasedPosition} of ${total}.`);
           clearDropTargets();
           applyRecordFilter(state.diffFilterQuery);
+          updateFieldBadgeUI();
         });
 
         badge.addEventListener('keydown', (event) => {
