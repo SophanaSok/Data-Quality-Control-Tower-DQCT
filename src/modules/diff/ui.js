@@ -506,6 +506,7 @@
     }
     render(mountNode);
 
+    const node = document.getElementById("diffResults");
     const baselineInput = document.getElementById("diffBaselineInput");
     const comparisonInput = document.getElementById("diffComparisonInput");
     const baselineMeta = document.getElementById("diffBaselineMeta");
@@ -818,7 +819,6 @@
     });
 
     function renderDiffResults(analysis) {
-      const node = document.getElementById('diffResults');
       if (!node) return;
       if (!analysis || !analysis.diff) {
         node.innerHTML = '';
