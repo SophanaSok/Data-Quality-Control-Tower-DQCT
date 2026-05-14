@@ -1213,7 +1213,7 @@
               mode: state.changedFieldFilterMode
             });
             announceDiffStatus('Changed field filters cleared.');
-            renderDiffResults(analysis);
+            applyRecordFilter(state.diffFilterQuery);
             return;
           }
           const current = Array.isArray(state.changedFieldFilter)
@@ -1230,7 +1230,7 @@
             fields: state.changedFieldFilter,
             mode: state.changedFieldFilterMode
           });
-          renderDiffResults(analysis);
+          applyRecordFilter(state.diffFilterQuery);
         });
       });
 
@@ -1242,7 +1242,7 @@
           mode: state.changedFieldFilterMode
         });
         announceDiffStatus(`Changed field filter mode set to ${state.changedFieldFilterMode.toUpperCase()}.`);
-        renderDiffResults(analysis);
+        applyRecordFilter(state.diffFilterQuery);
       });
 
       const pinnedFieldBadges = Array.from(node.querySelectorAll('.dqct-field-badge--pinned[data-diff-field-filter]'));
@@ -1273,7 +1273,7 @@
           mode: state.changedFieldFilterMode
         });
         announceDiffStatus(`${normalizedField} moved to position ${oneBasedPosition} of ${total}.`);
-        renderDiffResults(analysis);
+        applyRecordFilter(state.diffFilterQuery);
       };
 
       node.querySelectorAll('[data-diff-field-move]').forEach((button) => {
@@ -1355,7 +1355,7 @@
           });
           announceDiffStatus(`${draggingField} moved to position ${oneBasedPosition} of ${total}.`);
           clearDropTargets();
-          renderDiffResults(analysis);
+          applyRecordFilter(state.diffFilterQuery);
         });
 
         badge.addEventListener('keydown', (event) => {
