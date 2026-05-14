@@ -36,11 +36,11 @@
             <span>Open validation reports and issue exports.</span>
           </button>
         </div>
-        <div class="section" style="margin-top: 1rem;">
+        <div class="section mt-1">
           <h3>Last run summary</h3>
           <p id="dashboardLastRunSummary" class="helper">No run history yet. Run validation or diff to populate summary data.</p>
         </div>
-        <div class="dashboard-grid" style="margin-top: 1rem;">
+        <div class="dashboard-grid mt-1">
           <div class="dashboard-card">
             <h3>Settings</h3>
             <p class="helper">Settings are stored in browser localStorage and shared by Validate + Diff.</p>
@@ -48,11 +48,11 @@
               <label for="settingsUniqueKey">Default unique key</label>
               <input id="settingsUniqueKey" type="text" placeholder="e.g. ProjectCode" />
             </div>
-            <div class="fieldset" style="margin-top: 0.75rem;">
+            <div class="fieldset mt-075">
               <label for="settingsIgnoreFields">Ignore fields (comma-separated)</label>
               <input id="settingsIgnoreFields" type="text" placeholder="e.g. LastUpdated,CreatedAt" />
             </div>
-            <div class="split" style="margin-top: 0.75rem;">
+            <div class="split mt-075">
               <div class="fieldset">
                 <label for="settingsTheme">Theme</label>
                 <select id="settingsTheme">
@@ -68,13 +68,13 @@
                 </select>
               </div>
             </div>
-            <div class="actions-row" style="justify-content: flex-start; margin-top: 0.75rem;">
+            <div class="actions-row mt-075 justify-start">
               <button id="settingsSaveButton" type="button">Save settings</button>
               <button id="settingsResetButton" type="button" class="ghost">Reset defaults</button>
             </div>
           </div>
           <div class="dashboard-card">
-            <div class="dashboard-head" style="margin-bottom: 0.5rem;">
+            <div class="dashboard-head mb-05">
               <div>
                 <h3>Recent Runs</h3>
                 <p class="helper">Last 10 local runs from Diff + Validate.</p>
@@ -110,7 +110,7 @@
             rule coverage, and Trello-ready defect summaries in one place. This version keeps the
             app self-contained: no build step, no framework, no backend.
           </p>
-          <div class="toolbar" style="margin-top: 1.4rem;">
+          <div class="toolbar mt-14">
             <div class="group">
               <span class="chip" data-tone="high">Core validation</span>
               <span class="chip" data-tone="medium">Profile-aware rules</span>
@@ -182,22 +182,22 @@
 
         <div class="dashboard-grid">
           <div class="dashboard-card">
-            <div class="dashboard-head" style="margin-bottom: 0.5rem;">
+            <div class="dashboard-head mb-05">
               <div>
                 <h3>Run history</h3>
                 <p class="helper">Latest 12 validated runs for the active profile, stored locally in IndexedDB.</p>
-                <div class="run-history-filters" style="margin-top:0.5rem; display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
-                  <label style="display:flex; gap:0.25rem; align-items:center;"><span class="meta">Status</span>
+                <div class="run-history-filters filters-row">
+                  <label class="label-inline"><span class="meta">Status</span>
                     <select id="runFilterStatus"><option value="all">All</option><option value="issues">Issues</option><option value="clean">Clean</option></select>
                   </label>
-                  <label style="display:flex; gap:0.25rem; align-items:center;"><span class="meta">From</span>
+                  <label class="label-inline"><span class="meta">From</span>
                     <input id="runFilterFrom" type="date" />
                   </label>
-                  <label style="display:flex; gap:0.25rem; align-items:center;"><span class="meta">To</span>
+                  <label class="label-inline"><span class="meta">To</span>
                     <input id="runFilterTo" type="date" />
                   </label>
-                  <label style="flex:1; display:flex; gap:0.5rem; align-items:center;">
-                    <input id="runFilterSearch" type="search" placeholder="Search runs by file, profile or id" style="width:100%;" />
+                  <label class="label-inline--grow">
+                    <input id="runFilterSearch" type="search" placeholder="Search runs by file, profile or id" class="w-100" />
                   </label>
                 </div>
               </div>
@@ -228,7 +228,7 @@
             <svg id="trendSparkline" class="sparkline" viewBox="0 0 400 140" aria-label="Pass rate sparkline"></svg>
             <div class="issue-feed">
               <div>
-                <h3 style="margin-bottom: 0.35rem;">Recent issues</h3>
+                <h3 class="mb-035">Recent issues</h3>
                 <p class="helper">Last 10 issues from the current run, followed by any active anomaly warnings.</p>
               </div>
               <div id="recentIssuesFeed" class="issue-feed"></div>
@@ -310,7 +310,7 @@
                 <input id="newRootArray" type="text" placeholder="Export" />
               </div>
             </div>
-            <div class="actions-row" style="margin-top: 0.8rem;">
+            <div class="actions-row mt-075">
               <button id="cloneProfileButton" type="button">Clone profile</button>
               <button id="importSchemaButton" type="button" class="secondary">Import schema</button>
               <button id="saveProfileButton" type="button" class="secondary">Save active profile</button>
@@ -318,7 +318,7 @@
             </div>
             <input id="schemaImportInput" class="hidden" type="file" accept=".json,application/json" />
             <div class="footer-note">Import schema creates a draft profile from a sample JSON file so you can review inferred required and type rules before saving.</div>
-            <div class="profile-list" id="profileList" style="margin-top: 1rem;"></div>
+            <div class="profile-list mt-1" id="profileList"></div>
           </div>
 
           <div class="file-card">
@@ -342,7 +342,7 @@
                 <span id="incomingSchemaFields" class="meta">Uploaded fields are summarized after validation.</span>
               </div>
             </div>
-            <div class="drift-grid" style="margin-top: 0.75rem;">
+            <div class="drift-grid mt-075">
               <div>
                 <label>Added fields</label>
                 <div id="addedFieldsList" class="drift-list"></div>
@@ -352,16 +352,16 @@
                 <div id="removedFieldsList" class="drift-list"></div>
               </div>
             </div>
-            <div style="margin-top: 0.75rem;">
+            <div class="mt-075">
               <label>Type changes</label>
               <div id="typeChangesList" class="drift-list"></div>
             </div>
-            <div style="margin-top: 0.75rem;">
+            <div class="mt-075">
               <label>Side-by-side diff</label>
-              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;"><button id="exportBundleDrift" type="button" class="ghost">Export Bundle</button></div>
+              <div class="flex-row-gap-center"><button id="exportBundleDrift" type="button" class="ghost">Export Bundle</button></div>
               <div id="driftDiffList" class="drift-list"></div>
             </div>
-            <div style="margin-top: 0.75rem;">
+            <div class="mt-075">
               <label>Anomaly warnings</label>
               <div id="anomaliesList" class="drift-list"></div>
             </div>
@@ -370,27 +370,27 @@
         </div>
       </section>
 
-      <section class="table-card" style="margin-top: var(--space-4);">
+      <section class="table-card mt-space-4">
         <h2>Validation results</h2>
         
         <div id="failureViewHelper" class="helper">Each row records the file, record index, primary ID, violated rule, expected value, actual value, and severity.</div>
         <div id="recordViewHelper" class="helper hidden">Each row represents a validated record with aggregated status, error count, and warning count.</div>
         <div id="nearDuplicateHelper" class="helper hidden">Duplicate groups include exact matches by fingerprint and near-duplicates with the same Agent ID + Project Code but different fingerprints.</div>
-        <div id="duplicateSummaryBar" class="helper hidden" style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.35rem;">
+        <div id="duplicateSummaryBar" class="helper hidden flex-row-gap-center-top">
           <button type="button" class="pill high" data-duplicate-filter="exact" aria-pressed="false">Exact groups: <strong id="exactDuplicateGroupCount">0</strong></button>
           <button type="button" class="pill medium" data-duplicate-filter="near" aria-pressed="false">Near groups: <strong id="nearDuplicateGroupCount">0</strong></button>
           <button type="button" class="pill info" data-duplicate-filter="all" aria-pressed="false">Affected records: <strong id="duplicateRecordCount">0</strong></button>
         </div>
         
-        <div class="actions-row" style="justify-content: space-between; margin-bottom: 0.75rem;">
-          <div style="display: flex; gap: 0.5rem;">
+        <div class="actions-row justify-space-between mb-075">
+          <div class="flex-gap-05">
             <button id="downloadIssuesButton" type="button" class="secondary">Download all issues JSON</button>
             <button id="downloadRecordSummariesButton" type="button" class="secondary hidden">Download record summaries JSON</button>
             <button id="downloadNearDuplicatesButton" type="button" class="secondary hidden">Download duplicate groups JSON</button>
           </div>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <label for="viewToggle" style="font-size: 0.9rem; font-weight: 500;">View:</label>
-            <select id="viewToggle" style="padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid var(--border);">
+          <div class="flex-gap-05 align-center">
+            <label for="viewToggle" class="label-compact">View:</label>
+            <select id="viewToggle" class="select-compact">
               <option value="failures">Failures (detailed)</option>
               <option value="records">Records (summary)</option>
             </select>
@@ -440,7 +440,7 @@
           </table>
         </div>
 
-        <div class="section" style="margin-top: 1rem;">
+        <div class="section mt-1">
           <h3>Issue report builder</h3>
           <p class="helper">Generate Trello-ready ticket text by grouped issue and copy it directly.</p>
           <div id="issueSummaryList" class="issue-groups"></div>

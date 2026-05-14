@@ -159,6 +159,11 @@
         showAll: document.getElementById("showAll")
       };
 
+      // Development DOM null-guard: warn if expected elements are missing
+      Object.entries(els).forEach(([key, el]) => {
+        if (!el) console.warn(`[DQCT] Missing DOM element: "${key}"`);
+      });
+
       function loadProfiles() {
         return window.DQCTProfiles.loadProfiles(STORAGE_KEY, defaultProfile);
       }
@@ -447,8 +452,10 @@
             const text = await readTextFile(file);
             const json = window.DQCTParser.parseJsonText(text);
             const extracted = extractRecordsFromPayload(json);
-            if (!extracted) {
-              throw new Error('Root must be an array or an object with an "Export" array.');
+            if (!extracted || extracted.records == null) {
+              const message = (extracted && extracted.error) || 'Root must be an array or an object with an "Export" array.';
+              window.DQCTToasts?.showError?.(message);
+              throw new Error(message);
             }
 
             parsedFiles.push({
@@ -808,8 +815,55 @@
         const payload = window.DQCTParser.parseJsonText(text);
         const extracted = extractRecordsFromPayload(payload);
 
+        // If payload looks like a profile object, validate and import directly
+        if (payload && typeof payload === 'object' && payload.profile_name && Array.isArray(payload.rules)) {
+          const validation = (function validateProfile(profile) {
+            if (!profile.profile_name || typeof profile.profile_name !== 'string') {
+              return { valid: false, message: 'Imported profile missing required "profile_name" string.' };
+            }
+            if (!Array.isArray(profile.rules) || profile.rules.length === 0) {
+              return { valid: false, message: 'Imported profile must include a non-empty "rules" array.' };
+            }
+            for (let i = 0; i < profile.rules.length; i++) {
+              const rule = profile.rules[i] || {};
+              if (!rule.id || typeof rule.id !== 'string') {
+                return { valid: false, message: `Rule at index ${i} missing required "id" string.` };
+              }
+              if (!rule.field || typeof rule.field !== 'string') {
+                return { valid: false, message: `Rule ${rule.id || `<index ${i}>`} missing required "field" string.` };
+              }
+              if (!rule.type || typeof rule.type !== 'string') {
+                return { valid: false, message: `Rule ${rule.id} missing required "type" string.` };
+              }
+              if (!['high', 'medium', 'low'].includes(rule.severity)) {
+                return { valid: false, message: `Rule ${rule.id} has invalid "severity"; expected one of high, medium, low.` };
+              }
+            }
+            return { valid: true };
+          })(payload);
+
+          if (!validation.valid) {
+            window.DQCTToasts?.showError?.(validation.message);
+            throw new Error(validation.message);
+          }
+
+          const draftProfile = normalizeProfile(payload);
+          state.profiles = state.profiles.filter((profile) => profile.profile_name !== draftProfile.profile_name).concat(draftProfile);
+          state.activeProfileId = draftProfile.profile_name;
+          state.ruleSearch = "";
+          state.currentLayer = "all";
+          state.runtimeOverrides = new Set();
+          els.newProfileName.value = draftProfile.profile_name;
+          els.newRootArray.value = draftProfile.root_array || "Export";
+          saveProfiles();
+          render();
+          return draftProfile;
+        }
+
         if (!extracted || !extracted.records.length) {
-          throw new Error('Schema import requires a JSON array or an object with a non-empty "Export" array.');
+          const message = (extracted && extracted.error) || 'Schema import requires a JSON array or an object with a non-empty "Export" array.';
+          window.DQCTToasts?.showError?.(message);
+          throw new Error(message);
         }
 
         const draftProfile = buildImportedProfile(extracted.records, file.name, extracted.rootArray);
