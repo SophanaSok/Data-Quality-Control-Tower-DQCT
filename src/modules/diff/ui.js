@@ -715,7 +715,7 @@
       resetAnalysisState();
     });
 
-    analyzeButton.addEventListener("click", () => {
+    analyzeButton.addEventListener("click", async () => {
       if (!state.baselinePayload || !state.comparisonPayload) {
         summaryNode.classList.remove("hidden");
         summaryNode.innerHTML = '<div class="summary-box"><div class="meta">Missing files</div><strong>Upload both files</strong><div class="meta">Baseline and comparison are required.</div></div>';
@@ -729,9 +729,16 @@
         .map((field) => field.trim())
         .filter(Boolean);
 
-      const diff = globalScope.DQCTDiffEngine.diffRecords(state.baselinePayload, state.comparisonPayload, {
+      announceDiffStatus("Comparing records...");
+
+      const diffRunner = globalScope.DQCTDiffEngine.diffRecordsAsync || globalScope.DQCTDiffEngine.diffRecords;
+      const diff = await diffRunner(state.baselinePayload, state.comparisonPayload, {
         uniqueKey,
-        ignoreFields
+        ignoreFields,
+        batchSize: 500,
+        onProgress: ({ processed, total }) => {
+          announceDiffStatus(`Comparing record ${processed} of ${total}...`);
+        }
       });
       const duplicates = globalScope.DQCTDiffEngine.findDuplicates(state.baselinePayload, state.comparisonPayload, {
         uniqueKey
@@ -739,6 +746,7 @@
       const cleanExport = globalScope.DQCTDiffEngine.buildCleanExport(diff);
 
       state.analysis = { diff, duplicates, cleanExport };
+      announceDiffStatus("Comparison complete.");
       renderSummary(summaryNode);
       renderDiffResults(state.analysis);
       enableExports(true);

@@ -10,6 +10,7 @@
 
 (function () {
   const MODULE_NAME = "DQCTFingerprint";
+  const fingerprintCache = new Map();
 
   /**
    * Normalize string field: null → "", trim, collapse multiple spaces
@@ -140,12 +141,26 @@
     return payload;
   }
 
+  function getFingerprintCacheKey(record, uniqueKey = "ProjectCode") {
+    const normalizedKey = String(uniqueKey || "ProjectCode").trim() || "ProjectCode";
+    return `${normalizedKey}::${String(record?.[normalizedKey] ?? "").trim()}`;
+  }
+
+  function clearFingerprintCache() {
+    fingerprintCache.clear();
+  }
+
   /**
    * Generate SHA256 fingerprint from a record
    * Uses native crypto.subtle.digest if available (modern browsers)
    * Falls back to simple hash if crypto not available
    */
-  async function generateFingerprint(record) {
+  async function generateFingerprint(record, uniqueKey = "ProjectCode") {
+    const cacheKey = getFingerprintCacheKey(record, uniqueKey);
+    if (fingerprintCache.has(cacheKey)) {
+      return fingerprintCache.get(cacheKey);
+    }
+
     const payload = buildFingerprintPayload(record);
 
     // Create canonical JSON string (keys sorted)
@@ -158,13 +173,19 @@
         const data = encoder.encode(canonicalJson);
         const hashBuffer = await crypto.subtle.digest("SHA-256", data);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+        const fingerprint = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+        fingerprintCache.set(cacheKey, fingerprint);
+        return fingerprint;
       } catch (e) {
         console.warn("SHA256 crypto failed, using fallback hash:", e);
-        return simpleHash(canonicalJson);
+        const fingerprint = simpleHash(canonicalJson);
+        fingerprintCache.set(cacheKey, fingerprint);
+        return fingerprint;
       }
     } else {
-      return simpleHash(canonicalJson);
+      const fingerprint = simpleHash(canonicalJson);
+      fingerprintCache.set(cacheKey, fingerprint);
+      return fingerprint;
     }
   }
 
@@ -186,10 +207,17 @@
    * Generate fingerprint synchronously (blocking)
    * Uses simpleHash for synchronous operation
    */
-  function generateFingerprintSync(record) {
+  function generateFingerprintSync(record, uniqueKey = "ProjectCode") {
+    const cacheKey = getFingerprintCacheKey(record, uniqueKey);
+    if (fingerprintCache.has(cacheKey)) {
+      return fingerprintCache.get(cacheKey);
+    }
+
     const payload = buildFingerprintPayload(record);
     const canonicalJson = JSON.stringify(payload, Object.keys(payload).sort());
-    return simpleHash(canonicalJson);
+    const fingerprint = simpleHash(canonicalJson);
+    fingerprintCache.set(cacheKey, fingerprint);
+    return fingerprint;
   }
 
   /**
@@ -247,6 +275,7 @@
     window.DQCTFingerprint = window.DQCTFingerprint || {};
     window.DQCTFingerprint.generateFingerprint = generateFingerprint;
     window.DQCTFingerprint.generateFingerprintSync = generateFingerprintSync;
+    window.DQCTFingerprint.clearFingerprintCache = clearFingerprintCache;
     window.DQCTFingerprint.buildFingerprintPayload = buildFingerprintPayload;
     window.DQCTFingerprint.normalizeString = normalizeString;
     window.DQCTFingerprint.normalizeHashArray = normalizeHashArray;
@@ -258,6 +287,7 @@
     module.exports = {
       generateFingerprint,
       generateFingerprintSync,
+      clearFingerprintCache,
       buildFingerprintPayload,
       normalizeString,
       normalizeHashArray,

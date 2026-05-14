@@ -461,6 +461,8 @@
     const recordSummaries = [];
     const failuresByRecord = new Map();
 
+    window.DQCTFingerprint?.clearFingerprintCache?.();
+
     // Group failures by (fileName, recordIndex)
     flatResults.forEach((failure) => {
       const key = `${failure.fileName}:${failure.recordIndex}`;
