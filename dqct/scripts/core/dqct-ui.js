@@ -957,7 +957,11 @@
 
       function bindEventHandlers() {
         els.fileInput.addEventListener("change", (event) => ingestFiles(event.target.files));
-        els.profileSelect.addEventListener("change", (event) => setActiveProfile(event.target.value));
+        els.profileSelect.addEventListener("change", (event) => {
+          _lastHistoryKey = null;
+          _lastIssuesFeedKey = null;
+          setActiveProfile(event.target.value);
+        });
         els.searchRules.addEventListener("input", (event) => {
           state.ruleSearch = event.target.value;
           renderRules();
@@ -1261,6 +1265,8 @@
 
           const useProfile = target.getAttribute("data-use-profile");
           if (useProfile) {
+            _lastHistoryKey = null;
+            _lastIssuesFeedKey = null;
             setActiveProfile(useProfile);
           }
 
