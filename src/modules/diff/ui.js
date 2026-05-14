@@ -1325,6 +1325,15 @@
         updateFieldBadgeUI();
       };
 
+      const fieldMoveClickHandler = function() {
+        const field = String(this.getAttribute('data-diff-field-value') || '').trim();
+        const direction = String(this.getAttribute('data-diff-field-move') || '').trim();
+        if (!field || !direction) {
+          return;
+        }
+        moveFieldPosition(field, direction);
+      };
+
       const clearQueryClickHandler = () => {
         clearSearchDebounce();
         state.shouldAnnounceFilterSummary = true;
@@ -1381,8 +1390,6 @@
         node.querySelector('[data-diff-clear-all-filters]')?.removeEventListener('click', clearAllFiltersClickHandler);
         node.querySelector('[data-diff-clear-all-filters]')?.addEventListener('click', clearAllFiltersClickHandler);
       };
-
-      attachFieldBadgeListeners();
 
       const pinnedFieldBadges = Array.from(node.querySelectorAll('.dqct-field-badge--pinned[data-diff-field-filter]'));
       const moveFieldPosition = (field, direction) => {
@@ -1648,6 +1655,9 @@
           state.shouldAnnounceFilterSummary = false;
         }
       };
+
+      // Now that applyRecordFilter is defined, attach listeners to badges
+      attachFieldBadgeListeners();
 
       node.querySelector('[data-diff-expand-all]')?.addEventListener('click', () => {
         node.querySelectorAll('details[data-diff-scope]').forEach((card) => {
