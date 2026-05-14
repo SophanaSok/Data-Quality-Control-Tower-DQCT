@@ -9,6 +9,8 @@
   const DIFF_CHANGED_FIELD_FILTER_KEY = "dqct.diff.changedFieldFilter.v1";
   const _charDiffCache = new Map();
   let _searchDebounce = null;
+  let _changedFieldCounts = {};
+  let _changedFieldsSet = new Set();
 
   function clearSearchDebounce() {
     if (_searchDebounce !== null) {
@@ -844,6 +846,8 @@
         });
         return acc;
       }, {});
+      _changedFieldCounts = changedFieldCounts;
+      _changedFieldsSet = new Set(Object.keys(changedFieldCounts));
       const sortedChangedFields = Object.keys(changedFieldCounts).sort((a, b) => a.localeCompare(b));
       const orderedChangedFields = [
         ...activeChangedFieldFilters.filter((field, index, all) => all.indexOf(field) === index && sortedChangedFields.includes(field)),
@@ -1214,7 +1218,7 @@
 
         const badgeContainer = node.querySelector('[data-diff-field-badges]');
         if (badgeContainer) {
-          const sortedChangedFields = Array.from(changedFieldsSet || new Set()).sort((a, b) => String(a).localeCompare(String(b)));
+          const sortedChangedFields = Array.from(_changedFieldsSet || new Set()).sort((a, b) => String(a).localeCompare(String(b)));
           const orderedChangedFields = [
             ...activeChangedFieldFilters.filter((field, index, all) => all.indexOf(field) === index && sortedChangedFields.includes(field)),
             ...sortedChangedFields.filter((field) => !activeChangedFieldFilterSet.has(field))
@@ -1225,7 +1229,7 @@
             ${orderedChangedFields.map((field) => {
               const active = activeChangedFieldFilterSet.has(field);
               if (!active) {
-                return `<button type="button" class="dqct-field-badge" data-diff-field-filter="${escapeHtml(field)}">${escapeHtml(field)} <span class="dqct-field-badge__count">${changedFieldCounts[field]}</span></button>`;
+                return `<button type="button" class="dqct-field-badge" data-diff-field-filter="${escapeHtml(field)}">${escapeHtml(field)} <span class="dqct-field-badge__count">${_changedFieldCounts[field]}</span></button>`;
               }
               const activeIndex = activeChangedFieldFilters.indexOf(field);
               const isFirst = activeIndex <= 0;
@@ -1236,7 +1240,7 @@
               const rightAriaLabel = isLast ? `Already last: ${field}` : `Move ${field} right`;
               return `
                 <span class="dqct-field-badge-group" data-diff-field-group="${escapeHtml(field)}">
-                  <button type="button" class="dqct-field-badge is-active dqct-field-badge--pinned" data-diff-field-filter="${escapeHtml(field)}" draggable="true">${escapeHtml(field)} <span class="dqct-field-badge__count">${changedFieldCounts[field]}</span></button>
+                  <button type="button" class="dqct-field-badge is-active dqct-field-badge--pinned" data-diff-field-filter="${escapeHtml(field)}" draggable="true">${escapeHtml(field)} <span class="dqct-field-badge__count">${_changedFieldCounts[field]}</span></button>
                   <button type="button" class="dqct-field-move" aria-label="${escapeHtml(leftAriaLabel)}" title="${escapeHtml(leftTitle)}" data-diff-field-move="left" data-diff-field-value="${escapeHtml(field)}" ${isFirst ? 'disabled aria-disabled="true"' : ''}>◀</button>
                   <button type="button" class="dqct-field-move" aria-label="${escapeHtml(rightAriaLabel)}" title="${escapeHtml(rightTitle)}" data-diff-field-move="right" data-diff-field-value="${escapeHtml(field)}" ${isLast ? 'disabled aria-disabled="true"' : ''}>▶</button>
                 </span>
@@ -1321,6 +1325,44 @@
         updateFieldBadgeUI();
       };
 
+      const clearQueryClickHandler = () => {
+        clearSearchDebounce();
+        state.shouldAnnounceFilterSummary = true;
+        state.diffFilterQuery = '';
+        saveDiffFilterQueryPreference('');
+        announceDiffStatus('Query filter cleared.');
+        applyRecordFilter(state.diffFilterQuery);
+        updateFieldBadgeUI();
+      };
+
+      const clearFieldFiltersClickHandler = () => {
+        clearSearchDebounce();
+        state.shouldAnnounceFilterSummary = true;
+        state.changedFieldFilter = [];
+        saveChangedFieldFilterPreference({
+          fields: state.changedFieldFilter,
+          mode: state.changedFieldFilterMode
+        });
+        announceDiffStatus('Changed field filters cleared.');
+        applyRecordFilter(state.diffFilterQuery);
+        updateFieldBadgeUI();
+      };
+
+      const clearAllFiltersClickHandler = () => {
+        clearSearchDebounce();
+        state.shouldAnnounceFilterSummary = true;
+        state.diffFilterQuery = '';
+        state.changedFieldFilter = [];
+        saveDiffFilterQueryPreference('');
+        saveChangedFieldFilterPreference({
+          fields: state.changedFieldFilter,
+          mode: state.changedFieldFilterMode
+        });
+        announceDiffStatus('All filters cleared.');
+        applyRecordFilter(state.diffFilterQuery);
+        updateFieldBadgeUI();
+      };
+
       const attachFieldBadgeListeners = () => {
         node.querySelectorAll('[data-diff-field-filter]').forEach((button) => {
           button.removeEventListener('click', fieldBadgeClickHandler);
@@ -1332,6 +1374,12 @@
           button.removeEventListener('click', fieldMoveClickHandler);
           button.addEventListener('click', fieldMoveClickHandler);
         });
+        node.querySelector('[data-diff-clear-query]')?.removeEventListener('click', clearQueryClickHandler);
+        node.querySelector('[data-diff-clear-query]')?.addEventListener('click', clearQueryClickHandler);
+        node.querySelector('[data-diff-clear-field-filters]')?.removeEventListener('click', clearFieldFiltersClickHandler);
+        node.querySelector('[data-diff-clear-field-filters]')?.addEventListener('click', clearFieldFiltersClickHandler);
+        node.querySelector('[data-diff-clear-all-filters]')?.removeEventListener('click', clearAllFiltersClickHandler);
+        node.querySelector('[data-diff-clear-all-filters]')?.addEventListener('click', clearAllFiltersClickHandler);
       };
 
       attachFieldBadgeListeners();
@@ -1477,41 +1525,6 @@
           input.focus();
         }
         applyRecordFilter('');
-      });
-
-      node.querySelector('[data-diff-clear-query]')?.addEventListener('click', () => {
-        clearSearchDebounce();
-        state.shouldAnnounceFilterSummary = true;
-        state.diffFilterQuery = '';
-        saveDiffFilterQueryPreference('');
-        announceDiffStatus('Query filter cleared.');
-        renderDiffResults(analysis);
-      });
-
-      node.querySelector('[data-diff-clear-field-filters]')?.addEventListener('click', () => {
-        clearSearchDebounce();
-        state.shouldAnnounceFilterSummary = true;
-        state.changedFieldFilter = [];
-        saveChangedFieldFilterPreference({
-          fields: state.changedFieldFilter,
-          mode: state.changedFieldFilterMode
-        });
-        announceDiffStatus('Changed field filters cleared.');
-        renderDiffResults(analysis);
-      });
-
-      node.querySelector('[data-diff-clear-all-filters]')?.addEventListener('click', () => {
-        clearSearchDebounce();
-        state.shouldAnnounceFilterSummary = true;
-        state.diffFilterQuery = '';
-        state.changedFieldFilter = [];
-        saveDiffFilterQueryPreference('');
-        saveChangedFieldFilterPreference({
-          fields: state.changedFieldFilter,
-          mode: state.changedFieldFilterMode
-        });
-        announceDiffStatus('All filters cleared.');
-        renderDiffResults(analysis);
       });
 
       const helpToggle = node.querySelector('[data-diff-help-toggle]');
