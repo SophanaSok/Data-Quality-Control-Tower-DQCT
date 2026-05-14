@@ -240,7 +240,7 @@
                 return `<span class="pill ${severity}">${escapeHtml(severity)}</span>`;
               }
             },
-            { key: "action", sortable: false, render: (result) => `<button type="button" class="ghost" data-row-ticket="${escapeHtml(issueGroupKey(result))}">Ticket</button>` }
+            { key: "action", sortable: false, render: (result) => `<button type="button" class="ghost" data-row-ticket="${escapeHtml(issueGroupKey(result))}" aria-label="View ticket for ${escapeHtml((result.field || ''))} issue">Ticket</button>` }
           ]
         });
       }
@@ -597,7 +597,7 @@
                         <input type="checkbox" ${rule.enabled ? "checked" : ""} data-toggle-rule="${rule.id}" />
                         Enabled
                       </label>
-                      <button type="button" class="ghost" data-delete-rule="${rule.id}">Delete</button>
+                      <button type="button" class="ghost" data-delete-rule="${rule.id}" aria-label="Delete rule ${rule.id}">Delete</button>
                     </div>
                   </div>
                   <div class="rule-grid">
@@ -669,7 +669,7 @@
                   <div class="profile-actions">
                     <button type="button" data-save-profile="${escapeHtml(profile.profile_name)}">Save</button>
                     <button type="button" class="ghost" data-cancel-edit="${escapeHtml(profile.profile_name)}">Cancel</button>
-                    <button type="button" class="ghost" data-delete-profile="${escapeHtml(profile.profile_name)}">Delete</button>
+                    <button type="button" class="ghost" data-delete-profile="${escapeHtml(profile.profile_name)}" aria-label="Delete profile ${escapeHtml(profile.profile_name)}">Delete</button>
                   </div>
                 </div>`;
             }
@@ -680,9 +680,9 @@
                   <div class="meta">${escapeHtml(profile.source || "Custom profile")} · root ${escapeHtml(profile.root_array)}</div>
                 </div>
                 <div class="profile-actions">
-                  <button type="button" class="ghost" data-use-profile="${escapeHtml(profile.profile_name)}">${profile.profile_name === state.activeProfileId ? "Active" : "Use"}</button>
-                  <button type="button" class="ghost" data-edit-profile="${escapeHtml(profile.profile_name)}">Edit</button>
-                  <button type="button" class="ghost" data-delete-profile="${escapeHtml(profile.profile_name)}">Delete</button>
+                  <button type="button" class="ghost" data-use-profile="${escapeHtml(profile.profile_name)}" aria-label="Use profile ${escapeHtml(profile.profile_name)}">${profile.profile_name === state.activeProfileId ? "Active" : "Use"}</button>
+                  <button type="button" class="ghost" data-edit-profile="${escapeHtml(profile.profile_name)}" aria-label="Edit profile ${escapeHtml(profile.profile_name)}">Edit</button>
+                  <button type="button" class="ghost" data-delete-profile="${escapeHtml(profile.profile_name)}" aria-label="Delete profile ${escapeHtml(profile.profile_name)}">Delete</button>
                 </div>
               </div>`;
           })
