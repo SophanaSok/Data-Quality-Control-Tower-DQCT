@@ -7,6 +7,15 @@
   const DIFF_FILTER_QUERY_KEY = "dqct.diff.filterQuery.v1";
   const DIFF_VISIBLE_SCOPES_KEY = "dqct.diff.visibleScopes.v1";
   const DIFF_CHANGED_FIELD_FILTER_KEY = "dqct.diff.changedFieldFilter.v1";
+  const _charDiffCache = new Map();
+  let _searchDebounce = null;
+
+  function clearSearchDebounce() {
+    if (_searchDebounce !== null) {
+      clearTimeout(_searchDebounce);
+      _searchDebounce = null;
+    }
+  }
 
   function readChangedFieldsOnlyPreference() {
     try {
@@ -504,6 +513,37 @@
     const analyzeButton = document.getElementById("diffAnalyzeButton");
     const summaryNode = document.getElementById("diffSummary");
 
+    const updateScopeVisibility = (scope, isVisible) => {
+      const normalizedScope = String(scope || '').trim();
+      if (!normalizedScope) {
+        return;
+      }
+
+      const nextVisible = Boolean(isVisible);
+      state.visibleScopes = {
+        ...state.visibleScopes,
+        [normalizedScope]: nextVisible
+      };
+      saveVisibleScopesPreference(state.visibleScopes);
+
+      const scopeButton = node.querySelector(`[data-diff-scope-toggle="${normalizedScope}"]`);
+      if (scopeButton instanceof HTMLButtonElement) {
+        scopeButton.classList.toggle('is-active', nextVisible);
+        scopeButton.setAttribute('aria-pressed', String(nextVisible));
+      }
+
+      const section = node.querySelector(`[data-diff-section="${normalizedScope}"]`);
+      if (section instanceof HTMLElement) {
+        section.classList.toggle('hidden', !nextVisible);
+      }
+
+      node.querySelectorAll(`[data-diff-scope="${normalizedScope}"]`).forEach((card) => {
+        if (card instanceof HTMLElement) {
+          card.classList.toggle('hidden', !nextVisible);
+        }
+      });
+    };
+
     const isTypingContext = (target) => {
       if (!(target instanceof HTMLElement)) {
         return false;
@@ -546,6 +586,7 @@
       if (!(resultsNode instanceof HTMLElement)) {
         return;
       }
+      clearSearchDebounce();
       const filterInput = resultsNode.querySelector("#diffRecordFilterInput");
       const clearButton = resultsNode.querySelector("#diffRecordFilterClear");
       if (filterInput instanceof HTMLInputElement) {
@@ -746,6 +787,7 @@
       const cleanExport = globalScope.DQCTDiffEngine.buildCleanExport(diff);
 
       state.analysis = { diff, duplicates, cleanExport };
+      _charDiffCache.clear();
       announceDiffStatus("Comparison complete.");
       renderSummary(summaryNode);
       renderDiffResults(state.analysis);
@@ -884,7 +926,11 @@
               if (globalScope.DQCTJsonViewer?.charLevelDiffHtml && (beforeVal !== undefined || afterVal !== undefined)) {
                 const beforeText = JSON.stringify(beforeVal, null, 2);
                 const afterText = JSON.stringify(afterVal, null, 2);
-                const diff = globalScope.DQCTJsonViewer.charLevelDiffHtml(beforeText, afterText);
+                const cacheKey = `${changedRecord?.key ?? JSON.stringify(changedRecord?.before)}::${field}`;
+                if (!_charDiffCache.has(cacheKey)) {
+                  _charDiffCache.set(cacheKey, globalScope.DQCTJsonViewer.charLevelDiffHtml(beforeText, afterText));
+                }
+                const diff = _charDiffCache.get(cacheKey);
                 return `
                   <div class="dqct-diff-field-table__row">
                     <span class="dqct-diff-field-name">${escapeHtml(String(field))}</span>
@@ -1140,25 +1186,20 @@
           const scope = button.getAttribute('data-diff-scope-toggle');
           if (!scope) return;
           const nextState = !state.visibleScopes[scope];
-          state.visibleScopes = {
-            ...state.visibleScopes,
-            [scope]: nextState
-          };
-          saveVisibleScopesPreference(state.visibleScopes);
-          renderDiffResults(analysis);
+          updateScopeVisibility(scope, nextState);
         });
       });
 
       node.querySelector('[data-diff-scope-show-all]')?.addEventListener('click', () => {
-        state.visibleScopes = { added: true, removed: true, changed: true };
-        saveVisibleScopesPreference(state.visibleScopes);
-        renderDiffResults(analysis);
+        updateScopeVisibility('added', true);
+        updateScopeVisibility('removed', true);
+        updateScopeVisibility('changed', true);
       });
 
       node.querySelector('[data-diff-empty-show-all]')?.addEventListener('click', () => {
-        state.visibleScopes = { added: true, removed: true, changed: true };
-        saveVisibleScopesPreference(state.visibleScopes);
-        renderDiffResults(analysis);
+        updateScopeVisibility('added', true);
+        updateScopeVisibility('removed', true);
+        updateScopeVisibility('changed', true);
       });
 
       node.querySelectorAll('[data-diff-field-filter]').forEach((button) => {
@@ -1337,6 +1378,7 @@
       });
 
       node.querySelector('[data-diff-empty-clear-filter]')?.addEventListener('click', () => {
+        clearSearchDebounce();
         state.shouldAnnounceFilterSummary = true;
         state.diffFilterQuery = '';
         state.changedFieldFilter = [];
@@ -1355,6 +1397,7 @@
       });
 
       node.querySelector('[data-diff-clear-query]')?.addEventListener('click', () => {
+        clearSearchDebounce();
         state.shouldAnnounceFilterSummary = true;
         state.diffFilterQuery = '';
         saveDiffFilterQueryPreference('');
@@ -1363,6 +1406,7 @@
       });
 
       node.querySelector('[data-diff-clear-field-filters]')?.addEventListener('click', () => {
+        clearSearchDebounce();
         state.shouldAnnounceFilterSummary = true;
         state.changedFieldFilter = [];
         saveChangedFieldFilterPreference({
@@ -1374,6 +1418,7 @@
       });
 
       node.querySelector('[data-diff-clear-all-filters]')?.addEventListener('click', () => {
+        clearSearchDebounce();
         state.shouldAnnounceFilterSummary = true;
         state.diffFilterQuery = '';
         state.changedFieldFilter = [];
@@ -1574,13 +1619,19 @@
 
       const recordFilterInput = node.querySelector('#diffRecordFilterInput');
       recordFilterInput?.addEventListener('input', () => {
+        clearSearchDebounce();
         state.shouldAnnounceFilterSummary = true;
-        state.diffFilterQuery = String(recordFilterInput.value || '');
-        saveDiffFilterQueryPreference(state.diffFilterQuery);
-        applyRecordFilter(state.diffFilterQuery);
+        const nextQuery = String(recordFilterInput.value || '');
+        _searchDebounce = setTimeout(() => {
+          state.diffFilterQuery = nextQuery;
+          saveDiffFilterQueryPreference(state.diffFilterQuery);
+          applyRecordFilter(state.diffFilterQuery);
+          _searchDebounce = null;
+        }, 200);
       });
 
       node.querySelector('#diffRecordFilterClear')?.addEventListener('click', () => {
+        clearSearchDebounce();
         state.shouldAnnounceFilterSummary = true;
         state.diffFilterQuery = '';
         state.changedFieldFilter = [];
