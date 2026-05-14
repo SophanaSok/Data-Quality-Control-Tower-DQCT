@@ -936,7 +936,7 @@
                 }
                 const diff = _charDiffCache.get(cacheKey);
                 return `
-                  <div class="dqct-diff-field-table__row">
+                  <div class="dqct-diff-field-table__row" data-diff-field-row data-field-changed="true">
                     <span class="dqct-diff-field-name">${escapeHtml(String(field))}</span>
                     <span><pre class="dqct-json-viewer__code dqct-diff-record-json">${diff.baseHtml}</pre></span>
                     <span><pre class="dqct-json-viewer__code dqct-diff-record-json">${diff.compareHtml}</pre></span>
@@ -944,7 +944,7 @@
                 `;
               }
               return `
-                <div class="dqct-diff-field-table__row">
+                <div class="dqct-diff-field-table__row" data-diff-field-row data-field-changed="true">
                   <span class="dqct-diff-field-name">${escapeHtml(String(field))}</span>
                   <span>${renderFieldValue(beforeVal)}</span>
                   <span>${renderFieldValue(afterVal)}</span>
@@ -1721,8 +1721,10 @@
       changedFieldsOnlyToggle?.addEventListener('change', () => {
         state.showChangedFieldsOnly = Boolean(changedFieldsOnlyToggle.checked);
         saveChangedFieldsOnlyPreference(state.showChangedFieldsOnly);
-        // TODO: add data-field-changed attr to field rows to enable targeted toggle
-        renderDiffResults(analysis);
+        node.querySelectorAll('[data-diff-field-row]').forEach((row) => {
+          const fieldChanged = row.dataset.fieldChanged === 'true';
+          row.classList.toggle('hidden', state.showChangedFieldsOnly && !fieldChanged);
+        });
       });
 
       const recordFilterInput = node.querySelector('#diffRecordFilterInput');

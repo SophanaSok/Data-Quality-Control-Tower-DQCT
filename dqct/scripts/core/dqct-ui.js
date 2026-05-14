@@ -4,6 +4,8 @@
       let _lastIssueGroupsKey = null;
       let _lastHistoryKey = null;
       let _lastIssuesFeedKey = null;
+      let _lastRulesKey = null;
+      let _lastProfileListKey = null;
 
       function getRecordForResult(result) {
         const file = state.files.find((entry) => entry.name === result.fileName);
@@ -500,9 +502,14 @@
         const profile = activeProfile();
         els.activeProfileLabel.textContent = profile.profile_name;
         els.activeProfileMeta.textContent = `${profile.rules.length} rules · root ${profile.root_array}`;
-        els.profileSelect.innerHTML = state.profiles
-          .map((profileItem) => `<option value="${profileItem.profile_name}" ${profileItem.profile_name === profile.profile_name ? "selected" : ""}>${profileItem.profile_name}</option>`)
-          .join("");
+        const profileListKey = state.profiles.map((profileItem) => profileItem.profile_name).join(',')
+          + ':' + (state.editingProfile ?? '');
+        if (`select:${profileListKey}` !== _lastProfileListKey) {
+          _lastProfileListKey = `select:${profileListKey}`;
+          els.profileSelect.innerHTML = state.profiles
+            .map((profileItem) => `<option value="${profileItem.profile_name}" ${profileItem.profile_name === profile.profile_name ? "selected" : ""}>${profileItem.profile_name}</option>`)
+            .join("");
+        }
 
         const filter = state.ruleSearch.trim().toLowerCase();
         const filteredRules = profile.rules.filter((rule) => {
@@ -519,6 +526,13 @@
         }
         const groupNames = Object.keys(groups);
         const allExpanded = groupNames.length > 0 && groupNames.every((field) => state.expandedFields.has(field));
+
+        const rulesKey = profile.profile_name + ':' + profile.rules.length
+          + ':' + profile.rules.filter((rule) => rule.enabled).length
+          + ':' + state.runtimeOverrides.size
+          + ':' + (state.editingProfile ?? '');
+        if (rulesKey === _lastRulesKey) return;
+        _lastRulesKey = rulesKey;
 
         els.rulesList.innerHTML = groupNames.length ? groupNames.map((field) => {
           const rules = groups[field];
@@ -598,6 +612,13 @@
       }
 
       function renderProfileList() {
+        const profileListKey = state.profiles.map((profile) => profile.profile_name).join(',')
+          + ':' + (state.editingProfile ?? '');
+        if (`list:${profileListKey}` === _lastProfileListKey) {
+          return;
+        }
+        _lastProfileListKey = `list:${profileListKey}`;
+
         els.profileList.innerHTML = state.profiles
           .map((profile) => {
             const isEditing = state.editingProfile === profile.profile_name;
@@ -960,6 +981,8 @@
         els.profileSelect.addEventListener("change", (event) => {
           _lastHistoryKey = null;
           _lastIssuesFeedKey = null;
+          _lastRulesKey = null;
+          _lastProfileListKey = null;
           setActiveProfile(event.target.value);
         });
         els.searchRules.addEventListener("input", (event) => {
@@ -1267,6 +1290,8 @@
           if (useProfile) {
             _lastHistoryKey = null;
             _lastIssuesFeedKey = null;
+            _lastRulesKey = null;
+            _lastProfileListKey = null;
             setActiveProfile(useProfile);
           }
 
