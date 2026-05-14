@@ -1139,6 +1139,12 @@
         background: rgba(255, 255, 255, 0.04);
       }
 
+      /* === Performance: off-screen rendering === */
+      [data-tab-panel] {
+        content-visibility: auto;
+        contain-intrinsic-size: 0 600px;
+      }
+
       :root[data-theme="dark"] .dqct-active-filter-chip {
         border: 1px solid rgba(255, 255, 255, 0.16);
         background: rgba(255, 255, 255, 0.06);

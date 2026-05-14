@@ -1413,7 +1413,14 @@
         }
         updateRuntimeOverrides();
         setActionStatus(defaultActionStatus, "info", true);
-        render();
+        saveProfiles();
+        renderFiles();
+        renderRules();
+        renderProfileList();
+        renderSummary();
+        renderDashboard();
+        renderDriftPanel();
+        renderResults();
       }
 
       initialize();

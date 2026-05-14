@@ -1613,7 +1613,8 @@
         const fieldMode = state.changedFieldFilterMode === 'and' ? 'and' : 'or';
         let totalVisibleAcrossScopes = 0;
         const visibleByScope = { added: 0, removed: 0, changed: 0 };
-        ['added', 'removed', 'changed'].forEach((scope) => {
+        const activeScopes = ['added', 'removed', 'changed'].filter((scope) => state.visibleScopes?.[scope] !== false);
+        activeScopes.forEach((scope) => {
           const cards = Array.from(node.querySelectorAll(`details[data-diff-scope="${scope}"]`));
           let visibleCount = 0;
           cards.forEach((card) => {
@@ -1720,6 +1721,7 @@
       changedFieldsOnlyToggle?.addEventListener('change', () => {
         state.showChangedFieldsOnly = Boolean(changedFieldsOnlyToggle.checked);
         saveChangedFieldsOnlyPreference(state.showChangedFieldsOnly);
+        // TODO: add data-field-changed attr to field rows to enable targeted toggle
         renderDiffResults(analysis);
       });
 
