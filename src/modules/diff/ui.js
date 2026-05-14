@@ -7,6 +7,7 @@
   const DIFF_FILTER_QUERY_KEY = "dqct.diff.filterQuery.v1";
   const DIFF_VISIBLE_SCOPES_KEY = "dqct.diff.visibleScopes.v1";
   const DIFF_CHANGED_FIELD_FILTER_KEY = "dqct.diff.changedFieldFilter.v1";
+  const DIFF_IGNORE_FIELDS_KEY = "dqct.diff.ignoreFields.v1";
   const _charDiffCache = new Map();
   let _searchDebounce = null;
   let _changedFieldCounts = {};
@@ -184,6 +185,39 @@
     }
   }
 
+  function readIgnoreFieldsPreference() {
+    try {
+      const raw = localStorage.getItem(DIFF_IGNORE_FIELDS_KEY);
+      if (!raw) {
+        // Return default ignore fields
+        return ['Created', 'Refreshed'];
+      }
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        return ['Created', 'Refreshed'];
+      }
+      const fields = parsed.map((field) => String(field || "").trim()).filter(Boolean);
+      return fields.length > 0 ? fields : ['Created', 'Refreshed'];
+    } catch (error) {
+      return ['Created', 'Refreshed'];
+    }
+  }
+
+  function saveIgnoreFieldsPreference(value) {
+    try {
+      const fields = Array.isArray(value)
+        ? Array.from(new Set(value.map((field) => String(field || "").trim()).filter(Boolean)))
+        : [];
+      if (!fields.length) {
+        localStorage.removeItem(DIFF_IGNORE_FIELDS_KEY);
+        return;
+      }
+      localStorage.setItem(DIFF_IGNORE_FIELDS_KEY, JSON.stringify(fields));
+    } catch (error) {
+      // Ignore storage failures and keep in-memory state only.
+    }
+  }
+
   const changedFieldFilterPreference = readChangedFieldFilterPreference();
 
   const state = {
@@ -243,7 +277,7 @@
   function getAppSettings() {
     return globalScope.DQCTAppState?.getSettings?.() || {
       defaultUniqueKey,
-      ignoreFields: [],
+      ignoreFields: readIgnoreFieldsPreference(),
       theme: "light",
       exportFormat: "pretty"
     };
@@ -473,17 +507,28 @@
     };
 
     saveButton?.addEventListener("click", () => {
+      const ignoreFieldsValue = ignoreFieldsInput instanceof HTMLInputElement ? ignoreFieldsInput.value : "";
+      const ignoreFieldsArray = ignoreFieldsValue
+        .split(',')
+        .map((field) => field.trim())
+        .filter(Boolean);
+      
       globalScope.DQCTAppState?.saveSettings?.({
         defaultUniqueKey: uniqueKeyInput instanceof HTMLInputElement ? uniqueKeyInput.value.trim() : defaultUniqueKey,
-        ignoreFields: ignoreFieldsInput instanceof HTMLInputElement ? ignoreFieldsInput.value : "",
+        ignoreFields: ignoreFieldsValue,
         theme: themeInput instanceof HTMLSelectElement ? themeInput.value : "light",
         exportFormat: exportFormatInput instanceof HTMLSelectElement ? exportFormatInput.value : "pretty"
       });
+      
+      // Also save to local preference
+      saveIgnoreFieldsPreference(ignoreFieldsArray);
+      
       globalScope.DQCTToasts?.showSuccess?.("Settings saved.");
     });
 
     resetButton?.addEventListener("click", () => {
       globalScope.DQCTAppState?.resetSettings?.();
+      saveIgnoreFieldsPreference(['Created', 'Refreshed']);
       applySettingsToInputs();
       globalScope.DQCTToasts?.showSuccess?.("Settings reset to defaults.");
     });
