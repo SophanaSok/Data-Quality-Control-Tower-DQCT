@@ -42,11 +42,11 @@
               <button type="button" class="ghost" data-close-record-viewer>Close</button>
             </div>
             <div class="dqct-json-viewer__header">
-              <div style="display:flex;gap:1rem;align-items:center;">
+              <div class="flex-row-center">
                 <strong>Record inspector</strong>
                 <span class="meta">${escapeHtml(result.fileName || "")} · #${escapeHtml(String(result.recordIndex || ""))}</span>
               </div>
-              <div style="display:flex;gap:0.5rem;">
+              <div class="flex-row-compact">
                 <button type="button" data-record-tab="summary" class="ghost">Summary</button>
                 <button type="button" data-record-tab="issues" class="ghost">Issues</button>
                 <button type="button" data-record-tab="json" class="ghost">Record JSON</button>
@@ -54,8 +54,8 @@
             </div>
             <div class="dqct-json-viewer__content">
               <div id="recordSummary" data-record-panel class="meta"></div>
-              <div id="recordIssues" data-record-panel class="profile-list" style="display:none;"></div>
-              <div id="recordJson" data-record-panel style="display:none;"></div>
+              <div id="recordIssues" data-record-panel class="profile-list hidden"></div>
+              <div id="recordJson" data-record-panel class="hidden"></div>
             </div>
           </div>
         `;
@@ -86,7 +86,7 @@
 
         if (summaryNode instanceof HTMLElement) {
           summaryNode.innerHTML = `
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+            <div class="grid-3col-summary">
               <div><div class="meta">Primary ID</div><strong>${primary}</strong></div>
               <div><div class="meta">Status</div><strong>${status}</strong></div>
               <div><div class="meta">Issues</div><strong>${errorCount} errors · ${warningCount} warnings</strong></div>
@@ -109,13 +109,13 @@
             issuesNode.innerHTML = '<div class="summary-item"><div><strong>No issues for this record</strong><div class="meta">This record passed validation.</div></div></div>';
           } else {
             issuesNode.innerHTML = issues.map((issue, i) => `
-              <div class="profile-item" style="align-items:flex-start;">
-                <div style="flex:1;min-width:0;">
-                  <strong>${escapeHtml(issue.field || '(field)')} <span style="font-weight:600;">· ${escapeHtml(issue.ruleId || issue.ruleType || '')}</span></strong>
+              <div class="profile-item issue-item-start">
+                <div class="flex-item-fill">
+                  <strong>${escapeHtml(issue.field || '(field)')} <span class="font-weight-600">· ${escapeHtml(issue.ruleId || issue.ruleType || '')}</span></strong>
                   <div class="meta">${escapeHtml(issue.message || issue.expected || '')}</div>
                   <div class="meta">Current: <code>${escapeHtml(issue.actual || '')}</code></div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+                <div class="flex-col-end">
                   <button type="button" class="pill ${issue.severity==='high'?'high':issue.severity==='medium'?'medium':'info'}" data-issue-index="${i}" data-issue-field="${escapeHtml(issue.field||'')}">${escapeHtml(issue.severity)}</button>
                 </div>
               </div>
@@ -152,7 +152,8 @@
         function switchToTab(name) {
           modal.querySelectorAll('[data-record-panel]').forEach((el) => {
             if (!(el instanceof HTMLElement)) return;
-            el.style.display = el.id === 'record' + name.charAt(0).toUpperCase() + name.slice(1) ? 'block' : 'none';
+            const shouldShow = el.id === 'record' + name.charAt(0).toUpperCase() + name.slice(1);
+            el.classList.toggle('hidden', !shouldShow);
           });
           // also update button active states
           modal.querySelectorAll('[data-record-tab]').forEach((b) => {
@@ -171,6 +172,35 @@
           if (!(target instanceof HTMLElement)) return;
           if (target === modal || target.closest('[data-close-record-viewer]')) {
             closeRecordViewer();
+          }
+        });
+
+        // Add focus trap and keyboard handling
+        const focusable = modal.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstFocusable = focusable[0];
+        const lastFocusable = focusable[focusable.length - 1];
+
+        // Focus the first element after modal opens
+        if (firstFocusable instanceof HTMLElement) {
+          setTimeout(() => firstFocusable.focus(), 100);
+        }
+
+        // Add keydown listener for Escape and Tab handling
+        modal.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            closeRecordViewer();
+            return;
+          }
+          if (e.key === 'Tab') {
+            if (e.shiftKey && document.activeElement === firstFocusable) {
+              e.preventDefault();
+              if (lastFocusable instanceof HTMLElement) lastFocusable.focus();
+            } else if (!e.shiftKey && document.activeElement === lastFocusable) {
+              e.preventDefault();
+              if (firstFocusable instanceof HTMLElement) firstFocusable.focus();
+            }
           }
         });
 
@@ -256,7 +286,7 @@
                   <div>
                     <strong>${file.name}</strong>
                     <div class="meta">${file.records.length} records · ${Math.round(file.size / 1024)} KB</div>
-                    ${file.status === "error" ? `<div class="meta" style="color: var(--danger);">${file.error}</div>` : ""}
+                    ${file.status === "error" ? `<div class="meta text-danger">${file.error}</div>` : ""}
                   </div>
                   <span class="pill ${file.status === "error" ? "high" : "info"}">${file.status}</span>
                 </div>`)
@@ -494,7 +524,7 @@
           : '<div class="drift-item"><strong>No schema drift differences</strong></div>';
 
         els.anomaliesList.innerHTML = (state.currentAnomalies || []).length
-          ? state.currentAnomalies.map((item) => `<div class="drift-item"><strong>${escapeHtml(item.label)}</strong><div class="meta">${escapeHtml(item.detail)}</div><div style="margin-top: 0.4rem;"><span class="badge ${item.severity === "warn" ? "warn" : "good"}">${escapeHtml(item.severity)}</span></div></div>`).join("")
+          ? state.currentAnomalies.map((item) => `<div class="drift-item"><strong>${escapeHtml(item.label)}</strong><div class="meta">${escapeHtml(item.detail)}</div><div class="mt-xs"><span class="badge ${item.severity === "warn" ? "warn" : "good"}">${escapeHtml(item.severity)}</span></div></div>`).join("")
           : '<div class="drift-item"><strong>No anomaly warnings</strong></div>';
       }
 
@@ -757,7 +787,7 @@
                         <button type="button" data-copy-ticket="${escapeHtml(issue.key)}">Copy ticket</button>
                       </div>
                     </div>
-                    <div class="meta" style="margin-top: 0.65rem;">Samples: ${escapeHtml(issue.samples.map((sample) => `${sample.primaryId || sample.recordIndex}`).join(", "))}</div>
+                    <div class="meta mt-sm">Samples: ${escapeHtml(issue.samples.map((sample) => `${sample.primaryId || sample.recordIndex}`).join(", "))}</div>
                     <div class="ticket-preview hidden" data-ticket-preview="${escapeHtml(issue.key)}">${escapeHtml(ticketText)}</div>
                   </article>`;
               })
@@ -771,7 +801,7 @@
           if (recordSummariesTable) {
             recordSummariesTable.clear();
           } else {
-            els.recordSummariesBody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 2rem;">No record summaries available.</td></tr>';
+            els.recordSummariesBody.innerHTML = '<tr><td colspan="10" class="text-center-pad">No record summaries available.</td></tr>';
           }
           return;
         }
@@ -821,7 +851,7 @@
                     <div class="meta">Files: ${escapeHtml(group.files.join(", "))}</div>
                   </div>
                 </div>
-                <div class="meta" style="margin-top: 0.65rem;">Samples: ${escapeHtml(rowSamples)}</div>
+                <div class="meta mt-sm">Samples: ${escapeHtml(rowSamples)}</div>
               </article>`;
           })
           .join("");
@@ -841,7 +871,7 @@
                     <div class="meta">Files: ${escapeHtml(group.files.join(", "))}</div>
                   </div>
                 </div>
-                <div class="meta" style="margin-top: 0.65rem;">Samples: ${escapeHtml(rowSamples)}</div>
+                <div class="meta mt-sm">Samples: ${escapeHtml(rowSamples)}</div>
               </article>`;
           })
           .join("");

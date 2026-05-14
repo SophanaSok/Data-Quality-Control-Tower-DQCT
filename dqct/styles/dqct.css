@@ -1925,3 +1925,58 @@
           grid-column: auto;
         }
       }
+
+      /* === Utility: layout helpers (migrated from inline styles) === */
+      .flex-row-center {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      .flex-row-compact {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .grid-3col-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .flex-col-end {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: flex-end;
+      }
+
+      .flex-item-fill {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .issue-item-start {
+        align-items: flex-start;
+      }
+
+      .font-weight-600 {
+        font-weight: 600;
+      }
+
+      .mt-xs {
+        margin-top: 0.4rem;
+      }
+
+      .mt-sm {
+        margin-top: 0.65rem;
+      }
+
+      .text-center-pad {
+        text-align: center;
+        padding: 2rem;
+      }
+
+      .text-danger {
+        color: var(--danger);
+      }
