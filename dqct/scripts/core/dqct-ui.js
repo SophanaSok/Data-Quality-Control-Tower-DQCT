@@ -347,7 +347,7 @@
         }));
         const issueItems = [...latestIssues, ...anomalyIssues].slice(0, 10);
 
-        const issuesFeedKey = state.results.length + ':' + state.currentAnomalies.length + ':' + (state.results[0]?.ruleId ?? '');
+        const issuesFeedKey = state.results.length + ':' + state.currentAnomalies.length + ':' + (state.results[0]?.ruleId ?? '') + ':' + (filteredRuns[0]?.timestamp ?? '');
         if (issuesFeedKey !== _lastIssuesFeedKey) {
           _lastIssuesFeedKey = issuesFeedKey;
           els.recentIssuesFeed.innerHTML = issueItems.length
