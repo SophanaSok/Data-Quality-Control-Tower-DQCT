@@ -1,7 +1,7 @@
 # Bid Data QA Spec Audit Report
 
-**Date:** May 13, 2026  
-**Codebase:** Data Quality Control Tower (DQCT)
+**Date:** May 14, 2026  
+**Codebase:** Data Quality Control Tower (DQCT) v2.3
 
 ---
 

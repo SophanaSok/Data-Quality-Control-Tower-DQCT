@@ -1,26 +1,27 @@
 # Data Quality Control Tower (DQCT)
 
-A browser-based validation tool for scraped government IT and software bid data. Upload JSON files, run automated quality checks against configurable rule profiles, and generate Trello-ready defect reports—all in seconds.
+A browser-based validation tool for scraped government IT and software bid data. Upload JSON files, run automated quality checks against configurable rule profiles, compare baseline vs. comparison datasets, and generate Trello-ready defect reports—all in seconds.
 
-**Current Version:** 2.3 (Validation + Deduplication Refreshed)  
+**Current Version:** 2.3 (Validation + Diff + Accessibility Refreshed)  
 **Status:** Production Ready  
-**Last Updated:** May 13, 2026
+**Last Updated:** May 14, 2026
 
 ---
 
 ## 📋 Table of Contents
 
 1. [Quick Start](#quick-start)
-2. [Architecture (Phase 1 Refactor Foundation)](#architecture-phase-1-refactor-foundation)
-3. [Core Concepts](#core-concepts)
-4. [Workflow: From Upload to Export](#workflow-from-upload-to-export)
-5. [Managing Profiles & Rules](#managing-profiles--rules)
-6. [Understanding Results](#understanding-results)
-7. [Dashboard & History](#dashboard--history)
-8. [Advanced Features](#advanced-features)
-9. [Interpreting Anomalies](#interpreting-anomalies)
-10. [Tips & Best Practices](#tips--best-practices)
-11. [Troubleshooting](#troubleshooting)
+2. [What's New in v2.3](#whats-new-in-v23)
+3. [Architecture](#architecture)
+4. [Core Concepts](#core-concepts)
+5. [Workflow: Validation](#workflow-validation)
+6. [Workflow: Diff & Comparison](#workflow-diff--comparison)
+7. [Dashboard & Settings](#dashboard--settings)
+8. [Managing Profiles & Rules](#managing-profiles--rules)
+9. [Understanding Results](#understanding-results)
+10. [Advanced Features](#advanced-features)
+11. [Tips & Best Practices](#tips--best-practices)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -54,7 +55,29 @@ A browser-based validation tool for scraped government IT and software bid data.
 
 ---
 
-## 🧩 Architecture (Phase 1 Refactor Foundation)
+## 🎉 What's New in v2.3
+
+### Accessibility Improvements
+- **Record Inspector Modal**: Added focus trap and keyboard support (Escape key to close, Tab containment for keyboard navigation)
+- **CSS Utility Classes**: Replaced 12 inline styles with semantic utility classes for cleaner, more maintainable HTML
+- **Consistent Component Naming**: Updated naming conventions for layout and spacing helpers
+
+### Performance Optimizations
+- **Dirty Flag Guards**: Added intelligent caching on all major DOM renders using keys computed from profile state
+- **Reduce Render Calls**: Narrowed `renderDiffResults()` from 13 to 2 invocations (initial load only) by using targeted CSS toggles
+- **Pre-compiled Patterns**: Regex patterns now compiled once per validation run, eliminating O(n) RegExp construction per record
+- **Pagination**: Record summaries now paginate at 25 rows via `DQCTTable`
+- **Async Improvements**: JSZip now loads in parallel with internal scripts for faster startup
+
+### Feature Enhancements
+- **Default Ignore Fields**: "Created" and "Refreshed" fields are now automatically ignored in Diff runs by default (configurable in Settings)
+- **Better Error Handling**: Parser and import errors now surface via clear toast notifications
+- **Profile Validation**: Importing profiles now validates required fields (`profile_name`, non-empty `rules`, rule fields) with helpful error messages
+- **DOM Guards**: Added development warning when required UI elements are missing at startup
+
+---
+
+## 🧩 Architecture
 
 DQCT now keeps the same user flows and UI, while loading modular JS files from the repository root `src/` folder:
 
@@ -185,7 +208,7 @@ Rules are grouped into three layers for flexibility:
 
 ---
 
-## 📤 Workflow: From Upload to Export
+## � Workflow: Validation
 
 ### Step 1: Upload Files
 
@@ -349,69 +372,6 @@ Issues are automatically grouped by (Rule ID, Field, Rule Type). Each group show
 
 ---
 
-## 🎯 Managing Profiles & Rules
-
-### Creating a New Profile
-
-1. Load sample data or upload a file
-2. In the **Profile Management** panel, enter:
-   - **New Profile Name**: e.g., "County RFP System"
-   - **New Root Array**: The field containing the record array (default: `Export`)
-3. Click **"Clone profile"**
-4. The new profile appears in the profile list with all rules from the active profile
-5. Customize rules as needed
-
-### Editing Rules
-
-Each rule can be customized inline:
-- **Enabled checkbox**: Toggle the rule on/off
-- **Notes field**: Add team context or change history
-- **Type field**: Change the rule type
-- **Severity field**: Adjust severity (High/Medium/Low)
-- **Field field**: Change which field is validated
-- **Layer field**: Change the layer (Core/Domain/Diagnostic)
-- **Condition/extras field**: For conditional rules, enter `condition=BidStatus:Open for Bidding`
-
-Changes are saved automatically to your browser's local storage.
-
-### Renaming & Deleting Profiles
-
-- **Rename (Edit)**: In the **Profile management** list click **Edit** next to a profile. You'll be prompted for a new profile name and a description/source string. Renaming updates the profile name in the UI, moves any saved schema baseline to the new name, and updates stored run entries so history remains associated with the renamed profile. Renames will fail if the target name already exists.
-
-- **Delete**: Click **Delete** next to a profile and confirm. Deleting removes the profile from the local profile list, clears its saved schema baseline, and prunes any run entries stored in localStorage that reference the deleted profile. Deleting the built-in default profile is allowed. Note: IndexedDB run history is not deleted by this action to avoid accidental large DB changes.
-
-Testing these actions locally:
-1. Serve the app locally: `python3 -m http.server 8000` and open `http://localhost:8000/dqct/dqct.html`.
-2. Create or clone a profile so you have a non-default profile to experiment with.
-3. Use **Edit** to rename and change the profile description, then verify the profile list and run history reflect the new name.
-4. Use **Delete** to remove a profile and confirm that the profile disappears and its schema baseline and localStorage run entries are removed.
-
-
-### Filtering Rules by Layer
-
-At the top of the **Rules** panel, click layer buttons to filter:
-- **Core**: Show only fundamental rules (R01–R04)
-- **Domain**: Show only domain-specific rules (R05–R24, R34–R37)
-- **Diagnostic**: Show only optional diagnostic rules (R25–R33)
-- **All**: Show all rules
-
-### Searching Rules
-
-In the **Search Rules** field, type a keyword to filter:
-- By rule ID: `R07`
-- By field name: `ProjectCode`
-- By rule type: `unique`
-- By notes: `format`
-
-Results update instantly.
-
-### Resetting to Default
-
-1. Click **"Reset Profile"** to restore the Standard Profile to its original 33-rule configuration
-2. All edits are discarded—use this if you've customized and want to start fresh
-
----
-
 ## 📊 Understanding Results
 
 ### Failure Severity
@@ -484,22 +444,136 @@ Severity: High
 
 ---
 
-## 📈 Dashboard & History
+## � Workflow: Diff & Comparison
 
-### Dashboard Overview
+The **Diff** tab enables side-by-side comparison of two JSON datasets to identify changes, additions, removals, and duplicates.
 
-The **Dashboard** panel (visible by default) shows:
+### Step 1: Upload Baseline and Comparison Files
+1. Click the **Baseline file** input and select a `.json` file (e.g., a previous export)
+2. Click the **Comparison file** input and select a `.json` file (e.g., the latest export)
+3. File names and record counts appear below each input
 
-#### Summary Cards
-- **Runs today**: How many validation runs you've executed today for this profile
-- **Files checked**: Total files uploaded in current session
-- **Pass rate**: Percentage of records passing all rules (averaging recent runs)
-- **Open issues**: Total failures + anomalies in the latest run
+### Step 2: Configure Comparison Settings
+- **Unique key** (e.g., `ProjectCode`, `Title`): The field to use for matching records between datasets
+- **Ignore fields** (e.g., `Created, Refreshed`): Fields to exclude from change detection
+  - Defaults to `Created, Refreshed` on app load, but can be customized
+  - Changes persist in your browser settings via localStorage
 
-#### Run History Table
-A table of your last 12 validation runs showing:
+### Step 3: Run Analysis
+1. Click the **Analyze** button
+2. The app compares records using the unique key and produces three categories:
+   - **Added**: Records in comparison not in baseline
+   - **Removed**: Records in baseline not in comparison
+   - **Changed**: Records in both with field differences
+
+### Step 4: Review and Filter
+- Use scope chips (**Added**, **Removed**, **Changed**) to show/hide sections
+- Use field badges to filter changed records by specific changed fields
+- Click **Preview** or expand a record card to see old vs. new values
+- Field-level diffs highlight character-level changes when available
+
+### Step 5: Export Comparison Results
+Download any of these exports:
+- **diff_records.json**: All added, removed, and changed records
+- **duplicates_file1.json**: Exact duplicate fingerprints from baseline
+- **duplicates_file2.json**: Exact duplicate fingerprints from comparison
+- **duplicates_cross.json**: Records with matching signatures across datasets
+- **changed_and_new.json**: Combination of all changed records and new adds
+
+---
+
+## 📊 Dashboard & Settings
+
+The **Dashboard** is your landing page and control center. It displays:
+
+#### Quick Action Tiles
+- **Run Diff**: Jump directly to the Diff tab
+- **Run Validation**: Jump directly to the Validate tab
+- **View Reports**: Jump directly to reports (if any runs have been completed)
+
+#### Last Run Summary
+A snapshot of the most recent validation run showing:
+- Profile used
+- File and record counts
+- Pass rate percentage
+- Total issues found
+
+#### Shared Settings Panel
+Configure app-wide defaults (saved in your browser):
+- **Default unique key**: Used as the default in Diff tab (default: `ProjectCode`)
+- **Ignore fields**: Fields auto-populated in Diff tab (default: `Created, Refreshed`)
+- **Theme**: Light or Dark mode
+- **Export format**: Pretty (human-readable) or Minified JSON
+
+Click **Save** to persist your settings, or **Reset to defaults** to restore original values.
+
+#### Recent Runs Table
+A history of your last 10 validation and diff runs showing:
 | Column | What It Shows |
 |---|---|
+| Type | Validate or Diff |
+| Profile | Which profile was used (Validate only) |
+| Files | Number of files processed |
+| Records | Total records processed |
+| Issues | Count of failures found |
+| Timestamp | When the run executed |
+| Action | **Re-open** to jump back to that run's results
+
+---
+
+## 🎛️ Managing Profiles & Rules
+
+### Creating a New Profile
+
+1. Load sample data or upload a file
+2. In the **Profile Management** panel, enter:
+   - **New Profile Name**: e.g., "County RFP System"
+   - **New Root Array**: The field containing the record array (default: `Export`)
+3. Click **"Clone profile"**
+4. The new profile appears in the profile list with all rules from the active profile
+5. Customize rules as needed
+
+### Editing Rules
+
+Each rule can be customized inline:
+- **Enabled checkbox**: Toggle the rule on/off
+- **Notes field**: Add team context or change history
+- **Type field**: Change the rule type
+- **Severity field**: Adjust severity (High/Medium/Low)
+- **Field field**: Change which field is validated
+- **Layer field**: Change the layer (Core/Domain/Diagnostic)
+- **Condition/extras field**: For conditional rules, enter `condition=BidStatus:Open for Bidding`
+
+Changes are saved automatically to your browser's local storage.
+
+### Renaming & Deleting Profiles
+
+- **Rename (Edit)**: In the **Profile management** list click **Edit** next to a profile. You'll be prompted for a new profile name and a description/source string. Renaming updates the profile name in the UI and updates stored run entries so history remains associated with the renamed profile.
+
+- **Delete**: Click **Delete** next to a profile and confirm. Deleting removes the profile from the local profile list and prunes any run entries stored in localStorage that reference the deleted profile.
+
+### Filtering Rules by Layer
+
+At the top of the **Rules** panel, click layer buttons to filter:
+- **Core**: Show only fundamental rules (R01–R04)
+- **Domain**: Show only domain-specific rules (R05–R24, R34–R37)
+- **Diagnostic**: Show only optional diagnostic rules (R25–R33)
+- **All**: Show all rules
+
+### Searching Rules
+
+In the **Search Rules** field, type a keyword to filter:
+- By rule ID: `R07`
+- By field name: `ProjectCode`
+- By rule type: `unique`
+- By notes: `format`
+
+Results update instantly.
+
+### Resetting to Default
+
+1. Click **"Reset Profile"** to restore the Standard Profile to its original 37-rule configuration
+2. All edits are discarded—use this if you've customized and want to start fresh
 | Date | When the run completed |
 | Profile | Which profile was active |
 | Files | How many files in that run |
@@ -837,5 +911,5 @@ DQCT was built as a portfolio project by Sophana Sok to demonstrate data enginee
 
 ---
 
-**Last Updated:** April 28, 2026  
-**Version:** 2.1 (Production — Phase 1 & 2 Complete)
+**Last Updated:** May 14, 2026  
+**Version:** 2.3 (Validation + Diff + Accessibility Refreshed)
