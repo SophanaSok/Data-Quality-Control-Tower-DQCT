@@ -1926,6 +1926,61 @@
         }
       }
 
+      /* === Critical mobile fixes (max-width: 768px) === */
+      @media (max-width: 768px) {
+        /* Allow top nav to wrap on narrow screens */
+        .top-nav-tabs {
+          flex-wrap: wrap;
+          gap: 0.35rem;
+        }
+
+        .top-nav-tab {
+          padding: 0.5rem 0.75rem;
+        }
+
+        /* Ensure horizontal scrolling for tables on mobile and smooth scrolling */
+        .table-wrap {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        /* Inputs and selects: prevent iOS zoom and ensure touch-size */
+        input[type="text"],
+        input[type="search"],
+        input[type="number"],
+        input[type="date"],
+        input[type="file"],
+        select,
+        textarea {
+          font-size: 1rem;
+          min-height: 44px;
+          padding: 0.5rem 0.75rem;
+        }
+
+        /* Small interactive elements: enforce minimum tap target */
+        .field-action,
+        .pill,
+        .chip,
+        .badge,
+        .dqct-field-badge,
+        .dqct-chip,
+        .dqct-field-move,
+        button.ghost,
+        button.secondary,
+        button {
+          min-height: 44px;
+          min-width: 44px;
+          padding: 0.5rem 0.75rem;
+        }
+
+        /* Allow longer field titles to wrap instead of truncating on small screens */
+        .field-title-row strong {
+          white-space: normal;
+          text-overflow: unset;
+          overflow: visible;
+        }
+      }
+
       /* === Utility: layout helpers (migrated from inline styles) === */
       .flex-row-center {
         display: flex;
