@@ -202,9 +202,32 @@
     return base;
   }
 
+
+  /**
+   * Deduplicate a candidate profile name against existing profiles.
+   * @param {string} name
+   * @param {Array<Object>} existingProfiles
+   * @returns {string} unique profile name (may append ` (2)`, ` (3)`, ...)
+   */
+  function deduplicateProfileName(name, existingProfiles) {
+    const base = String(name || '').trim();
+    if (!base) return base;
+    const exists = (n) => Array.isArray(existingProfiles) && existingProfiles.some((p) => p && p.profile_name === n);
+    if (!exists(base)) return base;
+    let counter = 2;
+    while (true) {
+      const candidate = `${base} (${counter})`;
+      if (!exists(candidate)) return candidate;
+      counter += 1;
+      if (counter > 9999) return `${base} (${counter})`;
+    }
+  }
+
   globalScope.DQCTProfiler = {
     computeFieldStats,
     suggestRules,
-    inferProfileName
+    inferProfileName,
+    deduplicateProfileName
   };
 })(window);
+
