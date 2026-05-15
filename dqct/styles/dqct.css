@@ -1992,6 +1992,31 @@
           text-overflow: unset;
           overflow: visible;
         }
+
+        /* Reduce hover transforms on mobile to avoid layout jitter */
+        button,
+        .button {
+          transform: none !important;
+        }
+
+        /* Slightly larger readable pills/chips on mobile while keeping touch targets enforced */
+        .pill,
+        .chip,
+        .dqct-field-badge,
+        .dqct-chip {
+          font-size: 0.9rem;
+          padding: 0.4rem 0.8rem;
+        }
+
+        /* Allow diff summary hints and similar small hints to wrap on mobile */
+        .dqct-diff-summary-hint {
+          white-space: normal;
+        }
+
+        /* Slightly tighter modal padding on small screens */
+        .dqct-json-modal__dialog {
+          padding: 0.6rem;
+        }
       }
 
       /* === Utility: layout helpers (migrated from inline styles) === */
