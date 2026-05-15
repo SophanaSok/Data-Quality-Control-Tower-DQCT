@@ -749,10 +749,12 @@
             </div>
             <div class="meta">${escapeHtml(String(totalRecords))} records scanned · ${escapeHtml(String(fieldStats.length || 0))} fields found</div>
 
-            <table class="table mt-1">
-              <thead><tr><th>Field</th><th>Presence %</th><th>Null %</th><th>Distinct</th><th>Type(s)</th><th>Sample Values</th><th>Suggestion</th></tr></thead>
-              <tbody>${fieldsHtml}</tbody>
-            </table>
+            <div class="table-wrap">
+              <table class="table mt-1">
+                <thead><tr><th>Field</th><th>Presence %</th><th>Null %</th><th>Distinct</th><th>Type(s)</th><th>Sample Values</th><th>Suggestion</th></tr></thead>
+                <tbody>${fieldsHtml}</tbody>
+              </table>
+            </div>
 
             <div class="stack mt-1">
               <div>
