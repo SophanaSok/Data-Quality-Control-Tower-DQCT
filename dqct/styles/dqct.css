@@ -2017,6 +2017,19 @@
         .dqct-json-modal__dialog {
           padding: 0.6rem;
         }
+
+        /* Profile suggester: allow table to shrink and wrap sample values on mobile */
+        .profile-suggester-panel .table {
+          min-width: 0;
+          table-layout: auto;
+        }
+
+        .profile-suggester-panel .table td:nth-child(6) {
+          max-width: 28ch;
+          white-space: normal;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
       }
 
       /* === Utility: layout helpers (migrated from inline styles) === */
