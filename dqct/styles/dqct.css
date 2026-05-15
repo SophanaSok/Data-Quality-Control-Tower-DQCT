@@ -1938,6 +1938,19 @@
           padding: 0.5rem 0.75rem;
         }
 
+        /* If JS marks the nav as scrollable (many tabs), prefer horizontal scroll */
+        .top-nav-tabs.top-nav-tabs--scroll {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          gap: 0.4rem;
+        }
+
+        .top-nav-tabs.top-nav-tabs--scroll .top-nav-tab {
+          padding: 0.45rem 0.6rem;
+          white-space: nowrap;
+        }
+
         /* Ensure horizontal scrolling for tables on mobile and smooth scrolling */
         .table-wrap {
           overflow-x: auto;

@@ -889,6 +889,22 @@
         renderDashboard();
         renderDriftPanel();
         renderResults();
+        enhanceTopNav();
+      }
+
+      function enhanceTopNav() {
+        try {
+          const nav = document.querySelector('.top-nav-tabs');
+          if (!(nav instanceof HTMLElement)) return;
+          const count = nav.querySelectorAll('.top-nav-tab').length;
+          if (count >= 6) {
+            nav.classList.add('top-nav-tabs--scroll');
+          } else {
+            nav.classList.remove('top-nav-tabs--scroll');
+          }
+        } catch (e) {
+          // noop
+        }
       }
 
       const defaultActionStatus = "Ready to validate loaded files.";
