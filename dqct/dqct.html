@@ -313,12 +313,15 @@
             <div class="actions-row mt-075">
               <button id="cloneProfileButton" type="button">Clone profile</button>
               <button id="importSchemaButton" type="button" class="secondary">Import schema</button>
+              <button id="suggestFromBatchButton" type="button" class="ghost">Suggest from batch</button>
               <button id="saveProfileButton" type="button" class="secondary">Save active profile</button>
               <button id="resetProfileButton" type="button" class="ghost">Reset active profile</button>
             </div>
             <input id="schemaImportInput" class="hidden" type="file" accept=".json,application/json" />
+            <input id="suggestBatchInput" class="hidden" type="file" accept=".json,application/json" />
             <div class="footer-note">Import schema creates a draft profile from a sample JSON file so you can review inferred required and type rules before saving.</div>
             <div class="profile-list mt-1" id="profileList"></div>
+            <div id="profileSuggesterPanel" class="profile-suggester-panel hidden"></div>
           </div>
 
           <div class="file-card">

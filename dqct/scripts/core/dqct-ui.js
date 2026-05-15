@@ -689,6 +689,95 @@
           .join("");
       }
 
+      /**
+       * Render a read-only profile suggestion panel (Phase 1).
+       * @param {Array<Object>} fieldStats
+       * @param {Object} suggestions
+       * @param {string} suggestedName
+       * @param {number} totalRecords
+       */
+      function renderProfileSuggester(fieldStats, suggestions, suggestedName, totalRecords) {
+        const panel = document.getElementById('profileSuggesterPanel');
+        if (!panel) return;
+
+        const fieldsHtml = (Array.isArray(fieldStats) ? fieldStats : []).map((fs) => {
+          const types = Array.isArray(fs.observedTypes) ? fs.observedTypes.join(', ') : String(fs.observedTypes || '');
+          const samples = Array.isArray(fs.sampleValues) ? fs.sampleValues.map((v) => escapeHtml(typeof v === 'object' ? JSON.stringify(v) : String(v))).join(', ') : '';
+          const suggestion = suggestions && (suggestions.required || []).includes(fs.fieldName) ? 'Required'
+            : suggestions && (suggestions.enumCandidates || []).includes(fs.fieldName) ? 'Enum candidate'
+            : suggestions && (suggestions.duplicateKeyCandidates || []).includes(fs.fieldName) ? 'Duplicate key candidate' : '';
+
+          return `
+            <tr>
+              <td>${escapeHtml(fs.fieldName)}</td>
+              <td>${escapeHtml((fs.presencePercent || 0).toFixed(1))}%</td>
+              <td>${escapeHtml((fs.nullPercent || 0).toFixed(1))}%</td>
+              <td>${escapeHtml(String(fs.distinctCount || 0))}</td>
+              <td>${escapeHtml(types)}</td>
+              <td>${samples}</td>
+              <td>${escapeHtml(suggestion)}</td>
+            </tr>`;
+        }).join('');
+
+        const requiredHtml = (suggestions && Array.isArray(suggestions.required) ? suggestions.required : []).map((f) => `
+          <div class="profile-item">
+            <label><input type="checkbox" checked /> ${escapeHtml(f)}</label>
+            <div class="meta">Present in 100% of records</div>
+          </div>`).join('');
+
+        const enumHtml = (suggestions && Array.isArray(suggestions.enumCandidates) ? suggestions.enumCandidates : []).map((f) => `
+          <div class="profile-item">
+            <label><input type="checkbox" checked /> ${escapeHtml(f)}</label>
+            <div class="meta">${escapeHtml(String((fieldStats.find(s=>s.fieldName===f)||{}).distinctCount||0))} distinct values across ${escapeHtml(String(totalRecords))} records</div>
+          </div>`).join('');
+
+        const dupHtml = (suggestions && Array.isArray(suggestions.duplicateKeyCandidates) ? suggestions.duplicateKeyCandidates : []).map((f) => `
+          <div class="profile-item">
+            <label><input type="checkbox" checked /> ${escapeHtml(f)}</label>
+            <div class="meta">Unique across all non-null values</div>
+          </div>`).join('');
+
+        panel.innerHTML = `
+          <div class="panel">
+            <div class="flex-row-between">
+              <h3>Profile Suggestion</h3>
+              <button id="suggestCancelButton" type="button" class="ghost">Cancel</button>
+            </div>
+            <div class="fieldset">
+              <label for="suggestedProfileName">Suggested name</label>
+              <input id="suggestedProfileName" type="text" value="${escapeHtml(suggestedName || '')}" />
+            </div>
+            <div class="meta">${escapeHtml(String(totalRecords))} records scanned · ${escapeHtml(String(fieldStats.length || 0))} fields found</div>
+
+            <table class="table mt-1">
+              <thead><tr><th>Field</th><th>Presence %</th><th>Null %</th><th>Distinct</th><th>Type(s)</th><th>Sample Values</th><th>Suggestion</th></tr></thead>
+              <tbody>${fieldsHtml}</tbody>
+            </table>
+
+            <div class="stack mt-1">
+              <div>
+                <strong>Required</strong>
+                ${requiredHtml || '<div class="meta">No required fields suggested</div>'}
+              </div>
+              <div>
+                <strong>Enum candidates</strong>
+                ${enumHtml || '<div class="meta">No enum candidates</div>'}
+              </div>
+              <div>
+                <strong>Duplicate key candidates</strong>
+                ${dupHtml || '<div class="meta">No duplicate key candidates</div>'}
+              </div>
+            </div>
+          </div>`;
+
+        const cancelBtn = panel.querySelector('#suggestCancelButton');
+        if (cancelBtn instanceof HTMLButtonElement) {
+          cancelBtn.addEventListener('click', () => {
+            panel.classList.add('hidden');
+          });
+        }
+      }
+
       function renderResults() {
         const exactGroupCount = (state.exactDuplicates || []).length;
         const nearGroupCount = (state.nearDuplicates || []).length;
@@ -1117,6 +1206,46 @@
             els.schemaImportInput.value = "";
             els.schemaImportInput.click();
           });
+          // Suggest from batch: trigger hidden input and process selection
+          try {
+            const suggestBtn = document.getElementById('suggestFromBatchButton');
+            const suggestInput = document.getElementById('suggestBatchInput');
+            if (suggestBtn && suggestInput) {
+              suggestBtn.addEventListener('click', () => {
+                suggestInput.value = '';
+                suggestInput.click();
+              });
+
+              suggestInput.addEventListener('change', async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                try {
+                  const text = await readTextFile(file);
+                  const payload = window.DQCTParser.parseJsonText(text);
+                  const extracted = extractRecordsFromPayload(payload);
+                  if (!extracted || !extracted.records || !extracted.records.length) {
+                    const message = (extracted && extracted.error) || 'Suggest requires a JSON array or an object with an Export array.';
+                    window.DQCTToasts?.showError?.(message);
+                    return;
+                  }
+                  const records = window.DQCTParser.normalizeRecords(extracted.records);
+                  const fieldStats = window.DQCTProfiler.computeFieldStats(records);
+                  const suggestions = window.DQCTProfiler.suggestRules(fieldStats, records.length);
+                  let name = window.DQCTProfiler.inferProfileName(records);
+                  name = window.DQCTProfiler.deduplicateProfileName(name, state.profiles);
+                  renderProfileSuggester(fieldStats, suggestions, name, records.length);
+                  const panel = document.getElementById('profileSuggesterPanel');
+                  if (panel) panel.classList.remove('hidden');
+                } catch (e) {
+                  window.DQCTToasts?.showError?.(e && e.message ? e.message : 'Unable to suggest from batch');
+                } finally {
+                  event.target.value = '';
+                }
+              });
+            }
+          } catch (e) {
+            // noop if DOM not ready
+          }
           els.schemaImportInput.addEventListener("change", async (event) => {
             const file = event.target.files?.[0];
             if (!file) {
