@@ -1764,10 +1764,9 @@
       changedFieldsOnlyToggle?.addEventListener('change', () => {
         state.showChangedFieldsOnly = Boolean(changedFieldsOnlyToggle.checked);
         saveChangedFieldsOnlyPreference(state.showChangedFieldsOnly);
-        node.querySelectorAll('[data-diff-field-row]').forEach((row) => {
-          const fieldChanged = row.dataset.fieldChanged === 'true';
-          row.classList.toggle('hidden', state.showChangedFieldsOnly && !fieldChanged);
-        });
+        if (state.analysis) {
+          renderDiffResults(state.analysis);
+        }
       });
 
       const recordFilterInput = node.querySelector('#diffRecordFilterInput');
