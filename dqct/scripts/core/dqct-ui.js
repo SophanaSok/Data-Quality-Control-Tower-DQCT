@@ -557,10 +557,14 @@
         const groupNames = Object.keys(groups);
         const allExpanded = groupNames.length > 0 && groupNames.every((field) => state.expandedFields.has(field));
 
+        const expandedFieldsKey = Array.from(state.expandedFields).sort().join('|');
         const rulesKey = profile.profile_name + ':' + profile.rules.length
           + ':' + profile.rules.filter((rule) => rule.enabled).length
           + ':' + state.runtimeOverrides.size
-          + ':' + (state.editingProfile ?? '');
+          + ':' + (state.editingProfile ?? '')
+          + ':' + state.currentLayer
+          + ':' + state.ruleSearch.trim().toLowerCase()
+          + ':' + expandedFieldsKey;
         if (rulesKey === _lastRulesKey) return;
         _lastRulesKey = rulesKey;
 
