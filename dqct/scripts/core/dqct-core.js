@@ -156,7 +156,9 @@
         showCore: document.getElementById("showCore"),
         showDomain: document.getElementById("showDomain"),
         showDiagnostic: document.getElementById("showDiagnostic"),
-        showAll: document.getElementById("showAll")
+        showAll: document.getElementById("showAll"),
+        resumeCard: document.getElementById("resumeCard"),
+        emptyStateCard: document.getElementById("emptyStateCard")
       };
 
       // Development DOM null-guard: warn if expected elements are missing

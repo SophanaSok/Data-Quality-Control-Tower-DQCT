@@ -369,6 +369,60 @@
 
         renderSparkline(recentRuns.map((run) => Math.round((run.passRate || 0) * 100)));
 
+        // Populate Resume card or Empty State
+        if (latestRun) {
+          els.resumeCard.classList.remove("hidden");
+          els.emptyStateCard.classList.add("hidden");
+          
+          const fileNames = latestRun.files?.map((f) => f.name).join(", ") || "(unknown file)";
+          const issueCount = latestRun.failureCount || 0;
+          const issueLabel = issueCount === 1 ? "issue" : "issues";
+          
+          els.resumeCard.innerHTML = `
+            <div id="resumeCardContent">
+              <strong>Continue: ${escapeHtml(fileNames)}</strong>
+              <div class="meta">${issueCount} ${issueLabel} · Profile: ${escapeHtml(latestRun.profileName)}</div>
+            </div>
+            <button type="button" id="resumeFromDashboard" class="resumeCardAction">Resume Validation →</button>
+          `;
+          
+          const resumeBtn = document.querySelector("#resumeFromDashboard");
+          if (resumeBtn) {
+            resumeBtn.addEventListener("click", () => {
+              if (latestRun.reopenTab) {
+                const setActiveTab = window.setActiveTab || ((tabName) => {
+                  document.querySelectorAll('[data-app-tab]').forEach((btn) => btn.setAttribute('aria-selected', 'false'));
+                  document.querySelectorAll('[data-tab-panel]').forEach((panel) => panel.classList.add('hidden'));
+                  document.querySelector(`[data-app-tab="${tabName}"]`)?.setAttribute('aria-selected', 'true');
+                  document.querySelector(`[data-tab-panel="${tabName}"]`)?.classList.remove('hidden');
+                });
+                setActiveTab(latestRun.reopenTab);
+              }
+            });
+          }
+        } else {
+          els.resumeCard.classList.add("hidden");
+          els.emptyStateCard.classList.remove("hidden");
+          els.emptyStateCard.innerHTML = `
+            <strong>No validations yet</strong>
+            <p>Upload a file to run your first check.</p>
+            <button type="button" id="startValidationFromEmpty" class="primary">Start Validation →</button>
+          `;
+          
+          const startBtn = document.querySelector("#startValidationFromEmpty");
+          if (startBtn) {
+            startBtn.addEventListener("click", () => {
+              const setActiveTab = window.setActiveTab || ((tabName) => {
+                document.querySelectorAll('[data-app-tab]').forEach((btn) => btn.setAttribute('aria-selected', 'false'));
+                document.querySelectorAll('[data-tab-panel]').forEach((panel) => panel.classList.add('hidden'));
+                document.querySelector(`[data-app-tab="${tabName}"]`)?.setAttribute('aria-selected', 'true');
+                document.querySelector(`[data-tab-panel="${tabName}"]`)?.classList.remove('hidden');
+              });
+              setActiveTab("validate");
+            });
+          }
+        }
+
         const latestIssues = state.results.slice(0, 10).map((result) => ({
           title: `${result.field} failed ${result.ruleType}`,
           detail: `${result.fileName} · record ${result.recordIndex} · ${result.severity}`
@@ -1030,6 +1084,39 @@
         els.issueSummaryList.innerHTML = `${exactMarkup}${nearMarkup}`;
       }
 
+      function updatePhase() {
+        try {
+          const validateContainer = document.querySelector('[data-tab-panel="validate"]');
+          if (!validateContainer) return;
+          
+          // Remove all phase classes
+          validateContainer.classList.remove('validate-phase-idle', 'validate-phase-loaded', 'validate-phase-complete');
+          
+          // Add appropriate phase class based on state
+          if (state.results.length > 0) {
+            validateContainer.classList.add('validate-phase-complete');
+          } else if (state.files.length > 0) {
+            validateContainer.classList.add('validate-phase-loaded');
+          } else {
+            validateContainer.classList.add('validate-phase-idle');
+          }
+          
+          // Update run button state
+          if (els.runButton) {
+            if (state.files.length === 0) {
+              els.runButton.disabled = true;
+              els.runButton.setAttribute('aria-disabled', 'true');
+              els.runButton.textContent = 'Upload a file to continue';
+            } else {
+              els.runButton.disabled = false;
+              els.runButton.removeAttribute('aria-disabled');
+              els.runButton.textContent = 'Run validation';
+            }
+          }
+        } catch (e) {
+          // noop
+        }
+      }
 
       function render() {
         saveProfiles();
@@ -1040,6 +1127,7 @@
         renderDashboard();
         renderDriftPanel();
         renderResults();
+        updatePhase();
         enhanceTopNav();
       }
 

@@ -22,18 +22,16 @@
             <p class="helper">Use quick actions, shared settings, and local recent run history for both Validate and Diff workflows.</p>
           </div>
         </div>
+        <div id="resumeCard" class="hidden"></div>
+        <div id="emptyStateCard" class="hidden"></div>
         <div class="landing-tiles">
-          <button type="button" class="landing-tile" id="dashboardRunDiffTile">
-            <strong>Run Diff</strong>
-            <span>Compare baseline vs comparison exports.</span>
-          </button>
           <button type="button" class="landing-tile" id="dashboardRunValidationTile">
-            <strong>Run Validation</strong>
-            <span>Validate uploaded files against active profile rules.</span>
+            <strong>+ New Validation</strong>
+            <span>Upload files and validate against active profile rules.</span>
           </button>
-          <button type="button" class="landing-tile" id="dashboardViewReportsTile">
-            <strong>View Reports</strong>
-            <span>Open validation reports and issue exports.</span>
+          <button type="button" class="landing-tile" id="dashboardRunDiffTile">
+            <strong>⇄ Run Diff</strong>
+            <span>Compare baseline vs comparison exports.</span>
           </button>
         </div>
         <div class="section mt-1">
@@ -180,7 +178,7 @@
           </div>
         </div>
 
-        <div class="dashboard-grid">
+        <div class="dashboard-grid" id="runHistory">
           <div class="dashboard-card">
             <div class="dashboard-head mb-05">
               <div>
@@ -443,7 +441,7 @@
           </table>
         </div>
 
-        <div class="section mt-1">
+        <div class="section mt-1" id="issueBuilderPanel">
           <h3>Issue report builder</h3>
           <p class="helper">Generate Trello-ready ticket text by grouped issue and copy it directly.</p>
           <div id="issueSummaryList" class="issue-groups"></div>

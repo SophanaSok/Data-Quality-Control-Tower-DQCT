@@ -1484,9 +1484,80 @@
 
       .landing-tiles {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.75rem;
         margin-top: 1rem;
+      }
+
+      /* Resume card (primary) */
+      #resumeCard {
+        grid-column: 1 / -1;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1.5rem;
+        box-shadow: 0 4px 16px rgba(14, 25, 41, 0.08);
+        margin-bottom: 0.5rem;
+      }
+
+      #resumeCard.hidden {
+        display: none;
+      }
+
+      #resumeCardContent {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        flex: 1;
+      }
+
+      #resumeCardContent strong {
+        font-size: 1.05rem;
+        color: var(--text);
+      }
+
+      #resumeCardContent .meta {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      #resumeCardAction {
+        padding: 0.6rem 1rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      /* Empty state card */
+      #emptyStateCard {
+        grid-column: 1 / -1;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        text-align: center;
+        margin-bottom: 0.5rem;
+      }
+
+      #emptyStateCard p {
+        margin: 0.5rem 0 1rem;
+        color: var(--muted);
+      }
+
+      #emptyStateCard.hidden {
+        display: none;
+      }
+
+      /* Hide old "Last run summary" section - replaced by Resume card */
+      .section:has(> h3:first-child:contains("Last run summary")) {
+        display: none;
+      }
+
+      #dashboardLastRunSummary {
+        display: none;
       }
 
       .landing-tile {
@@ -1901,6 +1972,140 @@
 
       .hidden {
         display: none !important;
+      }
+
+      /* Phase-based Validate tab visibility */
+      
+      /* Phase 1: Idle (no file loaded) */
+      [data-tab-panel="validate"].validate-phase-idle #uploadPanel {
+        display: block;
+      }
+      
+      [data-tab-panel="validate"].validate-phase-idle #rulesList,
+      [data-tab-panel="validate"].validate-phase-idle [id*="drift"],
+      [data-tab-panel="validate"].validate-phase-idle #issueBuilderPanel,
+      [data-tab-panel="validate"].validate-phase-idle #runHistory {
+        display: none !important;
+      }
+      
+      [data-tab-panel="validate"].validate-phase-idle #advancedOptionsAccordion {
+        display: none !important;
+      }
+      
+      [data-tab-panel="validate"].validate-phase-idle #runValidationButton {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      
+      /* Phase 2: File loaded (pre-run) */
+      [data-tab-panel="validate"].validate-phase-loaded #uploadPanel {
+        display: block;
+      }
+      
+      [data-tab-panel="validate"].validate-phase-loaded #advancedOptionsAccordion {
+        display: block;
+      }
+      
+      [data-tab-panel="validate"].validate-phase-loaded #runValidationButton {
+        opacity: 1;
+        cursor: pointer;
+      }
+      
+      [data-tab-panel="validate"].validate-phase-loaded #resultsWrap,
+      [data-tab-panel="validate"].validate-phase-loaded #issueBuilderPanel,
+      [data-tab-panel="validate"].validate-phase-loaded #runHistory {
+        display: none !important;
+      }
+      
+      /* Phase 3: Validation complete (post-run) */
+      [data-tab-panel="validate"].validate-phase-complete #uploadPanel {
+        display: block;
+      }
+      
+      [data-tab-panel="validate"].validate-phase-complete #advancedOptionsAccordion {
+        display: block;
+      }
+      
+      [data-tab-panel="validate"].validate-phase-complete #resultsWrap {
+        display: block;
+      }
+      
+      [data-tab-panel="validate"].validate-phase-complete #runHistory {
+        display: block;
+      }
+      
+      [data-tab-panel="validate"].validate-phase-complete #issueBuilderPanel {
+        display: block;
+      }
+      
+      /* Step 1 collapse in Phase 3 */
+      [data-tab-panel="validate"].validate-phase-complete #uploadPanel {
+        border: 1px solid var(--panel-border);
+        background-color: rgba(255, 255, 255, 0.4);
+        padding: var(--space-3);
+        max-height: 60px;
+        overflow: hidden;
+        opacity: 0.7;
+      }
+      
+      [data-tab-panel="validate"].validate-phase-complete #uploadPanel h2,
+      [data-tab-panel="validate"].validate-phase-complete #uploadPanel > div:not(:first-child) {
+        display: none;
+      }
+      
+      [data-tab-panel="validate"].validate-phase-complete #uploadPanel::before {
+        content: "✓ STEP 1 ── Upload & Profile (completed)";
+        display: block;
+        font-size: 0.95rem;
+        color: var(--success);
+        font-weight: 500;
+      }
+
+      /* Advanced Options Accordion Styling */
+      #advancedOptionsAccordion {
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius-md);
+        margin: var(--space-3) 0;
+        background-color: var(--panel);
+      }
+
+      #advancedOptionsAccordion summary {
+        padding: var(--space-3) var(--space-4);
+        cursor: pointer;
+        font-weight: 500;
+        color: var(--primary);
+        background-color: rgba(32, 74, 135, 0.06);
+        border-radius: var(--radius-md);
+        user-select: none;
+        transition: background-color 0.2s ease;
+      }
+
+      #advancedOptionsAccordion summary:hover {
+        background-color: rgba(32, 74, 135, 0.12);
+      }
+
+      #advancedOptionsAccordion[open] summary {
+        background-color: rgba(32, 74, 135, 0.08);
+        border-bottom: 1px solid var(--panel-border);
+      }
+
+      :root[data-theme="dark"] #advancedOptionsAccordion summary {
+        background-color: rgba(110, 168, 255, 0.08);
+      }
+
+      :root[data-theme="dark"] #advancedOptionsAccordion summary:hover {
+        background-color: rgba(110, 168, 255, 0.14);
+      }
+
+      :root[data-theme="dark"] #advancedOptionsAccordion[open] summary {
+        background-color: rgba(110, 168, 255, 0.1);
+      }
+
+      .accordion-content {
+        padding: var(--space-4);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
       }
 
       @media (max-width: 1180px) {
