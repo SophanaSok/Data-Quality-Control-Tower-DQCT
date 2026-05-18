@@ -633,6 +633,10 @@
         };
       }
 
+      window.DQCTApp = Object.assign(window.DQCTApp || {}, {
+        buildImportedProfile
+      });
+
       function detectAnomalies(currentStats, previousStats, profile) {
         if (!previousStats) {
           return [];

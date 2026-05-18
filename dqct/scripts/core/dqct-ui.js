@@ -696,9 +696,18 @@
        * @param {string} suggestedName
        * @param {number} totalRecords
        */
-      function renderProfileSuggester(fieldStats, suggestions, suggestedName, totalRecords) {
+      function renderProfileSuggester(fieldStats, suggestions, suggestedName, totalRecords, options = {}) {
         const panel = document.getElementById('profileSuggesterPanel');
         if (!panel) return;
+
+        const suggestionContext = {
+          records: Array.isArray(options.records) ? options.records : [],
+          sourceName: String(options.sourceName || 'Imported schema'),
+          rootArray: String(options.rootArray || 'Export')
+        };
+        const closePanel = () => {
+          panel.classList.add('hidden');
+        };
 
         const fieldsHtml = (Array.isArray(fieldStats) ? fieldStats : []).map((fs) => {
           const types = Array.isArray(fs.observedTypes) ? fs.observedTypes.join(', ') : String(fs.observedTypes || '');
@@ -738,44 +747,91 @@
           </div>`).join('');
 
         panel.innerHTML = `
-          <div class="panel">
+          <div class="panel profile-suggester-panel__card">
             <div class="flex-row-between">
               <h3>Profile Suggestion</h3>
-              <button id="suggestCancelButton" type="button" class="ghost">Cancel</button>
+              <button id="suggestRejectButton" type="button" class="ghost">Reject</button>
             </div>
-            <div class="fieldset">
-              <label for="suggestedProfileName">Suggested name</label>
-              <input id="suggestedProfileName" type="text" value="${escapeHtml(suggestedName || '')}" />
-            </div>
-            <div class="meta">${escapeHtml(String(totalRecords))} records scanned · ${escapeHtml(String(fieldStats.length || 0))} fields found</div>
+            <div class="profile-suggester-panel__body">
+              <div class="fieldset">
+                <label for="suggestedProfileName">Suggested name</label>
+                <input id="suggestedProfileName" type="text" value="${escapeHtml(suggestedName || '')}" />
+              </div>
+              <div class="meta">${escapeHtml(String(totalRecords))} records scanned · ${escapeHtml(String(fieldStats.length || 0))} fields found</div>
 
-            <div class="table-wrap">
-              <table class="table mt-1">
-                <thead><tr><th>Field</th><th>Presence %</th><th>Null %</th><th>Distinct</th><th>Type(s)</th><th>Sample Values</th><th>Suggestion</th></tr></thead>
-                <tbody>${fieldsHtml}</tbody>
-              </table>
-            </div>
+              <div class="table-wrap profile-suggester-panel__table-wrap">
+                <table class="table mt-1">
+                  <thead><tr><th>Field</th><th>Presence %</th><th>Null %</th><th>Distinct</th><th>Type(s)</th><th>Sample Values</th><th>Suggestion</th></tr></thead>
+                  <tbody>${fieldsHtml}</tbody>
+                </table>
+              </div>
 
-            <div class="stack mt-1">
-              <div>
-                <strong>Required</strong>
-                ${requiredHtml || '<div class="meta">No required fields suggested</div>'}
+              <div class="stack mt-1">
+                <div>
+                  <strong>Required</strong>
+                  ${requiredHtml || '<div class="meta">No required fields suggested</div>'}
+                </div>
+                <div>
+                  <strong>Enum candidates</strong>
+                  ${enumHtml || '<div class="meta">No enum candidates</div>'}
+                </div>
+                <div>
+                  <strong>Duplicate key candidates</strong>
+                  ${dupHtml || '<div class="meta">No duplicate key candidates</div>'}
+                </div>
               </div>
-              <div>
-                <strong>Enum candidates</strong>
-                ${enumHtml || '<div class="meta">No enum candidates</div>'}
-              </div>
-              <div>
-                <strong>Duplicate key candidates</strong>
-                ${dupHtml || '<div class="meta">No duplicate key candidates</div>'}
-              </div>
+            </div>
+            <div class="actions-row justify-space-between profile-suggester-panel__actions">
+              <button id="suggestRejectButtonFooter" type="button" class="ghost">Reject</button>
+              <button id="suggestAcceptButton" type="button" ${suggestionContext.records.length ? '' : 'disabled'}>Accept suggestion</button>
             </div>
           </div>`;
 
-        const cancelBtn = panel.querySelector('#suggestCancelButton');
-        if (cancelBtn instanceof HTMLButtonElement) {
-          cancelBtn.addEventListener('click', () => {
-            panel.classList.add('hidden');
+        panel.querySelectorAll('#suggestRejectButton, #suggestRejectButtonFooter').forEach((button) => {
+          if (button instanceof HTMLButtonElement) {
+            button.addEventListener('click', closePanel);
+          }
+        });
+
+        const acceptBtn = panel.querySelector('#suggestAcceptButton');
+        if (acceptBtn instanceof HTMLButtonElement) {
+          acceptBtn.addEventListener('click', () => {
+            if (!suggestionContext.records.length) {
+              closePanel();
+              return;
+            }
+
+            const suggestedNameInput = panel.querySelector('#suggestedProfileName');
+            const customSuggestedName = suggestedNameInput instanceof HTMLInputElement ? suggestedNameInput.value.trim() : '';
+
+            const draftProfile = window.DQCTApp?.buildImportedProfile
+              ? window.DQCTApp.buildImportedProfile(suggestionContext.records, suggestionContext.sourceName, suggestionContext.rootArray)
+              : null;
+
+            if (!draftProfile) {
+              window.DQCTToasts?.showError?.('Unable to create a profile draft from the suggestion.');
+              return;
+            }
+
+            const suggestedProfileName = window.DQCTProfiler?.deduplicateProfileName
+              ? window.DQCTProfiler.deduplicateProfileName(String(customSuggestedName || suggestedName || draftProfile.profile_name || 'Suggested Profile'), state.profiles)
+              : String(customSuggestedName || suggestedName || draftProfile.profile_name || 'Suggested Profile');
+
+            draftProfile.profile_name = suggestedProfileName;
+            draftProfile.source = `Suggested from ${suggestionContext.sourceName}`;
+            draftProfile.draft = true;
+
+            state.profiles = state.profiles.filter((profile) => profile.profile_name !== draftProfile.profile_name).concat(draftProfile);
+            state.activeProfileId = draftProfile.profile_name;
+            state.ruleSearch = '';
+            state.currentLayer = 'all';
+            state.runtimeOverrides = new Set();
+            els.newProfileName.value = draftProfile.profile_name;
+            els.newRootArray.value = draftProfile.root_array || 'Export';
+            saveProfiles();
+            closePanel();
+            render();
+            window.DQCTToasts?.showSuccess?.(`Profile suggestion accepted as ${draftProfile.profile_name}.`);
           });
         }
       }
@@ -1235,7 +1291,11 @@
                   const suggestions = window.DQCTProfiler.suggestRules(fieldStats, records.length);
                   let name = window.DQCTProfiler.inferProfileName(records);
                   name = window.DQCTProfiler.deduplicateProfileName(name, state.profiles);
-                  renderProfileSuggester(fieldStats, suggestions, name, records.length);
+                  renderProfileSuggester(fieldStats, suggestions, name, records.length, {
+                    records,
+                    sourceName: file.name,
+                    rootArray: extracted.rootArray
+                  });
                   const panel = document.getElementById('profileSuggesterPanel');
                   if (panel) panel.classList.remove('hidden');
                 } catch (e) {
