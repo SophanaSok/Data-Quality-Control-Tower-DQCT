@@ -189,15 +189,17 @@
     try {
       const raw = localStorage.getItem(DIFF_IGNORE_FIELDS_KEY);
       if (!raw) {
-        // Return default ignore fields
-        return ['Created', 'Refreshed'];
+        const settings = getAppSettings();
+        return Array.isArray(settings?.ignoreFields) && settings.ignoreFields.length > 0
+          ? settings.ignoreFields
+          : ['Created', 'Refreshed'];
       }
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) {
         return ['Created', 'Refreshed'];
       }
       const fields = parsed.map((field) => String(field || "").trim()).filter(Boolean);
-      return fields.length > 0 ? fields : ['Created', 'Refreshed'];
+      return fields;
     } catch (error) {
       return ['Created', 'Refreshed'];
     }
@@ -208,10 +210,6 @@
       const fields = Array.isArray(value)
         ? Array.from(new Set(value.map((field) => String(field || "").trim()).filter(Boolean)))
         : [];
-      if (!fields.length) {
-        localStorage.removeItem(DIFF_IGNORE_FIELDS_KEY);
-        return;
-      }
       localStorage.setItem(DIFF_IGNORE_FIELDS_KEY, JSON.stringify(fields));
     } catch (error) {
       // Ignore storage failures and keep in-memory state only.

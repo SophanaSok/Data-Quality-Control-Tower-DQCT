@@ -4,7 +4,7 @@
   const MAX_RECENT_RUNS = 10;
   const DEFAULT_SETTINGS = {
     defaultUniqueKey: "ProjectCode",
-    ignoreFields: [],
+    ignoreFields: ["Created", "Refreshed"],
     theme: "light",
     exportFormat: "pretty"
   };
