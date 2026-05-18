@@ -5,6 +5,7 @@
   const DEFAULT_SETTINGS = {
     defaultUniqueKey: "ProjectCode",
     ignoreFields: ["Created", "Refreshed"],
+    ignoreFieldsCleared: false,
     theme: "light",
     exportFormat: "pretty"
   };
@@ -25,11 +26,18 @@
         .split(",")
         .map((field) => field.trim())
         .filter(Boolean);
+    const ignoreFieldsCleared = settings?.ignoreFieldsCleared === true;
+    const resolvedIgnoreFields = ignoreFields.length > 0
+      ? ignoreFields
+      : ignoreFieldsCleared
+        ? []
+        : structuredClone(DEFAULT_SETTINGS.ignoreFields);
     const theme = settings?.theme === "dark" ? "dark" : "light";
     const exportFormat = settings?.exportFormat === "minified" ? "minified" : "pretty";
     return {
       defaultUniqueKey,
-      ignoreFields,
+      ignoreFields: resolvedIgnoreFields,
+      ignoreFieldsCleared,
       theme,
       exportFormat
     };
@@ -45,7 +53,12 @@
   }
 
   function saveSettings(nextSettings) {
-    const normalized = normalizeSettings(nextSettings);
+    const normalized = normalizeSettings({
+      ...nextSettings,
+      ignoreFieldsCleared: Array.isArray(nextSettings?.ignoreFields)
+        ? nextSettings.ignoreFields.length === 0
+        : String(nextSettings?.ignoreFields || "").trim() === ""
+    });
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(normalized));
     applyTheme(normalized.theme);
     globalScope.dispatchEvent(new CustomEvent("dqct:settings-changed", { detail: normalized }));
