@@ -519,6 +519,11 @@
         const baseline = state.schemaBaselines[profileName]?.schema || null;
         const incoming = state.currentSchema;
 
+        // Show Diff discoverability hint if no baseline saved
+        if (!baseline && incoming) {
+          showDiffDiscoverabilityHint();
+        }
+
         els.baselineSchemaMeta.textContent = baseline ? `${state.schemaBaselines[profileName].rootArray || "Export"} · ${baseline.fields.length} fields` : "No baseline saved yet";
         els.baselineSchemaFields.textContent = baseline ? `Saved ${new Date(state.schemaBaselines[profileName].savedAt).toLocaleString()} for ${profileName}` : "Validate once to capture the first schema snapshot.";
         els.incomingSchemaMeta.textContent = incoming ? `${incoming.fields.length} fields detected` : "Waiting for a run";
@@ -985,7 +990,7 @@
                       <div>
                         <strong>${escapeHtml(issue.field)} failed ${escapeHtml(issue.ruleType)}</strong>
                         <div class="meta">Rule ${escapeHtml(issue.ruleId)} · ${escapeHtml(issue.severity)} severity · ${issue.count} affected rows</div>
-                        <div class="meta">Expected: ${escapeHtml(issue.expected || "See rule configuration")}</div>
+                        <div class="meta">Expected: ${escapeHtml(issue.expected || "See rule configuration")} <a href="#" class="inline-edit-rule" data-edit-rule="${escapeHtml(issue.ruleId)}" title="Edit rule">✎ Edit</a></div>
                       </div>
                       <div class="issue-actions">
                         <button type="button" class="secondary" data-preview-ticket="${escapeHtml(issue.key)}">Preview ticket</button>
@@ -1118,6 +1123,164 @@
         }
       }
 
+      function updateRunHistoryState() {
+        try {
+          const details = document.querySelector('#runHistoryDetails');
+          if (!details) return;
+          
+          const recentRuns = window.DQCTAppState?.getRecentRuns() || [];
+          // Auto-open details if history exists, auto-close if empty
+          details.open = recentRuns.length > 0;
+        } catch (e) {
+          // noop
+        }
+      }
+
+      function initSettingsToggle() {
+        try {
+          const toggle = document.querySelector('#settingsToggle');
+          const dropdown = document.querySelector('#settingsDropdown');
+          const settingsPanel = document.querySelector('#settingsPanel');
+          const dashboardPanel = document.querySelector('[data-tab-panel="dashboard"]');
+          
+          if (!toggle || !dropdown) return;
+          
+          toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('hidden');
+            // Move settings form into dropdown if not already there
+            if (!dropdown.querySelector('.dashboard-card')) {
+              const settingsCard = settingsPanel?.querySelector('.dashboard-card');
+              if (settingsCard) {
+                const clone = settingsCard.cloneNode(true);
+                dropdown.querySelector('.settings-dropdown-content').innerHTML = '';
+                dropdown.querySelector('.settings-dropdown-content').appendChild(clone);
+              }
+            }
+          });
+          
+          // Close dropdown when clicking outside
+          document.addEventListener('click', (e) => {
+            if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
+              dropdown.classList.add('hidden');
+            }
+          });
+        } catch (e) {
+          // noop
+        }
+      }
+
+      function showPostRunPrompt() {
+        try {
+          // Only show if we're in Phase 3 (complete)
+          if (state.results.length === 0) return;
+          
+          const validatePanel = document.querySelector('[data-tab-panel="validate"]');
+          if (!validatePanel || !validatePanel.classList.contains('validate-phase-complete')) return;
+          
+          // Check if prompt already exists
+          if (document.querySelector('#postRunPrompt')) return;
+          
+          const prompt = document.createElement('div');
+          prompt.id = 'postRunPrompt';
+          prompt.className = 'post-run-prompt';
+          prompt.innerHTML = `
+            <div class="prompt-content">
+              <strong>Validation complete</strong>
+              <p>Want to compare this run with a previous baseline?</p>
+              <div class="prompt-actions">
+                <button type="button" id="diffPromptBtn" class="primary">Compare run →</button>
+                <button type="button" id="dismissPromptBtn" class="ghost">Dismiss</button>
+              </div>
+            </div>
+          `;
+          
+          // Find results panel and insert prompt
+          const resultsPanel = validatePanel.querySelector('#resultsPanel') || validatePanel.querySelector('[id*="result"]');
+          if (resultsPanel) {
+            resultsPanel.parentNode.insertBefore(prompt, resultsPanel);
+          } else {
+            validatePanel.appendChild(prompt);
+          }
+          
+          // Wire up buttons
+          const diffBtn = prompt.querySelector('#diffPromptBtn');
+          const dismissBtn = prompt.querySelector('#dismissPromptBtn');
+          
+          if (diffBtn) {
+            diffBtn.addEventListener('click', () => {
+              const setActiveTab = window.setActiveTab || ((tabName) => {
+                document.querySelectorAll('[data-app-tab]').forEach((btn) => btn.setAttribute('aria-selected', 'false'));
+                document.querySelectorAll('[data-tab-panel]').forEach((panel) => panel.classList.add('hidden'));
+                document.querySelector(`[data-app-tab="${tabName}"]`)?.setAttribute('aria-selected', 'true');
+                document.querySelector(`[data-tab-panel="${tabName}"]`)?.classList.remove('hidden');
+              });
+              setActiveTab('diff');
+              prompt.remove();
+            });
+          }
+          
+          if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => prompt.remove());
+          }
+          
+          // Auto-scroll results into view
+          setTimeout(() => {
+            const resultsArea = validatePanel.querySelector('[id*="result"]') || validatePanel.querySelector('.section:has(h2:contains("Results"))');
+            if (resultsArea) {
+              resultsArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 100);
+        } catch (e) {
+          // noop
+        }
+      }
+
+      function showDiffDiscoverabilityHint() {
+        try {
+          const diffPanel = document.querySelector('[data-tab-panel="diff"]');
+          if (!diffPanel) return;
+          
+          // Check if hint already exists
+          if (document.querySelector('#diffDiscoverabilityHint')) return;
+          
+          const baselineLabel = document.querySelector('#baselineSchemaFields');
+          if (!baselineLabel) return;
+          
+          const hint = document.createElement('div');
+          hint.id = 'diffDiscoverabilityHint';
+          hint.className = 'discoverability-hint';
+          hint.innerHTML = `
+            <strong>💡 Tip: Create a baseline first</strong>
+            <p>Export your current validation run and set it as a baseline to compare future runs and track schema changes.</p>
+            <div class="hint-actions">
+              <button type="button" id="createBaselineBtn" class="secondary">Export current run</button>
+              <button type="button" id="dismissHintBtn" class="ghost">Got it</button>
+            </div>
+          `;
+          
+          baselineLabel.parentNode.insertBefore(hint, baselineLabel.nextSibling);
+          
+          const createBtn = hint.querySelector('#createBaselineBtn');
+          const dismissBtn = hint.querySelector('#dismissHintBtn');
+          
+          if (createBtn) {
+            createBtn.addEventListener('click', () => {
+              // Navigate to Validate tab to export
+              const validateTab = document.querySelector('[data-app-tab="validate"]');
+              if (validateTab) validateTab.click();
+              hint.remove();
+            });
+          }
+          
+          if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => hint.remove());
+          }
+        } catch (e) {
+          // noop
+        }
+      }
+
       function render() {
         saveProfiles();
         renderFiles();
@@ -1128,6 +1291,9 @@
         renderDriftPanel();
         renderResults();
         updatePhase();
+        updateRunHistoryState();
+        showPostRunPrompt();
+        initSettingsToggle();
         enhanceTopNav();
       }
 
@@ -1146,7 +1312,7 @@
         }
       }
 
-      const defaultActionStatus = "Ready to validate loaded files.";
+      const defaultActionStatus = "Loaded files. Select profile and run validation.";
       const actionFeedbackTimeout = 3000;
       let actionStatusTimer = null;
 
@@ -1647,6 +1813,24 @@
           const copyTicket = target.getAttribute("data-copy-ticket");
           if (copyTicket) {
             copyIssueTicket(copyTicket);
+          }
+
+          const editRule = target.getAttribute("data-edit-rule");
+          if (editRule) {
+            // Navigate to validate tab and focus on the rule
+            const validateTab = document.querySelector('[data-app-tab="validate"]');
+            if (validateTab) {
+              validateTab.click();
+              // Scroll to and highlight the rule
+              setTimeout(() => {
+                const ruleElement = document.querySelector(`[data-rule-id="${editRule}"]`);
+                if (ruleElement) {
+                  ruleElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  ruleElement.classList.add('highlight');
+                  setTimeout(() => ruleElement.classList.remove('highlight'), 2000);
+                }
+              }, 100);
+            }
           }
 
           const rowTicket = target.getAttribute("data-row-ticket");
