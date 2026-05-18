@@ -1275,6 +1275,190 @@
           
           if (dismissBtn) {
             dismissBtn.addEventListener('click', () => hint.remove());
+
+                function showProfileSuggesterModal() {
+                  try {
+                    // Only show Phase 2.5 if:
+                    // 1. Files loaded but no results yet (Phase 2)
+                    // 2. Modal hasn't been shown before
+                    if (state.files.length === 0 || state.results.length > 0) return;
+                    if (document.querySelector('#profileSuggesterModal')) return;
+                    if (state.profileSuggesterShown) return;
+          
+                    // Compute field stats from all loaded files
+                    const allRecords = [];
+                    (state.files || []).forEach((file) => {
+                      if (Array.isArray(file.records)) {
+                        allRecords.push(...file.records);
+                      }
+                    });
+          
+                    if (allRecords.length === 0) return;
+          
+                    // Use profiler to get suggestions
+                    const fieldStats = window.DQCTProfiler?.computeFieldStats(allRecords) || [];
+                    const suggestions = window.DQCTProfiler?.suggestRules(fieldStats, allRecords.length) || {};
+                    const suggestedName = window.DQCTProfiler?.inferProfileName(allRecords) || 'New Profile';
+          
+                    const { required = [], enumCandidates = [], duplicateKeyCandidates = [] } = suggestions;
+          
+                    // Only show if we have suggestions
+                    if (required.length === 0 && enumCandidates.length === 0 && duplicateKeyCandidates.length === 0) {
+                      state.profileSuggesterShown = true;
+                      return;
+                    }
+          
+                    // Create modal
+                    const modal = document.createElement('div');
+                    modal.id = 'profileSuggesterModal';
+                    modal.className = 'profile-suggester-overlay';
+          
+                    const formatFieldList = (fields) => {
+                      return fields.slice(0, 8).map((f) => `<span class="badge">${escapeHtml(f)}</span>`).join('');
+                    };
+          
+                    modal.innerHTML = `
+                      <div class="profile-suggester-modal">
+                        <div class="modal-header">
+                          <h2>Quick profile setup</h2>
+                          <button type="button" id="closeSuggesterModal" class="ghost" aria-label="Close">✕</button>
+                        </div>
+                        <div class="modal-content">
+                          <p class="helper">Based on your data, we've found some rule patterns. Would you like to create a profile with suggested rules?</p>
+                
+                          ${required.length > 0 ? `
+                            <div class="suggestion-group">
+                              <strong>Required fields (100% presence)</strong>
+                              <div class="field-badges">
+                                ${formatFieldList(required)}
+                                ${required.length > 8 ? `<span class="badge muted">+${required.length - 8} more</span>` : ''}
+                              </div>
+                            </div>
+                          ` : ''}
+                
+                          ${enumCandidates.length > 0 ? `
+                            <div class="suggestion-group">
+                              <strong>Enum candidates (low cardinality)</strong>
+                              <div class="field-badges">
+                                ${formatFieldList(enumCandidates)}
+                                ${enumCandidates.length > 8 ? `<span class="badge muted">+${enumCandidates.length - 8} more</span>` : ''}
+                              </div>
+                            </div>
+                          ` : ''}
+                
+                          ${duplicateKeyCandidates.length > 0 ? `
+                            <div class="suggestion-group">
+                              <strong>Unique key candidates (100% uniqueness)</strong>
+                              <div class="field-badges">
+                                ${formatFieldList(duplicateKeyCandidates)}
+                                ${duplicateKeyCandidates.length > 8 ? `<span class="badge muted">+${duplicateKeyCandidates.length - 8} more</span>` : ''}
+                              </div>
+                            </div>
+                          ` : ''}
+                        </div>
+              
+                        <div class="modal-actions">
+                          <input id="suggestedProfileName" type="text" placeholder="Profile name" value="${escapeHtml(suggestedName)}" class="suggestion-input" />
+                          <button type="button" id="acceptSuggesterBtn" class="primary">Create profile</button>
+                          <button type="button" id="skipSuggesterBtn" class="ghost">Skip</button>
+                        </div>
+                      </div>
+                    `;
+          
+                    document.body.appendChild(modal);
+                    state.profileSuggesterShown = true;
+          
+                    // Wire up buttons
+                    const closeBtn = modal.querySelector('#closeSuggesterModal');
+                    const acceptBtn = modal.querySelector('#acceptSuggesterBtn');
+                    const skipBtn = modal.querySelector('#skipSuggesterBtn');
+                    const nameInput = modal.querySelector('#suggestedProfileName');
+          
+                    const closeModal = () => {
+                      modal.remove();
+                    };
+          
+                    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+                    if (skipBtn) skipBtn.addEventListener('click', closeModal);
+          
+                    if (acceptBtn) {
+                      acceptBtn.addEventListener('click', () => {
+                        const profileName = nameInput?.value.trim() || suggestedName;
+                        if (!profileName) return;
+              
+                        // Build suggested profile with rules
+                        const profile = {
+                          profile_name: profileName,
+                          root_array: "Export",
+                          rules: []
+                        };
+              
+                        // Add required field rules
+                        (required || []).forEach((fieldName) => {
+                          profile.rules.push({
+                            id: `req_${fieldName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`,
+                            field: fieldName,
+                            type: "required",
+                            severity: "high",
+                            enabled: true,
+                            layer: "core",
+                            notes: "Auto-suggested: field is 100% present"
+                          });
+                        });
+              
+                        // Add enum rules
+                        (enumCandidates || []).forEach((fieldName) => {
+                          profile.rules.push({
+                            id: `enum_${fieldName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`,
+                            field: fieldName,
+                            type: "enum",
+                            severity: "medium",
+                            enabled: false,
+                            layer: "domain",
+                            notes: "Auto-suggested: low cardinality field, review allowed values",
+                            allowed: ["(review values)"]
+                          });
+                        });
+              
+                        // Add duplicate key rules
+                        (duplicateKeyCandidates || []).forEach((fieldName) => {
+                          profile.rules.push({
+                            id: `dup_${fieldName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`,
+                            field: fieldName,
+                            type: "duplicate_key",
+                            severity: "high",
+                            enabled: false,
+                            layer: "core",
+                            notes: "Auto-suggested: 100% unique field, may be a primary key",
+                            hash_field: fieldName
+                          });
+                        });
+              
+                        // Add to profiles
+                        state.profiles = state.profiles || [];
+                        state.profiles.push(profile);
+              
+                        // Save and switch to new profile
+                        saveProfiles();
+                        state.profileName = profileName;
+                        if (els.profileSelect) {
+                          els.profileSelect.value = profileName;
+                        }
+              
+                        closeModal();
+                        renderProfileList();
+                        renderRules();
+                        renderSummary();
+              
+                        // Show success toast
+                        setActionStatus(`✓ Profile "${profileName}" created with ${profile.rules.length} suggested rules`, 'good');
+                      });
+                    }
+                  } catch (e) {
+                    console.error('Profile suggester error:', e);
+                    state.profileSuggesterShown = true;
+                  }
+                }
           }
         } catch (e) {
           // noop
@@ -1293,6 +1477,7 @@
         updatePhase();
         updateRunHistoryState();
         showPostRunPrompt();
+        showProfileSuggesterModal();
         initSettingsToggle();
         enhanceTopNav();
       }
