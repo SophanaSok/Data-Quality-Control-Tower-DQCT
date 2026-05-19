@@ -1258,7 +1258,10 @@
           
           // Auto-scroll results into view
           setTimeout(() => {
-            const resultsArea = validatePanel.querySelector('[id*="result"]') || validatePanel.querySelector('.section:has(h2:contains("Results"))');
+            const resultsArea = validatePanel.querySelector('[id*="result"]') || Array.from(validatePanel.querySelectorAll('.section')).find((section) => {
+              const heading = section.querySelector('h2');
+              return heading && String(heading.textContent || '').includes('Results');
+            });
             if (resultsArea) {
               resultsArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
