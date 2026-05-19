@@ -377,18 +377,29 @@
           const fileNames = latestRun.files?.map((f) => f.name).join(", ") || "(unknown file)";
           const issueCount = latestRun.failureCount || 0;
           const issueLabel = issueCount === 1 ? "issue" : "issues";
+          const hasRestorableSnapshot = Array.isArray(latestRun.files) && latestRun.files.length > 0
+            && latestRun.files.every((file) => Array.isArray(file.records) || file.raw != null);
+          const resumeBadge = hasRestorableSnapshot
+            ? '<span class="badge good">Resume ready</span>'
+            : '<span class="badge warn" title="This run does not include saved file snapshots yet">No file snapshot</span>';
+          const resumeButtonAttrs = hasRestorableSnapshot ? "" : 'disabled aria-disabled="true" title="Run validation again to save files for full resume."';
           
           els.resumeCard.innerHTML = `
             <div id="resumeCardContent">
               <strong>Continue: ${escapeHtml(fileNames)}</strong>
               <div class="meta">${issueCount} ${issueLabel} · Profile: ${escapeHtml(latestRun.profileName)}</div>
+              <div class="meta">${resumeBadge}</div>
             </div>
-            <button type="button" id="resumeFromDashboard" class="resumeCardAction">Resume Validation →</button>
+            <button type="button" id="resumeFromDashboard" class="resumeCardAction" ${resumeButtonAttrs}>Resume Validation →</button>
           `;
           
           const resumeBtn = document.querySelector("#resumeFromDashboard");
           if (resumeBtn) {
             resumeBtn.addEventListener("click", () => {
+              if (resumeBtn instanceof HTMLButtonElement && resumeBtn.disabled) {
+                window.DQCTToasts?.showWarning?.('This run does not include saved file snapshots yet. Run validation again to enable full resume.');
+                return;
+              }
               const setActiveTab = window.setActiveTab || ((tabName) => {
                 document.querySelectorAll('[data-app-tab]').forEach((btn) => btn.setAttribute('aria-selected', 'false'));
                 document.querySelectorAll('[data-tab-panel]').forEach((panel) => panel.classList.add('hidden'));
