@@ -1512,7 +1512,9 @@
         updatePhase();
         updateRunHistoryState();
         showPostRunPrompt();
-        showProfileSuggesterModal();
+        if (typeof showProfileSuggesterModal === 'function') {
+          showProfileSuggesterModal();
+        }
         initSettingsToggle();
         enhanceTopNav();
       }
