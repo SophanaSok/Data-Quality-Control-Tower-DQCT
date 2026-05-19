@@ -675,7 +675,8 @@
 
       window.DQCTApp = Object.assign(window.DQCTApp || {}, {
         buildImportedProfile,
-        restoreValidationFilesFromRun
+        restoreValidationFilesFromRun,
+        clearFiles
       });
 
       function detectAnomalies(currentStats, previousStats, profile) {

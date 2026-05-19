@@ -383,6 +383,9 @@
             ? '<span class="badge good">Resume ready</span>'
             : '<span class="badge warn" title="This run does not include saved file snapshots yet">No file snapshot</span>';
           const resumeButtonAttrs = hasRestorableSnapshot ? "" : 'disabled aria-disabled="true" title="Run validation again to save files for full resume."';
+          const fallbackButtonMarkup = hasRestorableSnapshot
+            ? ''
+            : '<button type="button" id="startFreshFromDashboard" class="resumeCardAction secondary">Start Fresh →</button>';
           
           els.resumeCard.innerHTML = `
             <div id="resumeCardContent">
@@ -391,6 +394,7 @@
               <div class="meta">${resumeBadge}</div>
             </div>
             <button type="button" id="resumeFromDashboard" class="resumeCardAction" ${resumeButtonAttrs}>Resume Validation →</button>
+            ${fallbackButtonMarkup}
           `;
           
           const resumeBtn = document.querySelector("#resumeFromDashboard");
@@ -412,6 +416,20 @@
                 window.DQCTToasts?.showWarning?.('No saved file snapshot is available for this run yet. Run validation again to enable full resume.');
               }
               setActiveTab(latestRun.reopenTab || 'validate');
+            });
+          }
+
+          const startFreshBtn = document.querySelector("#startFreshFromDashboard");
+          if (startFreshBtn) {
+            startFreshBtn.addEventListener("click", () => {
+              window.DQCTApp?.clearFiles?.();
+              const setActiveTab = window.setActiveTab || ((tabName) => {
+                document.querySelectorAll('[data-app-tab]').forEach((btn) => btn.setAttribute('aria-selected', 'false'));
+                document.querySelectorAll('[data-tab-panel]').forEach((panel) => panel.classList.add('hidden'));
+                document.querySelector(`[data-app-tab="${tabName}"]`)?.setAttribute('aria-selected', 'true');
+                document.querySelector(`[data-tab-panel="${tabName}"]`)?.classList.remove('hidden');
+              });
+              setActiveTab('validate');
             });
           }
         } else {
