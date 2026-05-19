@@ -706,6 +706,28 @@
       renderRecentRunsTable(setActiveTab);
     });
 
+    // Delegated handlers: ensure resume/start actions work even after re-renders
+    globalScope.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      // Resume latest run (dashboard card)
+      if (target.id === "resumeLatestRunButton" || target.closest && target.closest("#resumeLatestRunButton")) {
+        const recentRuns = globalScope.DQCTAppState?.getRecentRuns?.() || [];
+        const latest = recentRuns[0];
+        if (latest) {
+          reopenRun(setActiveTab, latest);
+        }
+        return;
+      }
+
+      // Start new validation from empty state
+      if (target.id === "startValidationFromEmptyStateButton" || target.closest && target.closest("#startValidationFromEmptyStateButton")) {
+        setActiveTab("validate");
+        return;
+      }
+    });
+
     applySettingsToInputs();
     syncSettingsToggleState();
     renderDashboardLastRun();
