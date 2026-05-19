@@ -34,8 +34,18 @@
     });
   }
 
+  function compactRun(run) {
+    return {
+      timestamp: run?.timestamp || "",
+      profileName: run?.profileName || run?.profile || "",
+      failures: Number(run?.failures ?? run?.failureCount ?? 0),
+      reopenTab: run?.reopenTab || undefined,
+      label: run?.label || undefined
+    };
+  }
+
   function saveRuns(runKey, runs) {
-    const pruned = pruneRuns(runs).slice(-25);
+    const pruned = pruneRuns(runs).slice(-25).map(compactRun);
     try {
       localStorage.setItem(runKey, JSON.stringify(pruned));
       return;
@@ -64,7 +74,7 @@
   }
 
   function loadRuns(runKey) {
-    return pruneRuns(safeJsonParse(localStorage.getItem(runKey), []));
+    return pruneRuns(safeJsonParse(localStorage.getItem(runKey), [])).map(compactRun);
   }
 
   function loadSchemaBaselines(schemaKey) {

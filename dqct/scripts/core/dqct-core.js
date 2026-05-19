@@ -852,7 +852,7 @@
         state.parsedRuns.push({
           timestamp: historyEntry.timestamp,
           profile: profile.profile_name,
-          files: state.files.map((file) => serializeFileSnapshot(file)),
+          reopenTab: "validate",
           failures: results.length
         });
         saveRuns(state.parsedRuns);
