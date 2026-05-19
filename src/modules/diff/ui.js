@@ -422,6 +422,73 @@
     return `records ${summary.records ?? 0}, failures ${summary.failures ?? 0}, anomalies ${summary.anomalies ?? 0}`;
   }
 
+  function isCustomSettings(settings) {
+    const current = settings || getAppSettings();
+    const defaults = globalScope.DQCTAppState?.defaultSettings || {};
+    const currentIgnoreFields = Array.isArray(current.ignoreFields) ? current.ignoreFields : [];
+    const defaultIgnoreFields = Array.isArray(defaults.ignoreFields) ? defaults.ignoreFields : [];
+    return (
+      String(current.defaultUniqueKey || "") !== String(defaults.defaultUniqueKey || "") ||
+      JSON.stringify(currentIgnoreFields) !== JSON.stringify(defaultIgnoreFields) ||
+      (current.theme || "light") !== (defaults.theme || "light") ||
+      (current.exportFormat || "pretty") !== (defaults.exportFormat || "pretty")
+    );
+  }
+
+  function renderDashboardResumeCard(setActiveTab) {
+    const resumeCard = document.getElementById("resumeCard");
+    const emptyStateCard = document.getElementById("emptyStateCard");
+    if (!(resumeCard instanceof HTMLElement) || !(emptyStateCard instanceof HTMLElement)) {
+      return;
+    }
+
+    const recentRuns = globalScope.DQCTAppState?.getRecentRuns?.() || [];
+    const latestRun = recentRuns[0];
+
+    if (!latestRun) {
+      resumeCard.innerHTML = "";
+      resumeCard.classList.add("hidden");
+      emptyStateCard.innerHTML = `
+        <div class="dashboard-card dashboard-empty-state">
+          <h3>Welcome</h3>
+          <p class="helper">Start a validation to populate your local run history.</p>
+          <div class="actions-row mt-075 justify-start">
+            <button type="button" id="startValidationFromEmptyStateButton">New validation</button>
+          </div>
+        </div>
+      `;
+      emptyStateCard.classList.remove("hidden");
+      emptyStateCard.querySelector("#startValidationFromEmptyStateButton")?.addEventListener("click", () => setActiveTab("validate"));
+      return;
+    }
+
+    emptyStateCard.innerHTML = "";
+    emptyStateCard.classList.add("hidden");
+    const title = latestRun.type === "diff" ? "Continue last diff" : "Continue last validation";
+    const summary = formatRunSummary(latestRun);
+    const fileLabel = (latestRun.exportFiles || []).length > 0
+      ? (latestRun.exportFiles || []).join(", ")
+      : (latestRun.label || "Recent run");
+
+    resumeCard.innerHTML = `
+      <div class="dashboard-card dashboard-resume-card">
+        <h3>Resume</h3>
+        <p class="helper">${escapeHtml(fileLabel)}</p>
+        <strong>${escapeHtml(summary)}</strong>
+        <div class="actions-row mt-075 justify-start">
+          <button type="button" id="resumeLatestRunButton">${escapeHtml(title)}</button>
+        </div>
+      </div>
+    `;
+    resumeCard.classList.remove("hidden");
+    resumeCard.querySelector("#resumeLatestRunButton")?.addEventListener("click", () => {
+      setActiveTab(latestRun.reopenTab || (latestRun.type === "diff" ? "diff" : "validate"));
+      if ((latestRun.reopenTab || latestRun.type) === "reports") {
+        globalScope.dispatchEvent(new CustomEvent("dqct:open-reports"));
+      }
+    });
+  }
+
   function renderDashboardLastRun() {
     const node = document.getElementById("dashboardLastRunSummary");
     if (!(node instanceof HTMLElement)) {
@@ -471,6 +538,8 @@
   }
 
   function setupDashboardUi(setActiveTab) {
+    const settingsToggle = document.getElementById("settingsToggle");
+    const settingsPanel = document.getElementById("settingsPanel");
     const runDiffTile = document.getElementById("dashboardRunDiffTile");
     const runValidationTile = document.getElementById("dashboardRunValidationTile");
     const viewReportsTile = document.getElementById("dashboardViewReportsTile");
@@ -480,6 +549,51 @@
     const exportFormatInput = document.getElementById("settingsExportFormat");
     const saveButton = document.getElementById("settingsSaveButton");
     const resetButton = document.getElementById("settingsResetButton");
+
+    const syncSettingsToggleState = () => {
+      if (settingsToggle instanceof HTMLButtonElement) {
+        const custom = isCustomSettings();
+        settingsToggle.classList.toggle("has-custom-settings", custom);
+        settingsToggle.setAttribute("aria-label", custom ? "Settings, custom values active" : "Settings");
+        settingsToggle.setAttribute("title", custom ? "Custom settings applied" : "Settings");
+      }
+    };
+
+    const toggleSettingsPanel = () => {
+      if (!(settingsPanel instanceof HTMLElement)) {
+        return;
+      }
+      settingsPanel.classList.toggle("hidden");
+      if (settingsToggle instanceof HTMLButtonElement) {
+        settingsToggle.setAttribute("aria-expanded", String(!settingsPanel.classList.contains("hidden")));
+      }
+    };
+
+    if (settingsToggle instanceof HTMLButtonElement) {
+      settingsToggle.setAttribute("aria-expanded", String(!(settingsPanel instanceof HTMLElement) ? false : !settingsPanel.classList.contains("hidden")));
+      settingsToggle.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleSettingsPanel();
+      });
+    }
+
+    globalScope.addEventListener("click", (event) => {
+      if (!(settingsPanel instanceof HTMLElement) || settingsPanel.classList.contains("hidden")) {
+        return;
+      }
+      const target = event.target;
+      if (target instanceof Node && settingsPanel.contains(target)) {
+        return;
+      }
+      if (settingsToggle instanceof HTMLElement && target instanceof Node && settingsToggle.contains(target)) {
+        return;
+      }
+      settingsPanel.classList.add("hidden");
+      if (settingsToggle instanceof HTMLButtonElement) {
+        settingsToggle.setAttribute("aria-expanded", "false");
+      }
+    });
 
     runDiffTile?.addEventListener("click", () => setActiveTab("diff"));
     runValidationTile?.addEventListener("click", () => setActiveTab("validate"));
@@ -521,6 +635,7 @@
       // Also save to local preference
       saveIgnoreFieldsPreference(ignoreFieldsArray);
       
+      syncSettingsToggleState();
       globalScope.DQCTToasts?.showSuccess?.("Settings saved.");
     });
 
@@ -528,17 +643,22 @@
       globalScope.DQCTAppState?.resetSettings?.();
       saveIgnoreFieldsPreference(['Created', 'Refreshed']);
       applySettingsToInputs();
+      syncSettingsToggleState();
       globalScope.DQCTToasts?.showSuccess?.("Settings reset to defaults.");
     });
 
     globalScope.addEventListener("dqct:settings-changed", applySettingsToInputs);
+    globalScope.addEventListener("dqct:settings-changed", syncSettingsToggleState);
     globalScope.addEventListener("dqct:runs-changed", () => {
       renderDashboardLastRun();
+      renderDashboardResumeCard(setActiveTab);
       renderRecentRunsTable(setActiveTab);
     });
 
     applySettingsToInputs();
+    syncSettingsToggleState();
     renderDashboardLastRun();
+    renderDashboardResumeCard(setActiveTab);
     renderRecentRunsTable(setActiveTab);
   }
 
