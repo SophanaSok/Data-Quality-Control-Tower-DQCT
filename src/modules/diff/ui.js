@@ -563,6 +563,7 @@
     const exportFormatInput = document.getElementById("settingsExportFormat");
     const saveButton = document.getElementById("settingsSaveButton");
     const resetButton = document.getElementById("settingsResetButton");
+    let settingsReturnTab = null;
 
     const syncSettingsToggleState = () => {
       if (settingsToggle instanceof HTMLButtonElement) {
@@ -578,14 +579,36 @@
         return;
       }
 
+      const closeSettingsPanel = () => {
+        settingsPanel.classList.add("hidden");
+        if (settingsToggle instanceof HTMLButtonElement) {
+          settingsToggle.setAttribute("aria-expanded", "false");
+        }
+        if (settingsReturnTab && settingsReturnTab !== "dashboard") {
+          setActiveTab(settingsReturnTab);
+        }
+        settingsReturnTab = null;
+      };
+
       const dashboardPanel = document.getElementById("dashboardTabPanel");
       const dashboardIsActive = dashboardPanel instanceof HTMLElement && !dashboardPanel.classList.contains("hidden");
+      const activeTabButton = document.querySelector(".top-nav-tab.is-active");
+      const activeTabName = activeTabButton instanceof HTMLElement
+        ? String(activeTabButton.getAttribute("data-app-tab") || "")
+        : "";
 
       if (!dashboardIsActive) {
+        settingsReturnTab = activeTabName && activeTabName !== "dashboard" ? activeTabName : null;
         setActiveTab("dashboard");
         settingsPanel.classList.remove("hidden");
       } else {
-        settingsPanel.classList.toggle("hidden");
+        const isOpening = settingsPanel.classList.contains("hidden");
+        if (isOpening) {
+          settingsPanel.classList.remove("hidden");
+        } else {
+          closeSettingsPanel();
+          return;
+        }
       }
 
       if (settingsToggle instanceof HTMLButtonElement) {
@@ -617,6 +640,10 @@
       if (settingsToggle instanceof HTMLButtonElement) {
         settingsToggle.setAttribute("aria-expanded", "false");
       }
+      if (settingsReturnTab && settingsReturnTab !== "dashboard") {
+        setActiveTab(settingsReturnTab);
+      }
+      settingsReturnTab = null;
     });
 
     runDiffTile?.addEventListener("click", () => setActiveTab("diff"));
