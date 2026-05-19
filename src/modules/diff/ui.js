@@ -422,6 +422,26 @@
     return `records ${summary.records ?? 0}, failures ${summary.failures ?? 0}, anomalies ${summary.anomalies ?? 0}`;
   }
 
+  function resolveRunReopenAction(run) {
+    const normalizedType = run?.type === "diff" ? "diff" : "validate";
+    const reopenTab = String(run?.reopenTab || "").trim().toLowerCase();
+    return {
+      tab: normalizedType,
+      openReports: reopenTab === "reports"
+    };
+  }
+
+  function reopenRun(setActiveTab, run) {
+    if (typeof setActiveTab !== "function" || !run) {
+      return;
+    }
+    const action = resolveRunReopenAction(run);
+    setActiveTab(action.tab);
+    if (action.openReports) {
+      globalScope.dispatchEvent(new CustomEvent("dqct:open-reports"));
+    }
+  }
+
   function isCustomSettings(settings) {
     const current = settings || getAppSettings();
     const defaults = globalScope.DQCTAppState?.defaultSettings || {};
@@ -482,10 +502,7 @@
     `;
     resumeCard.classList.remove("hidden");
     resumeCard.querySelector("#resumeLatestRunButton")?.addEventListener("click", () => {
-      setActiveTab(latestRun.reopenTab || (latestRun.type === "diff" ? "diff" : "validate"));
-      if ((latestRun.reopenTab || latestRun.type) === "reports") {
-        globalScope.dispatchEvent(new CustomEvent("dqct:open-reports"));
-      }
+      reopenRun(setActiveTab, latestRun);
     });
   }
 
@@ -529,10 +546,7 @@
         if (!run) {
           return;
         }
-        setActiveTab(run.reopenTab || (run.type === "diff" ? "diff" : "validate"));
-        if ((run.reopenTab || run.type) === "reports") {
-          globalScope.dispatchEvent(new CustomEvent("dqct:open-reports"));
-        }
+        reopenRun(setActiveTab, run);
       });
     });
   }
