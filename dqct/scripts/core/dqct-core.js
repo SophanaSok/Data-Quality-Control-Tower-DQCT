@@ -324,6 +324,10 @@
           return false;
         }
 
+        if (run?.profileName && state.profiles.some((profile) => profile.profile_name === run.profileName)) {
+          state.activeProfileId = run.profileName;
+        }
+
         state.files = snapshots.map((file) => ({
           name: String(file?.name || ""),
           size: Number(file?.size || 0),
