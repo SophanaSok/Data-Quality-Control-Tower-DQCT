@@ -473,11 +473,12 @@
           <h3>Welcome</h3>
           <p class="helper">Start a validation to populate your local run history.</p>
           <div class="actions-row mt-075 justify-start">
-            <button type="button" id="startValidationFromEmptyStateButton">New validation</button>
+            <button type="button" id="startValidationFromEmptyStateButton" data-action="start-validation">New validation</button>
           </div>
         </div>
       `;
       emptyStateCard.classList.remove("hidden");
+      // per-render listener kept for immediate wiring; delegated handler below also covers this
       emptyStateCard.querySelector("#startValidationFromEmptyStateButton")?.addEventListener("click", () => setActiveTab("validate"));
       return;
     }
@@ -496,14 +497,13 @@
         <p class="helper">${escapeHtml(fileLabel)}</p>
         <strong>${escapeHtml(summary)}</strong>
         <div class="actions-row mt-075 justify-start">
-          <button type="button" id="resumeLatestRunButton">${escapeHtml(title)}</button>
+          <button type="button" id="resumeLatestRunButton" data-action="resume-latest">${escapeHtml(title)}</button>
         </div>
       </div>
     `;
     resumeCard.classList.remove("hidden");
-    resumeCard.querySelector("#resumeLatestRunButton")?.addEventListener("click", () => {
-      reopenRun(setActiveTab, latestRun);
-    });
+    // per-render listener kept for immediate wiring; delegated handler below also covers this
+    resumeCard.querySelector("#resumeLatestRunButton")?.addEventListener("click", () => reopenRun(setActiveTab, latestRun));
   }
 
   function renderDashboardLastRun() {
@@ -711,19 +711,37 @@
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
 
-      // Resume latest run (dashboard card)
-      if (target.id === "resumeLatestRunButton" || target.closest && target.closest("#resumeLatestRunButton")) {
+      // Build event path (supports shadow DOM via composedPath)
+      const path = (event.composedPath && event.composedPath()) || (function fallbackPath(n){
+        const p = [];
+        let cur = n;
+        while (cur) { p.push(cur); cur = cur.parentNode; }
+        return p;
+      })(target);
+
+      const findByAction = (action) => {
+        for (let i = 0; i < path.length; i++) {
+          const node = path[i];
+          if (node && node instanceof HTMLElement && node.getAttribute && node.getAttribute('data-action') === action) {
+            return node;
+          }
+        }
+        return null;
+      };
+
+      const resumeNode = findByAction('resume-latest');
+      if (resumeNode) {
+        console.debug('Dashboard: resume clicked', { node: resumeNode });
         const recentRuns = globalScope.DQCTAppState?.getRecentRuns?.() || [];
         const latest = recentRuns[0];
-        if (latest) {
-          reopenRun(setActiveTab, latest);
-        }
+        if (latest) reopenRun(setActiveTab, latest);
         return;
       }
 
-      // Start new validation from empty state
-      if (target.id === "startValidationFromEmptyStateButton" || target.closest && target.closest("#startValidationFromEmptyStateButton")) {
-        setActiveTab("validate");
+      const startNode = findByAction('start-validation');
+      if (startNode) {
+        console.debug('Dashboard: start validation clicked', { node: startNode });
+        setActiveTab('validate');
         return;
       }
     });
