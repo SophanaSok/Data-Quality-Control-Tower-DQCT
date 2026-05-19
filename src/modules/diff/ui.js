@@ -577,7 +577,17 @@
       if (!(settingsPanel instanceof HTMLElement)) {
         return;
       }
-      settingsPanel.classList.toggle("hidden");
+
+      const dashboardPanel = document.getElementById("dashboardTabPanel");
+      const dashboardIsActive = dashboardPanel instanceof HTMLElement && !dashboardPanel.classList.contains("hidden");
+
+      if (!dashboardIsActive) {
+        setActiveTab("dashboard");
+        settingsPanel.classList.remove("hidden");
+      } else {
+        settingsPanel.classList.toggle("hidden");
+      }
+
       if (settingsToggle instanceof HTMLButtonElement) {
         settingsToggle.setAttribute("aria-expanded", String(!settingsPanel.classList.contains("hidden")));
       }
