@@ -35,7 +35,32 @@
   }
 
   function saveRuns(runKey, runs) {
-    localStorage.setItem(runKey, JSON.stringify(pruneRuns(runs).slice(-25)));
+    const pruned = pruneRuns(runs).slice(-25);
+    try {
+      localStorage.setItem(runKey, JSON.stringify(pruned));
+      return;
+    } catch (e) {
+      // Attempt progressively more aggressive pruning on quota errors
+      try {
+        console.warn('saveRuns: quota exceeded, retrying with smaller history', e);
+        const smaller = pruned.slice(-5);
+        localStorage.setItem(runKey, JSON.stringify(smaller));
+        window.DQCTToasts?.showWarning?.('Run history truncated due to local storage limits.');
+        return;
+      } catch (e2) {
+        try {
+          console.warn('saveRuns: severe quota, retrying with single latest run', e2);
+          const single = pruned.slice(-1);
+          localStorage.setItem(runKey, JSON.stringify(single));
+          window.DQCTToasts?.showWarning?.('Run history severely truncated due to storage limits.');
+          return;
+        } catch (e3) {
+          console.error('saveRuns: unable to persist run history to localStorage, clearing key', e3);
+          try { localStorage.removeItem(runKey); } catch (ignore) {}
+          window.DQCTToasts?.showWarning?.('Unable to save run history due to storage limits. History cleared.');
+        }
+      }
+    }
   }
 
   function loadRuns(runKey) {
