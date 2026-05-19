@@ -389,15 +389,18 @@
           const resumeBtn = document.querySelector("#resumeFromDashboard");
           if (resumeBtn) {
             resumeBtn.addEventListener("click", () => {
-              if (latestRun.reopenTab) {
-                const setActiveTab = window.setActiveTab || ((tabName) => {
-                  document.querySelectorAll('[data-app-tab]').forEach((btn) => btn.setAttribute('aria-selected', 'false'));
-                  document.querySelectorAll('[data-tab-panel]').forEach((panel) => panel.classList.add('hidden'));
-                  document.querySelector(`[data-app-tab="${tabName}"]`)?.setAttribute('aria-selected', 'true');
-                  document.querySelector(`[data-tab-panel="${tabName}"]`)?.classList.remove('hidden');
-                });
-                setActiveTab(latestRun.reopenTab);
+              const setActiveTab = window.setActiveTab || ((tabName) => {
+                document.querySelectorAll('[data-app-tab]').forEach((btn) => btn.setAttribute('aria-selected', 'false'));
+                document.querySelectorAll('[data-tab-panel]').forEach((panel) => panel.classList.add('hidden'));
+                document.querySelector(`[data-app-tab="${tabName}"]`)?.setAttribute('aria-selected', 'true');
+                document.querySelector(`[data-tab-panel="${tabName}"]`)?.classList.remove('hidden');
+              });
+
+              const restored = window.DQCTApp?.restoreValidationFilesFromRun?.(latestRun);
+              if (!restored) {
+                window.DQCTToasts?.showWarning?.('No saved file snapshot is available for this run yet. Run validation again to enable full resume.');
               }
+              setActiveTab(latestRun.reopenTab || 'validate');
             });
           }
         } else {

@@ -307,6 +307,44 @@
         return structuredClone(obj);
       }
 
+      function serializeFileSnapshot(file) {
+        return {
+          name: String(file?.name || ""),
+          size: Number(file?.size || 0),
+          records: Array.isArray(file?.records) ? clone(file.records) : [],
+          raw: file?.raw != null ? clone(file.raw) : null,
+          status: String(file?.status || "ready"),
+          error: String(file?.error || "")
+        };
+      }
+
+      function restoreValidationFilesFromRun(run) {
+        const snapshots = Array.isArray(run?.files) ? run.files : [];
+        if (!snapshots.length) {
+          return false;
+        }
+
+        state.files = snapshots.map((file) => ({
+          name: String(file?.name || ""),
+          size: Number(file?.size || 0),
+          records: Array.isArray(file?.records) ? clone(file.records) : [],
+          raw: file?.raw != null ? clone(file.raw) : null,
+          status: String(file?.status || "ready"),
+          error: String(file?.error || "")
+        }));
+        state.results = [];
+        state.recordSummaries = [];
+        state.exactDuplicates = [];
+        state.nearDuplicates = [];
+        state.currentIssueGroups = [];
+        state.currentAnomalies = [];
+        state.currentRunStats = null;
+        state.currentSchema = null;
+        state.currentDrift = { added: [], removed: [], typeChanges: [] };
+        render();
+        return true;
+      }
+
       function normalizeProfile(profile) {
         return {
           ...profile,
@@ -636,7 +674,8 @@
       }
 
       window.DQCTApp = Object.assign(window.DQCTApp || {}, {
-        buildImportedProfile
+        buildImportedProfile,
+        restoreValidationFilesFromRun
       });
 
       function detectAnomalies(currentStats, previousStats, profile) {
@@ -770,7 +809,7 @@
         const historyEntry = {
           profileName: profile.profile_name,
           timestamp: new Date().toISOString(),
-          files: state.files.map((file) => ({ name: file.name, status: file.status, count: file.records.length })),
+          files: state.files.map((file) => serializeFileSnapshot(file)),
           rowCount: state.currentRunStats.rowCount,
           ruleCount: rulesChecked,
           failureCount: results.length,
@@ -808,7 +847,7 @@
         state.parsedRuns.push({
           timestamp: historyEntry.timestamp,
           profile: profile.profile_name,
-          files: state.files.map((file) => ({ name: file.name, status: file.status, count: file.records.length })),
+          files: state.files.map((file) => serializeFileSnapshot(file)),
           failures: results.length
         });
         saveRuns(state.parsedRuns);
