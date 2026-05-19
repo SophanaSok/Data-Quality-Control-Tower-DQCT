@@ -730,8 +730,13 @@
       };
 
       const resumeNode = findByAction('resume-latest');
+      // Fallback: accept legacy id/class used in some templates
+      const legacyResumeNode = path.find((n) => n && n instanceof HTMLElement && (
+        n.id === 'resumeFromDashboard' || (n.classList && n.classList.contains('resumeCardAction'))
+      ));
+      const effectiveResumeNode = resumeNode || legacyResumeNode;
       if (resumeNode) {
-        console.debug('Dashboard: resume clicked', { node: resumeNode });
+        console.debug('Dashboard: resume clicked', { node: effectiveResumeNode });
         const recentRuns = globalScope.DQCTAppState?.getRecentRuns?.() || [];
         const latest = recentRuns[0];
         if (latest) reopenRun(setActiveTab, latest);
