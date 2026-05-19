@@ -1599,6 +1599,13 @@
           }
           return result;
         } catch (error) {
+          try {
+            console.error('withActionFeedback caught error:', error);
+            if (error && error.stack) console.error(error.stack);
+            console.error('withActionFeedback options:', options);
+          } catch (logErr) {
+            // ignore logging errors
+          }
           setActionStatus(options.errorMessage || "Action failed.", "error");
           showToast(options.errorToast || "Action failed.", "error");
           throw error;
