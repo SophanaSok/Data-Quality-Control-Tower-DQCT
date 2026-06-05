@@ -1,14 +1,13 @@
-(function attachDQCTProfiler(globalScope) {
-  'use strict';
+"use strict";
 
-  /**
-   * Compute field-level statistics for a set of records.
-   * @param {Array<Object>} records
-   * @returns {Array<Object>} fieldStat objects
-   */
-  function computeFieldStats(records) {
-    const total = Array.isArray(records) ? records.length : 0;
-    const fields = new Map();
+/**
+ * Compute field-level statistics for a set of records.
+ * @param {Array<Object>} records
+ * @returns {Array<Object>} fieldStat objects
+ */
+function computeFieldStats(records) {
+  const total = Array.isArray(records) ? records.length : 0;
+  const fields = new Map();
 
     const normalizeType = (value) => {
       if (value === null) return 'null';
@@ -94,16 +93,16 @@
   }
 
 
-  /**
-   * Suggest candidate rules from field statistics.
-   * @param {Array<Object>} fieldStats
-   * @param {number} totalRecords
-   * @returns {Object} { required: [], enumCandidates: [], duplicateKeyCandidates: [] }
-   */
-  function suggestRules(fieldStats, totalRecords) {
-    const required = [];
-    const enumCandidates = [];
-    const duplicateKeyCandidates = [];
+/**
+ * Suggest candidate rules from field statistics.
+ * @param {Array<Object>} fieldStats
+ * @param {number} totalRecords
+ * @returns {Object} { required: [], enumCandidates: [], duplicateKeyCandidates: [] }
+ */
+function suggestRules(fieldStats, totalRecords) {
+  const required = [];
+  const enumCandidates = [];
+  const duplicateKeyCandidates = [];
 
     const blacklistSubstrings = ['id','url','link','date','time','stamp','hash','key','code','number','num','index'];
 
@@ -163,15 +162,15 @@
   }
 
 
-  /**
-   * Infer a suggested profile name from records using AgentID/AgentName.
-   * @param {Array<Object>} records
-   * @returns {string} sanitized profile name
-   */
-  function inferProfileName(records) {
-    const list = Array.isArray(records) ? records : [];
-    let agentId = null;
-    let agentName = null;
+/**
+ * Infer a suggested profile name from records using AgentID/AgentName.
+ * @param {Array<Object>} records
+ * @returns {string} sanitized profile name
+ */
+function inferProfileName(records) {
+  const list = Array.isArray(records) ? records : [];
+  let agentId = null;
+  let agentName = null;
 
     for (let i = 0; i < list.length; i++) {
       const r = list[i] || {};
@@ -203,31 +202,30 @@
   }
 
 
-  /**
-   * Deduplicate a candidate profile name against existing profiles.
-   * @param {string} name
-   * @param {Array<Object>} existingProfiles
-   * @returns {string} unique profile name (may append ` (2)`, ` (3)`, ...)
-   */
-  function deduplicateProfileName(name, existingProfiles) {
-    const base = String(name || '').trim();
-    if (!base) return base;
-    const exists = (n) => Array.isArray(existingProfiles) && existingProfiles.some((p) => p && p.profile_name === n);
-    if (!exists(base)) return base;
-    let counter = 2;
-    while (true) {
-      const candidate = `${base} (${counter})`;
-      if (!exists(candidate)) return candidate;
-      counter += 1;
-      if (counter > 9999) return `${base} (${counter})`;
-    }
+/**
+ * Deduplicate a candidate profile name against existing profiles.
+ * @param {string} name
+ * @param {Array<Object>} existingProfiles
+ * @returns {string} unique profile name (may append ` (2)`, ` (3)`, ...)
+ */
+function deduplicateProfileName(name, existingProfiles) {
+  const base = String(name || '').trim();
+  if (!base) return base;
+  const exists = (n) => Array.isArray(existingProfiles) && existingProfiles.some((p) => p && p.profile_name === n);
+  if (!exists(base)) return base;
+  let counter = 2;
+  while (true) {
+    const candidate = `${base} (${counter})`;
+    if (!exists(candidate)) return candidate;
+    counter += 1;
+    if (counter > 9999) return `${base} (${counter})`;
   }
+}
 
-  globalScope.DQCTProfiler = {
-    computeFieldStats,
-    suggestRules,
-    inferProfileName,
-    deduplicateProfileName
-  };
-})(window);
+export {
+  computeFieldStats,
+  deduplicateProfileName,
+  inferProfileName,
+  suggestRules
+};
 

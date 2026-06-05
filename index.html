@@ -3,16 +3,236 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta http-equiv="refresh" content="0; url=./dqct/dqct.html" />
-    <title>DQCT | Redirecting</title>
+    <meta name="color-scheme" content="light dark" />
+    <title>DQCT | Data Quality Control Tower</title>
     <script>
-      window.location.replace("./dqct/dqct.html");
+      (function setInitialTheme() {
+        try {
+          const raw = localStorage.getItem("dqct.app.settings.v1");
+          const settings = raw ? JSON.parse(raw) : {};
+          const theme = settings.theme === "dark" ? "dark" : "light";
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (error) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      }());
     </script>
+    <link rel="stylesheet" href="./styles/tokens.css" />
+    <link rel="stylesheet" href="./styles/base.css" />
+    <link rel="stylesheet" href="./styles/layout.css" />
+    <link rel="stylesheet" href="./styles/components.css" />
+    <link rel="stylesheet" href="./styles/views.css" />
+    <link rel="stylesheet" href="./styles/mobile.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script type="module" src="./src/main.js"></script>
   </head>
   <body>
-    <p>
-      Redirecting to the DQCT app. If you are not redirected automatically, open
-      <a href="./dqct/dqct.html">dqct/dqct.html</a>.
-    </p>
+    <div class="app-shell" id="appShell">
+      <aside class="sidebar" id="appSidebar">
+        <div class="sidebar__brand">
+          <div class="sidebar__logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="img" focusable="false" width="100%" height="100%" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6">
+              <path d="M6 20h12" />
+              <path d="M8 20V9l4-6 4 6v11" />
+              <path d="M12 3v17" />
+              <path d="M9 12h6" />
+              <path d="M11 8h2" />
+              <path d="M10 16h4" />
+            </svg>
+          </div>
+          <div class="sidebar__title">
+            <strong>DQCT</strong>
+            <span>Data Quality Control Tower</span>
+          </div>
+        </div>
+
+        <nav class="sidebar__nav" aria-label="Primary navigation">
+          <a class="sidebar__nav-link" data-spa-nav data-route="dashboard" href="#dashboard"><span class="sidebar__nav-icon">◫</span><span class="link-text">Dashboard</span></a>
+          <a class="sidebar__nav-link" data-spa-nav data-route="validate" href="#validate"><span class="sidebar__nav-icon">✓</span><span class="link-text">Validate</span></a>
+          <a class="sidebar__nav-link" data-spa-nav data-route="diff" href="#diff"><span class="sidebar__nav-icon">⇄</span><span class="link-text">Diff</span></a>
+          <a class="sidebar__nav-link" data-spa-nav data-route="settings" href="#settings"><span class="sidebar__nav-icon">⚙</span><span class="link-text">Settings</span></a>
+        </nav>
+
+        <div class="sidebar__footer">
+          <button type="button" class="btn-ghost" id="sidebarToggle" data-sidebar-toggle>Collapse sidebar</button>
+          <div class="sidebar__footer-row">
+            <span class="meta">Theme</span>
+            <button type="button" class="btn-ghost" id="themeToggle" data-theme-toggle aria-label="Toggle theme">☼ / ☾</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="app-main">
+        <div class="app-main__inner">
+          <header class="topbar">
+            <button type="button" class="btn-ghost topbar__icon-button" id="mobileSidebarToggle" aria-label="Open sidebar">☰</button>
+            <div class="topbar__title">
+              <strong id="routeTitle">Dashboard</strong>
+              <span id="routeDescription">Shared settings, recent run history, and quick actions for the control tower.</span>
+            </div>
+            <div class="topbar__actions">
+              <span class="badge good">Vanilla SPA</span>
+            </div>
+          </header>
+
+          <section class="app-view" id="view-dashboard" data-spa-view>
+            <div class="hero-card">
+              <div class="eyebrow">Unified Control Center</div>
+              <h1>Run quality checks from one landing page.</h1>
+              <p>Shared settings, local history, and entry points for validation and diff workflows live in one fast, single-page interface.</p>
+              <div class="actions-row" style="margin-top: var(--space-4);">
+                <a class="btn" href="#validate">Start validation</a>
+                <a class="btn-secondary" href="#diff">Open diff</a>
+              </div>
+            </div>
+
+            <div class="dashboard-summary">
+              <div class="panel metric-card">
+                <span class="meta">Runs today</span>
+                <strong id="dashboardRunsToday">0</strong>
+                <span id="dashboardRunsTodayMeta" class="helper">No run history yet</span>
+              </div>
+              <div class="panel metric-card">
+                <span class="meta">Files checked</span>
+                <strong id="dashboardFilesChecked">0</strong>
+                <span id="dashboardFilesCheckedMeta" class="helper">Historical file count from recent runs</span>
+              </div>
+              <div class="panel metric-card">
+                <span class="meta">Pass rate</span>
+                <strong id="dashboardPassRate">0%</strong>
+                <span id="dashboardPassRateMeta" class="helper">No validation runs recorded</span>
+              </div>
+              <div class="panel metric-card">
+                <span class="meta">Open issues</span>
+                <strong id="dashboardOpenIssues">0</strong>
+                <span id="dashboardOpenIssuesMeta" class="helper">Aggregated failure counts from recent runs</span>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="section-title">
+                <div>
+                  <div class="eyebrow">Recent Runs</div>
+                  <h2>Local history</h2>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Type</th>
+                      <th>Summary</th>
+                      <th>Export files</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentRunsBody">
+                    <tr><td colspan="5"><div class="empty-state"><strong>No recent runs yet</strong><span>Run validation or diff to populate local history.</span></div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="app-view hidden" id="view-validate" data-spa-view>
+            <div class="hero-card">
+              <div class="eyebrow">Validate</div>
+              <h2>Load JSON and prepare a validation run.</h2>
+              <p>This screen is scaffolded for the converted validation modules. It currently shows file selection, simple status, and settings-driven defaults.</p>
+            </div>
+            <div class="app-section-grid">
+              <div class="panel span-7">
+                <div class="field">
+                  <label for="validateFileInput">Validation file</label>
+                  <input id="validateFileInput" type="file" accept="application/json,.json" multiple />
+                </div>
+                <div class="actions-row" style="margin-top: var(--space-4);">
+                  <button type="button" id="validateRunButton">Run validation</button>
+                </div>
+                <div id="validateStatus" class="helper" style="margin-top: var(--space-3);">Choose one or more JSON files to begin.</div>
+              </div>
+              <div class="panel span-5">
+                <div class="section-title"><h3>Preview</h3></div>
+                <div class="empty-state">
+                  <strong>Validation output appears here</strong>
+                  <span class="helper">The module set is loaded, and the app shell is ready for a deeper workflow integration.</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="app-view hidden" id="view-diff" data-spa-view>
+            <div class="hero-card">
+              <div class="eyebrow">Diff</div>
+              <h2>Compare two JSON exports.</h2>
+              <p>This scaffold keeps the baseline/comparison workflow visible while the converted diff engine powers the next wiring step.</p>
+            </div>
+            <div class="app-section-grid">
+              <div class="panel span-6">
+                <div class="field">
+                  <label for="baselineFileInput">Baseline file</label>
+                  <input id="baselineFileInput" type="file" accept="application/json,.json" />
+                </div>
+              </div>
+              <div class="panel span-6">
+                <div class="field">
+                  <label for="comparisonFileInput">Comparison file</label>
+                  <input id="comparisonFileInput" type="file" accept="application/json,.json" />
+                </div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="actions-row">
+                <button type="button" id="diffAnalyzeButton">Analyze diff</button>
+                <span id="diffStatus" class="helper">Select a pair of files to compare them.</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="app-view hidden" id="view-settings" data-spa-view>
+            <div class="hero-card">
+              <div class="eyebrow">Settings</div>
+              <h2>Shared local preferences.</h2>
+              <p>These preferences are stored in browser localStorage and shared by the SPA entry point.</p>
+            </div>
+            <div class="settings-grid">
+              <div class="panel">
+                <div class="field">
+                  <label for="settingsUniqueKey">Default unique key</label>
+                  <input id="settingsUniqueKey" type="text" placeholder="ProjectCode" />
+                </div>
+                <div class="field" style="margin-top: var(--space-4);">
+                  <label for="settingsIgnoreFields">Ignore fields</label>
+                  <input id="settingsIgnoreFields" type="text" placeholder="Created, Refreshed" />
+                </div>
+              </div>
+              <div class="panel">
+                <div class="split">
+                  <div class="field" style="flex: 1 1 12rem;">
+                    <label for="settingsTheme">Theme</label>
+                    <select id="settingsTheme">
+                      <option value="light">Light</option>
+                      <option value="dark">Dark</option>
+                    </select>
+                  </div>
+                  <div class="field" style="flex: 1 1 12rem;">
+                    <label for="settingsExportFormat">Export format</label>
+                    <select id="settingsExportFormat">
+                      <option value="pretty">Pretty</option>
+                      <option value="minified">Minified</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="actions-row" style="margin-top: var(--space-4);">
+                  <button type="button" id="settingsSaveButton">Save settings</button>
+                  <button type="button" id="settingsResetButton" class="btn-secondary">Reset defaults</button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
   </body>
 </html>

@@ -8,28 +8,27 @@
  *         AddendumDocumentHashes, BidDocuments
  */
 
-(function () {
-  const MODULE_NAME = "DQCTFingerprint";
-  const fingerprintCache = new Map();
+const MODULE_NAME = "DQCTFingerprint";
+const fingerprintCache = new Map();
 
-  /**
-   * Normalize string field: null → "", trim, collapse multiple spaces
-   * Preserve original casing for case-sensitive comparisons
-   */
-  function normalizeString(value) {
-    if (value === null || value === undefined) return "";
-    if (typeof value !== "string") return String(value).trim();
-    return value
-      .trim()
-      .replace(/\s+/g, " "); // Collapse multiple spaces to single space
-  }
+/**
+ * Normalize string field: null → "", trim, collapse multiple spaces
+ * Preserve original casing for case-sensitive comparisons
+ */
+function normalizeString(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value !== "string") return String(value).trim();
+  return value
+    .trim()
+    .replace(/\s+/g, " "); // Collapse multiple spaces to single space
+}
 
-  /**
-   * Normalize hash array field: parse if JSON string, null → [], deduplicate, sort
-   * Handle comma-separated hashes as well as JSON arrays
-   */
-  function normalizeHashArray(value) {
-    if (!value) return [];
+/**
+ * Normalize hash array field: parse if JSON string, null → [], deduplicate, sort
+ * Handle comma-separated hashes as well as JSON arrays
+ */
+function normalizeHashArray(value) {
+  if (!value) return [];
 
     let arr = [];
 
@@ -60,11 +59,11 @@
     return unique.sort(); // Sort alphabetically
   }
 
-  /**
-   * The 12 core fields used for fingerprinting bid records
-   * Order matters for consistent hashing
-   */
-  const FINGERPRINT_FIELDS = [
+/**
+ * The 12 core fields used for fingerprinting bid records
+ * Order matters for consistent hashing
+ */
+const FINGERPRINT_FIELDS = [
     "AgentID",
     "ProjectCode",
     "Title",
@@ -79,14 +78,14 @@
     "BidDocuments"
   ];
 
-  /**
-   * Build fingerprint payload from a record
-   * Returns normalized object with all 12 fields for hashing
-   */
-  function buildFingerprintPayload(record) {
-    if (!record || typeof record !== "object") {
-      return {};
-    }
+/**
+ * Build fingerprint payload from a record
+ * Returns normalized object with all 12 fields for hashing
+ */
+function buildFingerprintPayload(record) {
+  if (!record || typeof record !== "object") {
+    return {};
+  }
 
     const payload = {};
 
@@ -141,25 +140,25 @@
     return payload;
   }
 
-  function getFingerprintCacheKey(record, uniqueKey = "ProjectCode") {
-    const normalizedKey = String(uniqueKey || "ProjectCode").trim() || "ProjectCode";
-    return `${normalizedKey}::${String(record?.[normalizedKey] ?? "").trim()}`;
-  }
+function getFingerprintCacheKey(record, uniqueKey = "ProjectCode") {
+  const normalizedKey = String(uniqueKey || "ProjectCode").trim() || "ProjectCode";
+  return `${normalizedKey}::${String(record?.[normalizedKey] ?? "").trim()}`;
+}
 
-  function clearFingerprintCache() {
-    fingerprintCache.clear();
-  }
+function clearFingerprintCache() {
+  fingerprintCache.clear();
+}
 
-  /**
-   * Generate SHA256 fingerprint from a record
-   * Uses native crypto.subtle.digest if available (modern browsers)
-   * Falls back to simple hash if crypto not available
-   */
-  async function generateFingerprint(record, uniqueKey = "ProjectCode") {
-    const cacheKey = getFingerprintCacheKey(record, uniqueKey);
-    if (fingerprintCache.has(cacheKey)) {
-      return fingerprintCache.get(cacheKey);
-    }
+/**
+ * Generate SHA256 fingerprint from a record
+ * Uses native crypto.subtle.digest if available (modern browsers)
+ * Falls back to simple hash if crypto not available
+ */
+async function generateFingerprint(record, uniqueKey = "ProjectCode") {
+  const cacheKey = getFingerprintCacheKey(record, uniqueKey);
+  if (fingerprintCache.has(cacheKey)) {
+    return fingerprintCache.get(cacheKey);
+  }
 
     const payload = buildFingerprintPayload(record);
 
@@ -189,29 +188,29 @@
     }
   }
 
-  /**
-   * Fallback simple hash when crypto.subtle is not available
-   * Not cryptographically secure but good enough for client-side deduplication
-   */
-  function simpleHash(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash).toString(16);
+/**
+ * Fallback simple hash when crypto.subtle is not available
+ * Not cryptographically secure but good enough for client-side deduplication
+ */
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
   }
+  return Math.abs(hash).toString(16);
+}
 
-  /**
-   * Generate fingerprint synchronously (blocking)
-   * Uses simpleHash for synchronous operation
-   */
-  function generateFingerprintSync(record, uniqueKey = "ProjectCode") {
-    const cacheKey = getFingerprintCacheKey(record, uniqueKey);
-    if (fingerprintCache.has(cacheKey)) {
-      return fingerprintCache.get(cacheKey);
-    }
+/**
+ * Generate fingerprint synchronously (blocking)
+ * Uses simpleHash for synchronous operation
+ */
+function generateFingerprintSync(record, uniqueKey = "ProjectCode") {
+  const cacheKey = getFingerprintCacheKey(record, uniqueKey);
+  if (fingerprintCache.has(cacheKey)) {
+    return fingerprintCache.get(cacheKey);
+  }
 
     const payload = buildFingerprintPayload(record);
     const canonicalJson = JSON.stringify(payload, Object.keys(payload).sort());
@@ -220,14 +219,14 @@
     return fingerprint;
   }
 
-  /**
-   * Detect near-duplicates: same AgentID + ProjectCode, different fingerprint
-   */
-  function findNearDuplicates(records, fingerprintMap) {
-    // fingerprintMap: Map<fingerprint, [record indices with that fingerprint]>
-    if (!fingerprintMap || fingerprintMap.size === 0) {
-      return [];
-    }
+/**
+ * Detect near-duplicates: same AgentID + ProjectCode, different fingerprint
+ */
+function findNearDuplicates(records, fingerprintMap) {
+  // fingerprintMap: Map<fingerprint, [record indices with that fingerprint]>
+  if (!fingerprintMap || fingerprintMap.size === 0) {
+    return [];
+  }
 
     const nearDuplicates = [];
     const agentProjectGroups = new Map(); // Map<"AgentID:ProjectCode", [record indices]>
@@ -270,29 +269,14 @@
     return nearDuplicates;
   }
 
-  // Export functions
-  if (typeof window !== "undefined") {
-    window.DQCTFingerprint = window.DQCTFingerprint || {};
-    window.DQCTFingerprint.generateFingerprint = generateFingerprint;
-    window.DQCTFingerprint.generateFingerprintSync = generateFingerprintSync;
-    window.DQCTFingerprint.clearFingerprintCache = clearFingerprintCache;
-    window.DQCTFingerprint.buildFingerprintPayload = buildFingerprintPayload;
-    window.DQCTFingerprint.normalizeString = normalizeString;
-    window.DQCTFingerprint.normalizeHashArray = normalizeHashArray;
-    window.DQCTFingerprint.findNearDuplicates = findNearDuplicates;
-    window.DQCTFingerprint.FINGERPRINT_FIELDS = FINGERPRINT_FIELDS;
-  }
-
-  if (typeof module !== "undefined" && module.exports) {
-    module.exports = {
-      generateFingerprint,
-      generateFingerprintSync,
-      clearFingerprintCache,
-      buildFingerprintPayload,
-      normalizeString,
-      normalizeHashArray,
-      findNearDuplicates,
-      FINGERPRINT_FIELDS
-    };
-  }
-})();
+export {
+  MODULE_NAME,
+  FINGERPRINT_FIELDS,
+  buildFingerprintPayload,
+  clearFingerprintCache,
+  findNearDuplicates,
+  generateFingerprint,
+  generateFingerprintSync,
+  normalizeHashArray,
+  normalizeString
+};

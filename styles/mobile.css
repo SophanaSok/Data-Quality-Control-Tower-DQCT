@@ -1,0 +1,61 @@
+@media (max-width: 48rem) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell.is-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(100vw, var(--sidebar-width));
+    transform: translateX(-100%);
+    transition: transform var(--transition-slow);
+    box-shadow: var(--shadow-3);
+  }
+
+  .app-shell.sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .app-main {
+    padding: var(--space-4);
+  }
+
+  .topbar {
+    border-radius: var(--radius-lg);
+  }
+
+  .dashboard-summary,
+  .settings-grid,
+  .dqct-json-diff-viewer__grid,
+  .app-section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .span-3,
+  .span-4,
+  .span-5,
+  .span-6,
+  .span-7,
+  .span-8,
+  .span-12 {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 48rem) {
+  .sidebar--collapsed .sidebar__title,
+  .sidebar--collapsed .sidebar__footer,
+  .sidebar--collapsed .sidebar__nav-link span.label-text,
+  .sidebar--collapsed .sidebar__nav-link .link-text {
+    display: none;
+  }
+
+  .sidebar--collapsed .sidebar__nav-link {
+    justify-content: center;
+    padding-inline: 0;
+  }
+}

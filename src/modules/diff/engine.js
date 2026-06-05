@@ -1,10 +1,9 @@
-(function attachDQCTDiffEngine(globalScope) {
-  const DEFAULT_UNIQUE_KEY = "ProjectCode";
+const DEFAULT_UNIQUE_KEY = "ProjectCode";
 
-  function extractRecordsWithWrapper(payload) {
-    if (Array.isArray(payload)) {
-      return { records: payload, rootArray: "root" };
-    }
+function extractRecordsWithWrapper(payload) {
+  if (Array.isArray(payload)) {
+    return { records: payload, rootArray: "root" };
+  }
 
     if (!payload || typeof payload !== "object") {
       return { records: [], rootArray: "root" };
@@ -22,10 +21,10 @@
     return { records: [], rootArray: "root" };
   }
 
-  function normalizeIgnoreFields(ignoreFields) {
-    if (Array.isArray(ignoreFields)) {
-      return ignoreFields.map((field) => String(field || "").trim()).filter(Boolean);
-    }
+function normalizeIgnoreFields(ignoreFields) {
+  if (Array.isArray(ignoreFields)) {
+    return ignoreFields.map((field) => String(field || "").trim()).filter(Boolean);
+  }
 
     if (typeof ignoreFields === "string") {
       return ignoreFields
@@ -37,10 +36,10 @@
     return [];
   }
 
-  function canonicalize(value) {
-    if (Array.isArray(value)) {
-      return value.map((item) => canonicalize(item));
-    }
+function canonicalize(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => canonicalize(item));
+  }
 
     if (value && typeof value === "object") {
       return Object.keys(value)
@@ -54,30 +53,30 @@
     return value;
   }
 
-  function comparableSignature(value) {
-    return JSON.stringify(canonicalize(value));
-  }
+function comparableSignature(value) {
+  return JSON.stringify(canonicalize(value));
+}
 
-  function normalizeKeyValue(value) {
-    return String(value ?? "").trim();
-  }
+function normalizeKeyValue(value) {
+  return String(value ?? "").trim();
+}
 
-  function comparableRecord(record, ignoreSet) {
-    const next = {};
-    Object.keys(record || {}).forEach((key) => {
-      if (!ignoreSet.has(key)) {
-        next[key] = canonicalize(record[key]);
-      }
-    });
-    return next;
-  }
+function comparableRecord(record, ignoreSet) {
+  const next = {};
+  Object.keys(record || {}).forEach((key) => {
+    if (!ignoreSet.has(key)) {
+      next[key] = canonicalize(record[key]);
+    }
+  });
+  return next;
+}
 
-  function buildRecordSnapshot(record, ignoreSet) {
-    const comparable = comparableRecord(record, ignoreSet);
-    const fieldSignatures = {};
-    Object.keys(comparable).forEach((field) => {
-      fieldSignatures[field] = comparableSignature(comparable[field]);
-    });
+function buildRecordSnapshot(record, ignoreSet) {
+  const comparable = comparableRecord(record, ignoreSet);
+  const fieldSignatures = {};
+  Object.keys(comparable).forEach((field) => {
+    fieldSignatures[field] = comparableSignature(comparable[field]);
+  });
 
     return {
       record,
@@ -87,37 +86,37 @@
     };
   }
 
-  function buildRecordIndex(records, uniqueKey, ignoreSet) {
-    const map = new Map();
-    records.forEach((record, index) => {
-      const normalizedKey = normalizeKeyValue(record?.[uniqueKey]);
-      if (!normalizedKey || map.has(normalizedKey)) {
-        return;
-      }
-      map.set(normalizedKey, { index, ...buildRecordSnapshot(record, ignoreSet) });
-    });
-    return map;
-  }
+function buildRecordIndex(records, uniqueKey, ignoreSet) {
+  const map = new Map();
+  records.forEach((record, index) => {
+    const normalizedKey = normalizeKeyValue(record?.[uniqueKey]);
+    if (!normalizedKey || map.has(normalizedKey)) {
+      return;
+    }
+    map.set(normalizedKey, { index, ...buildRecordSnapshot(record, ignoreSet) });
+  });
+  return map;
+}
 
-  function mapRecordsByKey(records, uniqueKey) {
-    const map = new Map();
-    records.forEach((record, index) => {
-      const normalizedKey = normalizeKeyValue(record?.[uniqueKey]);
-      if (!normalizedKey) {
-        return;
-      }
-      if (!map.has(normalizedKey)) {
-        map.set(normalizedKey, []);
-      }
-      map.get(normalizedKey).push({ record, index });
-    });
-    return map;
-  }
+function mapRecordsByKey(records, uniqueKey) {
+  const map = new Map();
+  records.forEach((record, index) => {
+    const normalizedKey = normalizeKeyValue(record?.[uniqueKey]);
+    if (!normalizedKey) {
+      return;
+    }
+    if (!map.has(normalizedKey)) {
+      map.set(normalizedKey, []);
+    }
+    map.get(normalizedKey).push({ record, index });
+  });
+  return map;
+}
 
-  function diffRecords(baselinePayload, comparisonPayload, options = {}) {
-    const uniqueKey = String(options.uniqueKey || DEFAULT_UNIQUE_KEY).trim() || DEFAULT_UNIQUE_KEY;
-    const ignoreFields = normalizeIgnoreFields(options.ignoreFields);
-    const ignoreSet = new Set(ignoreFields);
+function diffRecords(baselinePayload, comparisonPayload, options = {}) {
+  const uniqueKey = String(options.uniqueKey || DEFAULT_UNIQUE_KEY).trim() || DEFAULT_UNIQUE_KEY;
+  const ignoreFields = normalizeIgnoreFields(options.ignoreFields);
+  const ignoreSet = new Set(ignoreFields);
 
     const baseline = extractRecordsWithWrapper(baselinePayload);
     const comparison = extractRecordsWithWrapper(comparisonPayload);
@@ -186,34 +185,34 @@
       ...newRecords.map((item) => item.record)
     ];
 
-    return {
-      uniqueKey,
-      ignoreFields,
-      wrapper: {
-        baseline: baseline.rootArray,
-        comparison: comparison.rootArray
-      },
-      baselineCount: baseline.records.length,
-      comparisonCount: comparison.records.length,
-      changedCount: changedRecords.length,
-      newCount: newRecords.length,
-      removedCount: removedRecords.length,
-      unchangedCount: unchangedRecords.length,
-      diffRows,
-      changedRecords,
-      newRecords,
-      removedRecords,
-      unchangedRecords,
-      changedAndNewRecords
-    };
-  }
+  return {
+    uniqueKey,
+    ignoreFields,
+    wrapper: {
+      baseline: baseline.rootArray,
+      comparison: comparison.rootArray
+    },
+    baselineCount: baseline.records.length,
+    comparisonCount: comparison.records.length,
+    changedCount: changedRecords.length,
+    newCount: newRecords.length,
+    removedCount: removedRecords.length,
+    unchangedCount: unchangedRecords.length,
+    diffRows,
+    changedRecords,
+    newRecords,
+    removedRecords,
+    unchangedRecords,
+    changedAndNewRecords
+  };
+}
 
-  async function diffRecordsAsync(baselinePayload, comparisonPayload, options = {}) {
-    const uniqueKey = String(options.uniqueKey || DEFAULT_UNIQUE_KEY).trim() || DEFAULT_UNIQUE_KEY;
-    const ignoreFields = normalizeIgnoreFields(options.ignoreFields);
-    const ignoreSet = new Set(ignoreFields);
-    const batchSize = Math.max(1, Number(options.batchSize) || 500);
-    const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
+async function diffRecordsAsync(baselinePayload, comparisonPayload, options = {}) {
+  const uniqueKey = String(options.uniqueKey || DEFAULT_UNIQUE_KEY).trim() || DEFAULT_UNIQUE_KEY;
+  const ignoreFields = normalizeIgnoreFields(options.ignoreFields);
+  const ignoreSet = new Set(ignoreFields);
+  const batchSize = Math.max(1, Number(options.batchSize) || 500);
+  const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
 
     const baseline = extractRecordsWithWrapper(baselinePayload);
     const comparison = extractRecordsWithWrapper(comparisonPayload);
@@ -294,33 +293,33 @@
       onProgress({ processed: comparisonEntries.length, total: comparisonEntries.length, phase: "compare" });
     }
 
-    return {
-      uniqueKey,
-      ignoreFields,
-      wrapper: {
-        baseline: baseline.rootArray,
-        comparison: comparison.rootArray
-      },
-      baselineCount: baseline.records.length,
-      comparisonCount: comparison.records.length,
-      changedCount: changedRecords.length,
-      newCount: newRecords.length,
-      removedCount: removedRecords.length,
-      unchangedCount: unchangedRecords.length,
-      diffRows,
-      changedRecords,
-      newRecords,
-      removedRecords,
-      unchangedRecords,
-      changedAndNewRecords
-    };
-  }
+  return {
+    uniqueKey,
+    ignoreFields,
+    wrapper: {
+      baseline: baseline.rootArray,
+      comparison: comparison.rootArray
+    },
+    baselineCount: baseline.records.length,
+    comparisonCount: comparison.records.length,
+    changedCount: changedRecords.length,
+    newCount: newRecords.length,
+    removedCount: removedRecords.length,
+    unchangedCount: unchangedRecords.length,
+    diffRows,
+    changedRecords,
+    newRecords,
+    removedRecords,
+    unchangedRecords,
+    changedAndNewRecords
+  };
+}
 
-  function duplicatesFromPayload(payload, uniqueKey) {
-    const normalizedKey = String(uniqueKey || DEFAULT_UNIQUE_KEY).trim() || DEFAULT_UNIQUE_KEY;
-    const extracted = extractRecordsWithWrapper(payload);
-    const keyed = mapRecordsByKey(extracted.records, normalizedKey);
-    const duplicates = [];
+function duplicatesFromPayload(payload, uniqueKey) {
+  const normalizedKey = String(uniqueKey || DEFAULT_UNIQUE_KEY).trim() || DEFAULT_UNIQUE_KEY;
+  const extracted = extractRecordsWithWrapper(payload);
+  const keyed = mapRecordsByKey(extracted.records, normalizedKey);
+  const duplicates = [];
 
     keyed.forEach((entries, key) => {
       if (entries.length > 1) {
@@ -332,21 +331,21 @@
       }
     });
 
-    return {
-      wrapper: extracted.rootArray,
-      totalRecords: extracted.records.length,
-      duplicateCount: duplicates.length,
-      duplicates
-    };
-  }
+  return {
+    wrapper: extracted.rootArray,
+    totalRecords: extracted.records.length,
+    duplicateCount: duplicates.length,
+    duplicates
+  };
+}
 
-  function findDuplicates(file1Payload, file2Payload, options = {}) {
-    const uniqueKey = String(options.uniqueKey || DEFAULT_UNIQUE_KEY).trim() || DEFAULT_UNIQUE_KEY;
-    const file1 = duplicatesFromPayload(file1Payload, uniqueKey);
-    const file2 = duplicatesFromPayload(file2Payload, uniqueKey);
-    const file1Map = mapRecordsByKey(extractRecordsWithWrapper(file1Payload).records, uniqueKey);
-    const file2Map = mapRecordsByKey(extractRecordsWithWrapper(file2Payload).records, uniqueKey);
-    const duplicatesCross = [];
+function findDuplicates(file1Payload, file2Payload, options = {}) {
+  const uniqueKey = String(options.uniqueKey || DEFAULT_UNIQUE_KEY).trim() || DEFAULT_UNIQUE_KEY;
+  const file1 = duplicatesFromPayload(file1Payload, uniqueKey);
+  const file2 = duplicatesFromPayload(file2Payload, uniqueKey);
+  const file1Map = mapRecordsByKey(extractRecordsWithWrapper(file1Payload).records, uniqueKey);
+  const file2Map = mapRecordsByKey(extractRecordsWithWrapper(file2Payload).records, uniqueKey);
+  const duplicatesCross = [];
 
     file2Map.forEach((file2Entries, key) => {
       const file1Entries = file1Map.get(key);
@@ -362,28 +361,31 @@
       });
     });
 
-    return {
-      uniqueKey,
-      duplicatesFile1: file1,
-      duplicatesFile2: file2,
-      duplicatesCross
-    };
-  }
-
-  function buildCleanExport(diffOutput, options = {}) {
-    const records = Array.isArray(diffOutput?.changedAndNewRecords) ? diffOutput.changedAndNewRecords : [];
-    const wrapperKey = options.wrapperKey || diffOutput?.wrapper?.comparison || "root";
-    if (wrapperKey && wrapperKey !== "root") {
-      return { [wrapperKey]: records };
-    }
-    return records;
-  }
-
-  globalScope.DQCTDiffEngine = {
-    defaultUniqueKey: DEFAULT_UNIQUE_KEY,
-    diffRecords,
-    diffRecordsAsync,
-    findDuplicates,
-    buildCleanExport
+  return {
+    uniqueKey,
+    duplicatesFile1: file1,
+    duplicatesFile2: file2,
+    duplicatesCross
   };
-})(window);
+}
+
+function buildCleanExport(diffOutput, options = {}) {
+  const records = Array.isArray(diffOutput?.changedAndNewRecords) ? diffOutput.changedAndNewRecords : [];
+  const wrapperKey = options.wrapperKey || diffOutput?.wrapper?.comparison || "root";
+  if (wrapperKey && wrapperKey !== "root") {
+    return { [wrapperKey]: records };
+  }
+  return records;
+}
+
+export {
+  DEFAULT_UNIQUE_KEY as defaultUniqueKey,
+  buildCleanExport,
+  diffRecords,
+  diffRecordsAsync,
+  duplicatesFromPayload,
+  extractRecordsWithWrapper,
+  findDuplicates,
+  mapRecordsByKey,
+  normalizeIgnoreFields
+};

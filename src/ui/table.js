@@ -2,29 +2,28 @@
   Lightweight table controller used by validation results.
   API: DQCTTable.create({ tableElement, bodyElement, columns, onRowClick, pageSize })
 */
-(function attachDQCTTable(globalScope) {
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
-  }
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
 
-  function defaultSortValue(row, key) {
-    const value = row?.[key];
-    if (value === null || value === undefined) return "";
-    if (typeof value === "number") return value;
-    return String(value).toLowerCase();
-  }
+function defaultSortValue(row, key) {
+  const value = row?.[key];
+  if (value === null || value === undefined) return "";
+  if (typeof value === "number") return value;
+  return String(value).toLowerCase();
+}
 
-  function create(config) {
-    const tableElement = config?.tableElement;
-    const bodyElement = config?.bodyElement;
-    const columns = Array.isArray(config?.columns) ? config.columns : [];
-    const onRowClick = typeof config?.onRowClick === "function" ? config.onRowClick : null;
-    const pageSize = Number.isFinite(Number(config?.pageSize)) ? Number(config.pageSize) : 25;
+function create(config) {
+  const tableElement = config?.tableElement;
+  const bodyElement = config?.bodyElement;
+  const columns = Array.isArray(config?.columns) ? config.columns : [];
+  const onRowClick = typeof config?.onRowClick === "function" ? config.onRowClick : null;
+  const pageSize = Number.isFinite(Number(config?.pageSize)) ? Number(config.pageSize) : 25;
 
     let rows = [];
     let sortState = { key: null, direction: "asc" };
@@ -119,7 +118,4 @@
     };
   }
 
-  globalScope.DQCTTable = {
-    create
-  };
-})(window);
+export { create };

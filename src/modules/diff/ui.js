@@ -1,17 +1,17 @@
-(function attachDQCTDiffUI(globalScope) {
-  const defaultUniqueKey = globalScope.DQCTDiffEngine?.defaultUniqueKey || "ProjectCode";
-  const TAB_STORAGE_KEY = "dqct.app.activeTab.v1";
-  const DIFF_CHANGED_FIELDS_ONLY_KEY = "dqct.diff.changedFieldsOnly.v1";
-  const DIFF_SCOPE_EXPANDED_KEY = "dqct.diff.scopeExpanded.v1";
-  const DIFF_GLOBAL_EXPANDED_KEY = "dqct.diff.globalExpanded.v1";
-  const DIFF_FILTER_QUERY_KEY = "dqct.diff.filterQuery.v1";
-  const DIFF_VISIBLE_SCOPES_KEY = "dqct.diff.visibleScopes.v1";
-  const DIFF_CHANGED_FIELD_FILTER_KEY = "dqct.diff.changedFieldFilter.v1";
-  const DIFF_IGNORE_FIELDS_KEY = "dqct.diff.ignoreFields.v1";
-  const _charDiffCache = new Map();
-  let _searchDebounce = null;
-  let _changedFieldCounts = {};
-  let _changedFieldsSet = new Set();
+const globalScope = globalThis;
+const defaultUniqueKey = globalScope.DQCTDiffEngine?.defaultUniqueKey || "ProjectCode";
+const TAB_STORAGE_KEY = "dqct.app.activeTab.v1";
+const DIFF_CHANGED_FIELDS_ONLY_KEY = "dqct.diff.changedFieldsOnly.v1";
+const DIFF_SCOPE_EXPANDED_KEY = "dqct.diff.scopeExpanded.v1";
+const DIFF_GLOBAL_EXPANDED_KEY = "dqct.diff.globalExpanded.v1";
+const DIFF_FILTER_QUERY_KEY = "dqct.diff.filterQuery.v1";
+const DIFF_VISIBLE_SCOPES_KEY = "dqct.diff.visibleScopes.v1";
+const DIFF_CHANGED_FIELD_FILTER_KEY = "dqct.diff.changedFieldFilter.v1";
+const DIFF_IGNORE_FIELDS_KEY = "dqct.diff.ignoreFields.v1";
+const _charDiffCache = new Map();
+let _searchDebounce = null;
+let _changedFieldCounts = {};
+let _changedFieldsSet = new Set();
 
   function clearSearchDebounce() {
     if (_searchDebounce !== null) {
@@ -2051,10 +2051,4 @@
     setupDiffUi();
   }
 
-  globalScope.DQCTDiffUI = { initialize };
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initialize, { once: true });
-  } else {
-    initialize();
-  }
-})(window);
+export { initialize as initialize };

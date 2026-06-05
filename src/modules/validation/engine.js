@@ -1,24 +1,23 @@
-(function attachDQCTValidationEngine(globalScope) {
-  const HEX_32_REGEX = /^[A-Fa-f0-9]{32}$/;
+const HEX_32_REGEX = /^[A-Fa-f0-9]{32}$/;
 
-  function isEmpty(value) {
-    return value === null || value === undefined || value === "" || (Array.isArray(value) && value.length === 0);
+function isEmpty(value) {
+  return value === null || value === undefined || value === "" || (Array.isArray(value) && value.length === 0);
+}
+
+function formatValue(value) {
+  if (Array.isArray(value)) {
+    return JSON.stringify(value);
   }
-
-  function formatValue(value) {
-    if (Array.isArray(value)) {
-      return JSON.stringify(value);
-    }
-    if (value && typeof value === "object") {
-      return JSON.stringify(value);
-    }
-    return value === undefined ? "(undefined)" : String(value);
+  if (value && typeof value === "object") {
+    return JSON.stringify(value);
   }
+  return value === undefined ? "(undefined)" : String(value);
+}
 
-  function parseDocumentCollection(value) {
-    if (value === "" || value === null || value === undefined) {
-      return [];
-    }
+function parseDocumentCollection(value) {
+  if (value === "" || value === null || value === undefined) {
+    return [];
+  }
 
     if (Array.isArray(value)) {
       return value;
@@ -40,10 +39,10 @@
     return null;
   }
 
-  function parseHashCollection(value) {
-    if (value === "" || value === null || value === undefined) {
-      return [];
-    }
+function parseHashCollection(value) {
+  if (value === "" || value === null || value === undefined) {
+    return [];
+  }
 
     if (Array.isArray(value)) {
       return value;
@@ -70,23 +69,23 @@
     return null;
   }
 
-  function normalizeHashCollection(value) {
-    const hashes = parseHashCollection(value);
-    if (hashes === null) {
-      return null;
-    }
+function normalizeHashCollection(value) {
+  const hashes = parseHashCollection(value);
+  if (hashes === null) {
+    return null;
+  }
 
     return [...new Set(hashes.map((item) => String(item || "").trim()).filter(Boolean))].sort();
   }
 
-  function extractDocumentHashes(documents) {
-    return [...new Set((documents || [])
-      .map((document) => String(document?.Hash || "").trim())
-      .filter(Boolean))].sort();
-  }
+function extractDocumentHashes(documents) {
+  return [...new Set((documents || [])
+    .map((document) => String(document?.Hash || "").trim())
+    .filter(Boolean))].sort();
+}
 
-  function getFingerprintFields() {
-    const fallbackFields = [
+function getFingerprintFields() {
+  const fallbackFields = [
       "AgentID",
       "ProjectCode",
       "Title",
@@ -101,12 +100,12 @@
       "BidDocuments"
     ];
 
-    return Array.isArray(globalScope?.DQCTFingerprint?.FINGERPRINT_FIELDS) && globalScope.DQCTFingerprint.FINGERPRINT_FIELDS.length
-      ? globalScope.DQCTFingerprint.FINGERPRINT_FIELDS
-      : fallbackFields;
-  }
+  return Array.isArray(globalThis?.DQCTFingerprint?.FINGERPRINT_FIELDS) && globalThis.DQCTFingerprint.FINGERPRINT_FIELDS.length
+    ? globalThis.DQCTFingerprint.FINGERPRINT_FIELDS
+    : fallbackFields;
+}
 
-  function applyRule(rule, record, recordIndex, options) {
+function applyRule(rule, record, recordIndex, options) {
     const failures = [];
     const value = record[rule.field];
     const runtimeOverrides = options?.runtimeOverrides || new Set();
@@ -358,7 +357,7 @@
     return failures;
   }
 
-  function validateFiles(files, rules, options) {
+function validateFiles(files, rules, options) {
     const results = [];
     const perFileSummary = [];
     const runtimeOverrides = options?.runtimeOverrides || new Set();
@@ -477,7 +476,7 @@
     const recordSummaries = [];
     const failuresByRecord = new Map();
 
-    window.DQCTFingerprint?.clearFingerprintCache?.();
+    globalThis.DQCTFingerprint?.clearFingerprintCache?.();
 
     // Group failures by (fileName, recordIndex)
     flatResults.forEach((failure) => {
@@ -502,8 +501,8 @@
 
         // Generate fingerprint for this record (using synchronous version for consistency in loop)
         let fingerprint = "";
-        if (typeof window !== "undefined" && window.DQCTFingerprint?.generateFingerprintSync) {
-          fingerprint = window.DQCTFingerprint.generateFingerprintSync(record);
+        if (typeof globalThis !== "undefined" && globalThis.DQCTFingerprint?.generateFingerprintSync) {
+          fingerprint = globalThis.DQCTFingerprint.generateFingerprintSync(record);
         }
 
         const errorFailures = [];
@@ -567,12 +566,11 @@
     return recordSummaries;
   }
 
-  globalScope.DQCTValidationEngine = {
-    isEmpty,
-    formatValue,
-    parseDocumentCollection,
-    applyRule,
-    validateFiles,
-    buildRecordSummaries
-  };
-})(window);
+export {
+  applyRule,
+  buildRecordSummaries,
+  formatValue,
+  isEmpty,
+  parseDocumentCollection,
+  validateFiles
+};
