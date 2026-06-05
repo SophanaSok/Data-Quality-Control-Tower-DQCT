@@ -233,7 +233,8 @@ tr:hover td {
   background: color-mix(in oklch, var(--color-surface-2) 70%, transparent);
 }
 
-.toast {
+.toast,
+.dqct-toast {
   position: fixed;
   right: var(--space-5);
   bottom: var(--space-5);
@@ -244,11 +245,21 @@ tr:hover td {
   color: white;
   box-shadow: var(--shadow-2);
   transform: translateY(0);
+  opacity: 1;
+  transition: opacity var(--transition-interactive), transform var(--transition-interactive);
 }
 
-.toast.success { background: var(--color-success); }
-.toast.warning { background: var(--color-warning); color: var(--color-ink); }
-.toast.error { background: var(--color-danger); }
+.toast.success,
+.dqct-toast--success { background: var(--color-success); }
+.toast.warning,
+.dqct-toast--warning { background: var(--color-warning); color: var(--color-ink); }
+.toast.error,
+.dqct-toast--error { background: var(--color-danger); }
+
+.dqct-toast--hide {
+  opacity: 0;
+  transform: translateY(var(--space-2));
+}
 
 .modal,
 .dqct-json-modal {

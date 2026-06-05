@@ -29,13 +29,13 @@ A browser-based validation tool for scraped government IT and software bid data.
 
 ### 1. Open the App (GitHub Pages)
 - The app is published via GitHub Pages for this repository. Open the site in your browser:
-   - Root: https://SophanaSok.github.io/Data-Quality-Control-Tower-DQCT
-   - Direct app page: https://SophanaSok.github.io/Data-Quality-Control-Tower-DQCT/dqct/dqct.html
+   - Canonical SPA: https://sophanasok.github.io/Data-Quality-Control-Tower-DQCT/
+   - Legacy URL: https://sophanasok.github.io/Data-Quality-Control-Tower-DQCT/dqct/dqct.html redirects to the SPA root
 - To publish via GitHub Pages: go to your repository Settings → Pages → Build and deployment, select branch `main` and folder `/ (root)`, then save. The site will publish within a few minutes.
 - If you prefer a local preview, serve the repo root (optional):
    - Python 3: `python3 -m http.server 8000`
    - or Node: `npx http-server -p 8000`
-   Then open `http://localhost:8000/` or `http://localhost:8000/dqct/dqct.html` in your browser.
+   Then open `http://localhost:8000/` in your browser.
 
 ### 2. Load Sample Data (Optional)
 - Click **"Load sample data"** to load 2 sample Standard Profile bid records
@@ -121,7 +121,7 @@ src/
 - **Validation summaries**: The Validate tab includes a record-oriented summary table with `qa_status`, counts, and fingerprints.
 - **Duplicate reporting**: Exact fingerprint matches and near-duplicates are grouped for review and export.
 
-`dqct/dqct.html` loads these modules before `dqct/scripts/core/dqct-core.js` and `dqct/scripts/core/dqct-ui.js` so behavior remains unchanged while code is now separated by concern.
+`index.html` loads `src/main.js` as the canonical SPA entry. The legacy `dqct/dqct.html` file remains only as a GitHub Pages redirect shim until the old MPA subtree can be removed.
 
 ### Unified top-level tabs
 - **Dashboard** is now the landing view with quick-action tiles:

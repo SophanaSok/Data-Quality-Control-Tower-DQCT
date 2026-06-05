@@ -42,7 +42,6 @@ const diffOutput = document.getElementById("diffOutput");
 const validationExportButton = document.getElementById("validationExportButton");
 const diffExportButton = document.getElementById("diffExportButton");
 const diffCleanExportButton = document.getElementById("diffCleanExportButton");
-let sidebarControls = null;
 let validationTableController = null;
 let diffTableController = null;
 const validationState = {
@@ -706,7 +705,7 @@ function bootstrap() {
     document.documentElement.setAttribute("data-theme", themeBootstrap.theme);
   }
 
-  sidebarControls = initSidebar({
+  initSidebar({
     shellElement: appShell,
     sidebarElement: appSidebar,
     collapseButton: sidebarToggle,
@@ -723,7 +722,6 @@ function bootstrap() {
 
   settingsSaveButton?.addEventListener("click", persistSettings);
   settingsResetButton?.addEventListener("click", resetSettings);
-  themeToggle?.addEventListener("click", toggleTheme);
 
   window.addEventListener("dqct:runs-changed", () => renderRecentRuns());
   window.addEventListener("dqct:settings-changed", () => {
