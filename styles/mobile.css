@@ -30,8 +30,14 @@
 
   .dashboard-summary,
   .settings-grid,
+  .dqct-diff-record-grid,
   .dqct-json-diff-viewer__grid,
   .app-section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dqct-diff-field-table__head,
+  .dqct-diff-field-table__row {
     grid-template-columns: 1fr;
   }
 
