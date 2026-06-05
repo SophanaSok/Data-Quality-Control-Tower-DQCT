@@ -37,7 +37,35 @@ const settingsSaveButton = document.getElementById("settingsSaveButton");
 const settingsResetButton = document.getElementById("settingsResetButton");
 const validateStatus = document.getElementById("validateStatus");
 const diffStatus = document.getElementById("diffStatus");
+const validateOutput = document.getElementById("validateOutput");
+const diffOutput = document.getElementById("diffOutput");
+const validationExportButton = document.getElementById("validationExportButton");
+const diffExportButton = document.getElementById("diffExportButton");
+const diffCleanExportButton = document.getElementById("diffCleanExportButton");
 let sidebarControls = null;
+let validationTableController = null;
+let diffTableController = null;
+const validationState = {
+  files: [],
+  results: [],
+  summaries: [],
+  recordIndex: new Map()
+};
+const diffState = {
+  baseline: null,
+  comparison: null,
+  result: null,
+  duplicates: null,
+  cleanExport: null
+};
+const defaultValidationRules = [
+  { id: "V01", layer: "core", field: "ProjectCode", type: "required", severity: "high", enabled: true, notes: "Primary identifier required" },
+  { id: "V02", layer: "core", field: "Title", type: "required", severity: "high", enabled: true, notes: "Title required" },
+  { id: "V03", layer: "domain", field: "ProjectCode", type: "unique", severity: "high", enabled: true, notes: "ProjectCode must be unique per file" },
+  { id: "V04", layer: "domain", field: "PublishedDate", type: "date_format", severity: "medium", enabled: true, notes: "PublishedDate should be parseable" },
+  { id: "V05", layer: "domain", field: "DueDate", type: "required_if", severity: "medium", enabled: true, condition: { field: "BidStatus", equals: "Open for Bidding" }, notes: "Open bids should include a due date" },
+  { id: "V06", layer: "domain", field: "BidDocuments", type: "documents_have_required_keys", severity: "high", enabled: true, required_keys: ["Title", "URL", "Hash"], run_if_not_empty: true, notes: "Document payload should include required keys" }
+];
 
 function createDownloadHelper(data, filename) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -47,6 +75,410 @@ function createDownloadHelper(data, filename) {
   anchor.download = filename;
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function getUniqueKey() {
+  return String(AppState.loadSettings().defaultUniqueKey || "ProjectCode").trim() || "ProjectCode";
+}
+
+function getIgnoreFields() {
+  const settings = AppState.loadSettings();
+  return Array.isArray(settings.ignoreFields) ? settings.ignoreFields : [];
+}
+
+function inferFieldType(value) {
+  if (value === null) {
+    return "null";
+  }
+  if (Array.isArray(value)) {
+    return "array";
+  }
+  if (value instanceof Date) {
+    return "date";
+  }
+  return typeof value;
+}
+
+async function readJsonFile(file) {
+  const text = await file.text();
+  const payload = Parser.parseJsonText(text);
+  const extracted = Parser.extractRecordsFromPayload(payload);
+  if (!extracted.records) {
+    throw new Error(extracted.error || "Unable to extract records from JSON payload");
+  }
+  return {
+    payload,
+    records: Parser.normalizeRecords(extracted.records),
+    rootArray: extracted.rootArray
+  };
+}
+
+async function readJsonFiles(fileList) {
+  const files = Array.from(fileList || []).slice(0, 10);
+  const parsed = [];
+
+  for (const file of files) {
+    if (file.size > 50 * 1024 * 1024) {
+      parsed.push({ name: file.name, status: "error", error: "File exceeds 50 MB limit." });
+      continue;
+    }
+
+    try {
+      const payload = await readJsonFile(file);
+      parsed.push({
+        name: file.name,
+        status: "ok",
+        payload: payload.payload,
+        records: payload.records,
+        rootArray: payload.rootArray,
+        size: file.size
+      });
+    } catch (error) {
+      parsed.push({ name: file.name, status: "error", error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  return parsed;
+}
+
+function getRecordForValidationResult(result) {
+  return validationState.recordIndex.get(`${result.fileName}:${Number(result.recordIndex) || 0}`) || null;
+}
+
+function openRecordModal({ title, subtitle, record, highlightPath }) {
+  if (!record) {
+    Toasts.showWarning("No record available for this row.");
+    return;
+  }
+
+  const modal = document.createElement("div");
+  modal.className = "modal dqct-json-modal";
+  modal.innerHTML = `
+    <div class="modal__dialog dqct-json-modal__dialog" role="dialog" aria-modal="true" aria-label="${title}">
+      <div class="panel" style="border: 0; box-shadow: none; border-radius: 0; background: transparent;">
+        <div class="section-title">
+          <div>
+            <div class="eyebrow">${title}</div>
+            <h3>${subtitle}</h3>
+          </div>
+          <button type="button" class="btn-ghost" data-close-modal>Close</button>
+        </div>
+        <div id="modalContent"></div>
+      </div>
+    </div>
+  `;
+  const content = modal.querySelector("#modalContent");
+  if (content instanceof HTMLElement) {
+    content.appendChild(JsonViewer.renderRecordViewer(record, highlightPath));
+  }
+  modal.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+    if (target === modal || target.closest("[data-close-modal]")) {
+      modal.remove();
+    }
+  });
+  modal.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      modal.remove();
+    }
+  });
+  document.body.appendChild(modal);
+}
+
+function openValidationResult(result) {
+  const record = getRecordForValidationResult(result);
+  if (!record) {
+    Toasts.showWarning("This row does not map to a parsed record.");
+    return;
+  }
+  openRecordModal({
+    title: "Validation result",
+    subtitle: `${result.fileName} #${result.recordIndex}`,
+    record,
+    highlightPath: result.field
+  });
+}
+
+function openDiffResult(result) {
+  if (result.status === "changed") {
+    openRecordModal({
+      title: "Diff result",
+      subtitle: `${result.key} changed`,
+      record: result.after || result.before,
+      highlightPath: Array.isArray(result.changedFields) ? result.changedFields[0] : undefined
+    });
+    return;
+  }
+
+  const record = result.after || result.before;
+  if (!record) {
+    Toasts.showWarning("No record available for this diff row.");
+    return;
+  }
+  openRecordModal({
+    title: "Diff result",
+    subtitle: `${result.key} ${result.status}`,
+    record,
+    highlightPath: null
+  });
+}
+
+function renderSummaryCards(container, cards) {
+  if (!(container instanceof HTMLElement)) {
+    return;
+  }
+  container.innerHTML = cards.map((card) => `
+    <div class="panel metric-card">
+      <span class="meta">${card.label}</span>
+      <strong>${card.value}</strong>
+      <span class="helper">${card.helper || ""}</span>
+    </div>
+  `).join("");
+}
+
+function renderValidationOutput() {
+  if (!(validateOutput instanceof HTMLElement)) {
+    return;
+  }
+
+  const totalFiles = validationState.files.length;
+  const totalRecords = validationState.files.reduce((sum, file) => sum + (Array.isArray(file.records) ? file.records.length : 0), 0);
+  const totalFailures = validationState.results.length;
+  const severityCounts = validationState.results.reduce((counts, row) => {
+    const severity = row.severity === "high" ? "high" : row.severity === "medium" ? "medium" : "low";
+    counts[severity] += 1;
+    return counts;
+  }, { high: 0, medium: 0, low: 0 });
+
+  validateOutput.innerHTML = `
+    <div class="dashboard-summary">
+      <div class="panel metric-card"><span class="meta">Files</span><strong>${totalFiles}</strong><span class="helper">Parsed JSON uploads</span></div>
+      <div class="panel metric-card"><span class="meta">Records</span><strong>${totalRecords}</strong><span class="helper">Total records inspected</span></div>
+      <div class="panel metric-card"><span class="meta">Failures</span><strong>${totalFailures}</strong><span class="helper">All validation findings</span></div>
+      <div class="panel metric-card"><span class="meta">High severity</span><strong>${severityCounts.high}</strong><span class="helper">Critical issues</span></div>
+    </div>
+    <div class="panel">
+      <div class="section-title"><h3>Validation results</h3><span class="badge good">${severityCounts.high ? "Needs review" : "Clean"}</span></div>
+      <div class="table-wrap">
+        <table id="validationResultsTable">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Record</th>
+              <th>Primary ID</th>
+              <th>Field</th>
+              <th>Rule</th>
+              <th>Expected</th>
+              <th>Actual</th>
+              <th>Severity</th>
+            </tr>
+          </thead>
+          <tbody id="validationResultsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  const tableElement = document.getElementById("validationResultsTable");
+  const bodyElement = document.getElementById("validationResultsBody");
+  validationTableController = Table.create({
+    tableElement,
+    bodyElement,
+    pageSize: 20,
+    onRowClick: openValidationResult,
+    columns: [
+      { key: "fileName", sortable: true },
+      { key: "recordIndex", sortable: true, sortValue: (row) => Number(row.recordIndex), render: (row) => String(row.recordIndex || "") },
+      { key: "primaryId", sortable: true },
+      { key: "field", sortable: true },
+      { key: "ruleType", sortable: true },
+      { key: "expected", sortable: true },
+      { key: "actual", sortable: true },
+      { key: "severity", sortable: true, render: (row) => `<span class="pill ${row.severity === "high" ? "high" : row.severity === "medium" ? "medium" : "low"}">${row.severity}</span>` }
+    ]
+  });
+  validationTableController.update(validationState.results);
+}
+
+function renderDiffOutput() {
+  if (!(diffOutput instanceof HTMLElement) || !diffState.result) {
+    return;
+  }
+
+  const diff = diffState.result;
+  const counts = [
+    { label: "Baseline records", value: diff.baselineCount, helper: `Wrapper: ${diff.wrapper.baseline}` },
+    { label: "Comparison records", value: diff.comparisonCount, helper: `Wrapper: ${diff.wrapper.comparison}` },
+    { label: "Changed", value: diff.changedCount, helper: "Modified records" },
+    { label: "New / Removed", value: `${diff.newCount} / ${diff.removedCount}`, helper: "Adds and deletes" }
+  ];
+
+  diffOutput.innerHTML = `
+    <div class="dashboard-summary" id="diffSummaryCards"></div>
+    <div class="panel">
+      <div class="section-title"><h3>Diff rows</h3><span class="badge good">${diff.changedCount ? "Differences found" : "No changes"}</span></div>
+      <div class="table-wrap">
+        <table id="diffResultsTable">
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Status</th>
+              <th>Changed fields</th>
+              <th>Before</th>
+              <th>After</th>
+            </tr>
+          </thead>
+          <tbody id="diffResultsBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="section-title"><h3>Record viewer</h3><span class="meta">Click a diff row to inspect it</span></div>
+      <div id="diffViewerHost" class="stack">
+        <div class="empty-state"><strong>No row selected</strong><span>Select a diff row to inspect the before/after view.</span></div>
+      </div>
+    </div>
+  `;
+
+  renderSummaryCards(document.getElementById("diffSummaryCards"), counts);
+
+  const bodyElement = document.getElementById("diffResultsBody");
+  const viewerHost = document.getElementById("diffViewerHost");
+  diffTableController = Table.create({
+    tableElement: document.getElementById("diffResultsTable"),
+    bodyElement,
+    pageSize: 20,
+    onRowClick: (row) => {
+      openDiffResult(row);
+      if (viewerHost instanceof HTMLElement) {
+        viewerHost.innerHTML = "";
+        if (row.status === "changed") {
+          viewerHost.appendChild(JsonViewer.renderDiffViewer(row.before, row.after, row.changedFields || []));
+        } else {
+          viewerHost.appendChild(JsonViewer.renderRecordViewer(row.after || row.before, row.key));
+        }
+      }
+    },
+    columns: [
+      { key: "key", sortable: true },
+      { key: "status", sortable: true },
+      { key: "changedFields", sortable: false, render: (row) => Array.isArray(row.changedFields) ? row.changedFields.join(", ") : "" },
+      { key: "before", sortable: false, render: (row) => `<span class="meta">${row.before ? "present" : "-"}</span>` },
+      { key: "after", sortable: false, render: (row) => `<span class="meta">${row.after ? "present" : "-"}</span>` }
+    ]
+  });
+  diffTableController.update(diff.diffRows);
+}
+
+function buildValidationRules() {
+  const uniqueKey = getUniqueKey();
+  return defaultValidationRules.map((rule) => {
+    if (rule.type === "unique" && rule.field === "ProjectCode") {
+      return { ...rule, field: uniqueKey };
+    }
+    return rule;
+  });
+}
+
+async function runValidation() {
+  const input = document.getElementById("validateFileInput");
+  const files = input instanceof HTMLInputElement ? Array.from(input.files || []) : [];
+  if (!files.length) {
+    Toasts.showWarning("Choose at least one JSON file to validate.");
+    return;
+  }
+
+  if (validateStatus) {
+    validateStatus.textContent = "Parsing files...";
+  }
+
+  const parsedFiles = await readJsonFiles(files);
+  validationState.files = parsedFiles;
+  validationState.recordIndex = new Map();
+
+  const uniqueKey = getUniqueKey();
+  const getPrimaryId = (record) => String(record?.[uniqueKey] ?? record?.ProjectCode ?? record?.Title ?? record?.AgentID ?? "(missing primary id)");
+  const validFiles = parsedFiles.filter((file) => file.status === "ok");
+  validFiles.forEach((file) => {
+    (file.records || []).forEach((record, recordIndex) => {
+      validationState.recordIndex.set(`${file.name}:${recordIndex + 1}`, record);
+    });
+  });
+
+  const { results, perFileSummary } = ValidationEngine.validateFiles(parsedFiles, buildValidationRules(), {
+    runtimeOverrides: new Set(),
+    getPrimaryId,
+    inferFieldType
+  });
+  validationState.results = results;
+  validationState.summaries = ValidationEngine.buildRecordSummaries(validFiles, results);
+
+  renderValidationOutput();
+
+  const failedFiles = parsedFiles.filter((file) => file.status === "error").length;
+  if (validateStatus) {
+    validateStatus.textContent = `${validFiles.length} file(s) parsed, ${results.length} issue(s) found${failedFiles ? `, ${failedFiles} file(s) failed to parse` : ""}.`;
+  }
+  Toasts.showToast(results.length ? `Validation completed with ${results.length} issue(s).` : "Validation completed without issues.", results.length ? "warning" : "success");
+
+  AppState.addHistoryRun({
+    timestamp: new Date().toISOString(),
+    type: "validate",
+    summary: { files: validFiles.length, failures: results.length, records: validationState.summaries.length },
+    exportFiles: [],
+    reopenTab: "validate",
+    label: `Validation: ${validFiles.length} file(s)`
+  });
+
+  return perFileSummary;
+}
+
+async function runDiffAnalysis() {
+  const baselineInput = document.getElementById("baselineFileInput");
+  const comparisonInput = document.getElementById("comparisonFileInput");
+  const baselineFile = baselineInput instanceof HTMLInputElement ? baselineInput.files?.[0] : null;
+  const comparisonFile = comparisonInput instanceof HTMLInputElement ? comparisonInput.files?.[0] : null;
+
+  if (!baselineFile || !comparisonFile) {
+    Toasts.showWarning("Choose both baseline and comparison JSON files.");
+    return;
+  }
+
+  if (diffStatus) {
+    diffStatus.textContent = "Parsing files...";
+  }
+
+  const [baseline, comparison] = await Promise.all([readJsonFile(baselineFile), readJsonFile(comparisonFile)]);
+  const uniqueKey = getUniqueKey();
+  const ignoreFields = getIgnoreFields();
+  const diff = DiffEngine.diffRecords(baseline.payload, comparison.payload, { uniqueKey, ignoreFields });
+  const duplicates = DiffEngine.findDuplicates(baseline.payload, comparison.payload, { uniqueKey });
+  const cleanExport = DiffEngine.buildCleanExport(diff, {});
+
+  diffState.baseline = baseline;
+  diffState.comparison = comparison;
+  diffState.result = diff;
+  diffState.duplicates = duplicates;
+  diffState.cleanExport = cleanExport;
+
+  renderDiffOutput();
+
+  if (diffStatus) {
+    diffStatus.textContent = `${diff.changedCount} changed, ${diff.newCount} new, ${diff.removedCount} removed record(s).`;
+  }
+  Toasts.showToast(diff.changedCount || diff.newCount || diff.removedCount ? "Diff completed with changes." : "Diff completed without changes.", diff.changedCount || diff.newCount || diff.removedCount ? "warning" : "success");
+
+  AppState.addHistoryRun({
+    timestamp: new Date().toISOString(),
+    type: "diff",
+    summary: { baseline: diff.baselineCount, comparison: diff.comparisonCount, changed: diff.changedCount, new: diff.newCount, removed: diff.removedCount },
+    exportFiles: ["diff_records.json", "clean_export.json"],
+    reopenTab: "diff",
+    label: `Diff: ${baselineFile.name} vs ${comparisonFile.name}`
+  });
 }
 
 function attachCompatibilityNamespaces() {
@@ -209,21 +641,52 @@ function wireBasicPanels() {
   const validateFileInput = document.getElementById("validateFileInput");
   const baselineFileInput = document.getElementById("baselineFileInput");
   const comparisonFileInput = document.getElementById("comparisonFileInput");
+  const validationExport = validationExportButton;
+  const diffExport = diffExportButton;
+  const diffCleanExport = diffCleanExportButton;
 
   validateRunButton?.addEventListener("click", () => {
-    const fileCount = validateFileInput instanceof HTMLInputElement ? validateFileInput.files?.length || 0 : 0;
-    Toasts.showToast(fileCount ? `Validation queue contains ${fileCount} file(s).` : "Choose at least one JSON file to validate.", fileCount ? "success" : "warning");
+    runValidation().catch((error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      if (validateStatus) {
+        validateStatus.textContent = message;
+      }
+      Toasts.showError(`Validation failed: ${message}`);
+    });
   });
 
   diffAnalyzeButton?.addEventListener("click", () => {
-    const baselineName = baselineFileInput instanceof HTMLInputElement ? baselineFileInput.files?.[0]?.name || "" : "";
-    const comparisonName = comparisonFileInput instanceof HTMLInputElement ? comparisonFileInput.files?.[0]?.name || "" : "";
-    Toasts.showToast(
-      baselineName && comparisonName
-        ? `Diff ready for ${baselineName} vs ${comparisonName}.`
-        : "Choose baseline and comparison JSON files to compare.",
-      baselineName && comparisonName ? "success" : "warning"
-    );
+    runDiffAnalysis().catch((error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      if (diffStatus) {
+        diffStatus.textContent = message;
+      }
+      Toasts.showError(`Diff failed: ${message}`);
+    });
+  });
+
+  validationExport?.addEventListener("click", () => {
+    if (!validationState.results.length) {
+      Toasts.showWarning("Run validation before exporting results.");
+      return;
+    }
+    Exports.downloadJson(validationState.results, "validation_results.json");
+  });
+
+  diffExport?.addEventListener("click", () => {
+    if (!diffState.result) {
+      Toasts.showWarning("Run diff before exporting results.");
+      return;
+    }
+    Exports.downloadJson(diffState.result, "diff_results.json");
+  });
+
+  diffCleanExport?.addEventListener("click", () => {
+    if (!diffState.cleanExport) {
+      Toasts.showWarning("Run diff before exporting the clean export.");
+      return;
+    }
+    Exports.downloadJson(diffState.cleanExport, "clean_export.json");
   });
 }
 
@@ -256,6 +719,8 @@ function bootstrap() {
   syncSettingsForm();
   renderRecentRuns();
   wireBasicPanels();
+  renderValidationOutput();
+  renderDiffOutput();
 
   settingsSaveButton?.addEventListener("click", persistSettings);
   settingsResetButton?.addEventListener("click", resetSettings);
