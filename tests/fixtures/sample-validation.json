@@ -1,0 +1,54 @@
+{
+  "Export": [
+    {
+      "AgentName": "Source Portal",
+      "AgentID": "AG001",
+      "LegacyAgentID": "LEG001",
+      "ResourceURL": "https://example.test/portal",
+      "ProjectCode": "SRC1234567890",
+      "Title": "Network upgrade",
+      "BidURL": "https://example.test/bids/SRC1234567890",
+      "BidStatus": "Open for Bidding",
+      "PublishedDate": "2026-01-01",
+      "DueDate": "2026-02-01",
+      "AwardedVendorName": "",
+      "BidDocuments": [
+        {
+          "Title": "spec.pdf",
+          "URL": "https://example.test/spec.pdf",
+          "Hash": "0123456789abcdef0123456789abcdef"
+        }
+      ],
+      "AddendumDocuments": [],
+      "BidTabulations": [],
+      "AwardDocuments": [],
+      "BidDocumentHashes": ["0123456789abcdef0123456789abcdef"],
+      "AddendumDocumentHashes": [],
+      "BidTabulationHashes": [],
+      "AwardDocumentHashes": [],
+      "Description": "Core infrastructure work"
+    },
+    {
+      "AgentName": "Source Portal",
+      "AgentID": "AG001",
+      "LegacyAgentID": "LEG001",
+      "ResourceURL": "https://example.test/portal",
+      "ProjectCode": "BAD-CODE",
+      "Title": "",
+      "BidURL": "http://example.test/bids/BAD-CODE",
+      "BidStatus": "Open for Bidding",
+      "PublishedDate": "not-a-date",
+      "DueDate": "",
+      "AwardedVendorName": "",
+      "BidDocuments": [],
+      "AddendumDocuments": [],
+      "BidTabulations": [],
+      "AwardDocuments": [],
+      "BidDocumentHashes": [],
+      "AddendumDocumentHashes": [],
+      "BidTabulationHashes": [],
+      "AwardDocumentHashes": [],
+      "Description": ""
+    }
+  ]
+}

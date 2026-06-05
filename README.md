@@ -3,7 +3,7 @@
 A browser-based validation tool for scraped government IT and software bid data. Upload JSON files, run automated quality checks against configurable rule profiles, compare baseline vs. comparison datasets, and generate Trello-ready defect reports—all in seconds.
 
 **Current Version:** 2.3 (Validation + Diff + Accessibility Refreshed)  
-**Status:** Production Ready  
+**Status:** Browser-only SPA; production hardening in progress
 **Last Updated:** May 14, 2026
 
 ---

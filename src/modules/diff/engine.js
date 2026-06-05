@@ -1,25 +1,15 @@
+import { extractRecordsFromPayload, normalizeRecords } from "../../shared/parser.js";
+
 const DEFAULT_UNIQUE_KEY = "ProjectCode";
 
 function extractRecordsWithWrapper(payload) {
-  if (Array.isArray(payload)) {
-    return { records: payload, rootArray: "root" };
-  }
-
-    if (!payload || typeof payload !== "object") {
-      return { records: [], rootArray: "root" };
-    }
-
-    if (Array.isArray(payload.Export)) {
-      return { records: payload.Export, rootArray: "Export" };
-    }
-
-    const firstArrayEntry = Object.entries(payload).find(([, value]) => Array.isArray(value));
-    if (firstArrayEntry) {
-      return { records: firstArrayEntry[1], rootArray: firstArrayEntry[0] };
-    }
-
-    return { records: [], rootArray: "root" };
-  }
+  const extracted = extractRecordsFromPayload(payload);
+  return {
+    records: normalizeRecords(extracted.records),
+    rootArray: extracted.rootArray || "root",
+    error: extracted.error || null
+  };
+}
 
 function normalizeIgnoreFields(ignoreFields) {
   if (Array.isArray(ignoreFields)) {
