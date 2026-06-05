@@ -602,7 +602,6 @@ function syncSettingsForm() {
   if (settingsExportFormat) {
     settingsExportFormat.value = settings.exportFormat || "pretty";
   }
-  sidebarControls?.updateThemeButton(settings.theme || "light");
 }
 
 function persistSettings() {
