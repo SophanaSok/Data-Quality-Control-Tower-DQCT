@@ -23,10 +23,21 @@ function initSidebar(options = {}) {
     }
   }
 
+  function syncCollapseButton(collapsed) {
+    if (!(collapseButton instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    collapseButton.textContent = collapsed ? "›" : "Collapse sidebar";
+    collapseButton.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
+    collapseButton.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+  }
+
   function setCollapsed(value) {
     const collapsed = !!value;
     shellElement?.classList.toggle("is-collapsed", collapsed);
     sidebarElement?.classList.toggle("sidebar--collapsed", collapsed);
+    syncCollapseButton(collapsed);
     saveCollapsedPreference(collapsed);
   }
 

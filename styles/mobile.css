@@ -48,10 +48,22 @@
 
 @media (min-width: 48rem) {
   .sidebar--collapsed .sidebar__title,
-  .sidebar--collapsed .sidebar__footer,
   .sidebar--collapsed .sidebar__nav-link span.label-text,
   .sidebar--collapsed .sidebar__nav-link .link-text {
     display: none;
+  }
+
+  .sidebar--collapsed .sidebar__footer-row {
+    display: none;
+  }
+
+  .sidebar--collapsed .sidebar__footer {
+    align-items: center;
+  }
+
+  .sidebar--collapsed #sidebarToggle {
+    width: 100%;
+    padding-inline: 0;
   }
 
   .sidebar--collapsed .sidebar__nav-link {
