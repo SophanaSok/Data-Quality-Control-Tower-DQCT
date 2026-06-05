@@ -736,7 +736,6 @@ let _changedFieldsSet = new Set();
       ));
       const effectiveResumeNode = resumeNode || legacyResumeNode;
       if (effectiveResumeNode) {
-        console.log('Dashboard: resume clicked', { node: effectiveResumeNode });
         const recentRuns = globalScope.DQCTAppState?.getRecentRuns?.() || [];
         const latest = recentRuns[0];
         if (latest) reopenRun(setActiveTab, latest);
@@ -745,7 +744,6 @@ let _changedFieldsSet = new Set();
 
       const startNode = findByAction('start-validation');
       if (startNode) {
-        console.debug('Dashboard: start validation clicked', { node: startNode });
         setActiveTab('validate');
         return;
       }
