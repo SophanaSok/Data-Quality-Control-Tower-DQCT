@@ -42,6 +42,7 @@ const diffOutput = document.getElementById("diffOutput");
 const validationExportButton = document.getElementById("validationExportButton");
 const diffExportButton = document.getElementById("diffExportButton");
 const diffCleanExportButton = document.getElementById("diffCleanExportButton");
+const PROFILE_STORAGE_KEY = "dqct.profiles.v1";
 let validationTableController = null;
 let diffTableController = null;
 const validationState = {
@@ -57,27 +58,22 @@ const diffState = {
   duplicates: null,
   cleanExport: null
 };
-const defaultValidationRules = [
-  { id: "V01", layer: "core", field: "ProjectCode", type: "required", severity: "high", enabled: true, notes: "Primary identifier required" },
-  { id: "V02", layer: "core", field: "Title", type: "required", severity: "high", enabled: true, notes: "Title required" },
-  { id: "V03", layer: "domain", field: "ProjectCode", type: "unique", severity: "high", enabled: true, notes: "ProjectCode must be unique per file" },
-  { id: "V04", layer: "domain", field: "PublishedDate", type: "date_format", severity: "medium", enabled: true, notes: "PublishedDate should be parseable" },
-  { id: "V05", layer: "domain", field: "DueDate", type: "required_if", severity: "medium", enabled: true, condition: { field: "BidStatus", equals: "Open for Bidding" }, notes: "Open bids should include a due date" },
-  { id: "V06", layer: "domain", field: "BidDocuments", type: "documents_have_required_keys", severity: "high", enabled: true, required_keys: ["Title", "URL", "Hash"], run_if_not_empty: true, notes: "Document payload should include required keys" }
-];
 
-function createDownloadHelper(data, filename) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function getUniqueKey() {
   return String(AppState.loadSettings().defaultUniqueKey || "ProjectCode").trim() || "ProjectCode";
+}
+
+function getExportFormat() {
+  return AppState.loadSettings().exportFormat === "minified" ? "minified" : "pretty";
 }
 
 function getIgnoreFields() {
@@ -153,12 +149,12 @@ function openRecordModal({ title, subtitle, record, highlightPath }) {
   const modal = document.createElement("div");
   modal.className = "modal dqct-json-modal";
   modal.innerHTML = `
-    <div class="modal__dialog dqct-json-modal__dialog" role="dialog" aria-modal="true" aria-label="${title}">
+    <div class="modal__dialog dqct-json-modal__dialog" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
       <div class="panel" style="border: 0; box-shadow: none; border-radius: 0; background: transparent;">
         <div class="section-title">
           <div>
-            <div class="eyebrow">${title}</div>
-            <h3>${subtitle}</h3>
+            <div class="eyebrow">${escapeHtml(title)}</div>
+            <h3>${escapeHtml(subtitle)}</h3>
           </div>
           <button type="button" class="btn-ghost" data-close-modal>Close</button>
         </div>
@@ -231,9 +227,9 @@ function renderSummaryCards(container, cards) {
   }
   container.innerHTML = cards.map((card) => `
     <div class="panel metric-card">
-      <span class="meta">${card.label}</span>
-      <strong>${card.value}</strong>
-      <span class="helper">${card.helper || ""}</span>
+      <span class="meta">${escapeHtml(card.label)}</span>
+      <strong>${escapeHtml(card.value)}</strong>
+      <span class="helper">${escapeHtml(card.helper || "")}</span>
     </div>
   `).join("");
 }
@@ -246,6 +242,8 @@ function renderValidationOutput() {
   const totalFiles = validationState.files.length;
   const totalRecords = validationState.files.reduce((sum, file) => sum + (Array.isArray(file.records) ? file.records.length : 0), 0);
   const totalFailures = validationState.results.length;
+  const activeProfile = getActiveValidationProfile();
+  const activeRuleCount = buildValidationRules().filter((rule) => rule.enabled !== false).length;
   const severityCounts = validationState.results.reduce((counts, row) => {
     const severity = row.severity === "high" ? "high" : row.severity === "medium" ? "medium" : "low";
     counts[severity] += 1;
@@ -256,11 +254,11 @@ function renderValidationOutput() {
     <div class="dashboard-summary">
       <div class="panel metric-card"><span class="meta">Files</span><strong>${totalFiles}</strong><span class="helper">Parsed JSON uploads</span></div>
       <div class="panel metric-card"><span class="meta">Records</span><strong>${totalRecords}</strong><span class="helper">Total records inspected</span></div>
-      <div class="panel metric-card"><span class="meta">Failures</span><strong>${totalFailures}</strong><span class="helper">All validation findings</span></div>
-      <div class="panel metric-card"><span class="meta">High severity</span><strong>${severityCounts.high}</strong><span class="helper">Critical issues</span></div>
+      <div class="panel metric-card"><span class="meta">Rules</span><strong>${activeRuleCount}</strong><span class="helper">${escapeHtml(activeProfile.profile_name)}</span></div>
+      <div class="panel metric-card"><span class="meta">Failures</span><strong>${totalFailures}</strong><span class="helper">${severityCounts.high} high severity</span></div>
     </div>
     <div class="panel">
-      <div class="section-title"><h3>Validation results</h3><span class="badge good">${severityCounts.high ? "Needs review" : "Clean"}</span></div>
+      <div class="section-title"><h3>Validation results</h3><span class="badge ${severityCounts.high ? "high" : "good"}">${severityCounts.high ? "Needs review" : "Clean"}</span></div>
       <div class="table-wrap">
         <table id="validationResultsTable">
           <thead>
@@ -302,17 +300,27 @@ function renderValidationOutput() {
   validationTableController.update(validationState.results);
 }
 
+function countDuplicateGroups(duplicates) {
+  return {
+    baseline: Number(duplicates?.duplicatesFile1?.duplicateCount || 0),
+    comparison: Number(duplicates?.duplicatesFile2?.duplicateCount || 0),
+    cross: Array.isArray(duplicates?.duplicatesCross) ? duplicates.duplicatesCross.length : 0
+  };
+}
+
 function renderDiffOutput() {
   if (!(diffOutput instanceof HTMLElement) || !diffState.result) {
     return;
   }
 
   const diff = diffState.result;
+  const duplicateCounts = countDuplicateGroups(diffState.duplicates);
   const counts = [
     { label: "Baseline records", value: diff.baselineCount, helper: `Wrapper: ${diff.wrapper.baseline}` },
     { label: "Comparison records", value: diff.comparisonCount, helper: `Wrapper: ${diff.wrapper.comparison}` },
     { label: "Changed", value: diff.changedCount, helper: "Modified records" },
-    { label: "New / Removed", value: `${diff.newCount} / ${diff.removedCount}`, helper: "Adds and deletes" }
+    { label: "New / Removed", value: `${diff.newCount} / ${diff.removedCount}`, helper: "Adds and deletes" },
+    { label: "Duplicate keys", value: duplicateCounts.baseline + duplicateCounts.comparison + duplicateCounts.cross, helper: `${duplicateCounts.baseline} baseline, ${duplicateCounts.comparison} comparison, ${duplicateCounts.cross} cross-file` }
   ];
 
   diffOutput.innerHTML = `
@@ -333,6 +341,10 @@ function renderDiffOutput() {
           <tbody id="diffResultsBody"></tbody>
         </table>
       </div>
+    </div>
+    <div class="panel">
+      <div class="section-title"><h3>Duplicate key summary</h3><span class="badge ${duplicateCounts.baseline + duplicateCounts.comparison + duplicateCounts.cross ? "medium" : "good"}">${duplicateCounts.baseline + duplicateCounts.comparison + duplicateCounts.cross ? "Review duplicates" : "No duplicates"}</span></div>
+      <p class="helper">Baseline groups: ${duplicateCounts.baseline} | Comparison groups: ${duplicateCounts.comparison} | Cross-file key matches: ${duplicateCounts.cross}</p>
     </div>
     <div class="panel">
       <div class="section-title"><h3>Record viewer</h3><span class="meta">Click a diff row to inspect it</span></div>
@@ -372,13 +384,20 @@ function renderDiffOutput() {
   diffTableController.update(diff.diffRows);
 }
 
+function getActiveValidationProfile() {
+  const defaultProfile = ValidationProfiles.getDefaultStandardProfile();
+  const profiles = ValidationProfiles.loadProfiles(PROFILE_STORAGE_KEY, defaultProfile);
+  return profiles.find((profile) => profile.profile_name === defaultProfile.profile_name) || profiles[0] || defaultProfile;
+}
+
 function buildValidationRules() {
+  const activeProfile = getActiveValidationProfile();
   const uniqueKey = getUniqueKey();
-  return defaultValidationRules.map((rule) => {
+  return (activeProfile.rules || []).map((rule) => {
     if (rule.type === "unique" && rule.field === "ProjectCode") {
       return { ...rule, field: uniqueKey };
     }
-    return rule;
+    return { ...rule };
   });
 }
 
@@ -398,6 +417,8 @@ async function runValidation() {
   validationState.files = parsedFiles;
   validationState.recordIndex = new Map();
 
+  const activeProfile = getActiveValidationProfile();
+  const validationRules = buildValidationRules();
   const uniqueKey = getUniqueKey();
   const getPrimaryId = (record) => String(record?.[uniqueKey] ?? record?.ProjectCode ?? record?.Title ?? record?.AgentID ?? "(missing primary id)");
   const validFiles = parsedFiles.filter((file) => file.status === "ok");
@@ -407,7 +428,7 @@ async function runValidation() {
     });
   });
 
-  const { results, perFileSummary } = ValidationEngine.validateFiles(parsedFiles, buildValidationRules(), {
+  const { results, perFileSummary } = ValidationEngine.validateFiles(parsedFiles, validationRules, {
     runtimeOverrides: new Set(),
     getPrimaryId,
     inferFieldType
@@ -426,8 +447,14 @@ async function runValidation() {
   AppState.addHistoryRun({
     timestamp: new Date().toISOString(),
     type: "validate",
-    summary: { files: validFiles.length, failures: results.length, records: validationState.summaries.length },
-    exportFiles: [],
+    summary: {
+      files: validFiles.length,
+      failures: results.length,
+      records: validationState.summaries.length,
+      profileName: activeProfile.profile_name,
+      rulesChecked: validationRules.filter((rule) => rule.enabled !== false).length
+    },
+    exportFiles: ["validation_results.json"],
     reopenTab: "validate",
     label: `Validation: ${validFiles.length} file(s)`
   });
@@ -453,9 +480,18 @@ async function runDiffAnalysis() {
   const [baseline, comparison] = await Promise.all([readJsonFile(baselineFile), readJsonFile(comparisonFile)]);
   const uniqueKey = getUniqueKey();
   const ignoreFields = getIgnoreFields();
-  const diff = DiffEngine.diffRecords(baseline.payload, comparison.payload, { uniqueKey, ignoreFields });
+  const diff = await DiffEngine.diffRecordsAsync(baseline.payload, comparison.payload, {
+    uniqueKey,
+    ignoreFields,
+    onProgress: ({ processed, total }) => {
+      if (diffStatus) {
+        diffStatus.textContent = `Comparing ${processed} of ${total} keyed records...`;
+      }
+    }
+  });
   const duplicates = DiffEngine.findDuplicates(baseline.payload, comparison.payload, { uniqueKey });
   const cleanExport = DiffEngine.buildCleanExport(diff, {});
+  const duplicateCounts = countDuplicateGroups(duplicates);
 
   diffState.baseline = baseline;
   diffState.comparison = comparison;
@@ -473,8 +509,15 @@ async function runDiffAnalysis() {
   AppState.addHistoryRun({
     timestamp: new Date().toISOString(),
     type: "diff",
-    summary: { baseline: diff.baselineCount, comparison: diff.comparisonCount, changed: diff.changedCount, new: diff.newCount, removed: diff.removedCount },
-    exportFiles: ["diff_records.json", "clean_export.json"],
+    summary: {
+      baseline: diff.baselineCount,
+      comparison: diff.comparisonCount,
+      changed: diff.changedCount,
+      new: diff.newCount,
+      removed: diff.removedCount,
+      duplicateGroups: duplicateCounts.baseline + duplicateCounts.comparison + duplicateCounts.cross
+    },
+    exportFiles: ["diff_results.json", "clean_export.json"],
     reopenTab: "diff",
     label: `Diff: ${baselineFile.name} vs ${comparisonFile.name}`
   });
@@ -533,18 +576,27 @@ function getRouteMeta(routeKey) {
   };
 }
 
+function formatRunSummary(run) {
+  const summary = run?.summary || {};
+  if (run?.type === "diff") {
+    return `${Number(summary.changed || 0)} changed, ${Number(summary.new || 0)} new, ${Number(summary.removed || 0)} removed, ${Number(summary.duplicateGroups || 0)} duplicate group(s)`;
+  }
+  return `${Number(summary.records || 0)} records, ${Number(summary.failures || 0)} issue(s), ${Number(summary.rulesChecked || 0)} rules`;
+}
+
 function renderRecentRuns() {
   if (!(dashboardRecentRunsBody instanceof HTMLElement)) {
     return;
   }
 
   const runs = AppState.loadHistory();
+  const validationRuns = runs.filter((run) => run.type === "validate");
   const totalRuns = runs.length;
   const todayPrefix = new Date().toISOString().slice(0, 10);
   const runsToday = runs.filter((run) => String(run.timestamp || "").startsWith(todayPrefix)).length;
-  const issueCount = runs.reduce((sum, run) => sum + Number(run.summary?.failures || 0), 0);
-  const passCount = runs.reduce((sum, run) => sum + (Number(run.summary?.failures || 0) === 0 ? 1 : 0), 0);
-  const passRate = totalRuns ? Math.round((passCount / totalRuns) * 100) : 0;
+  const issueCount = validationRuns.reduce((sum, run) => sum + Number(run.summary?.failures || 0), 0);
+  const passCount = validationRuns.reduce((sum, run) => sum + (Number(run.summary?.failures || 0) === 0 ? 1 : 0), 0);
+  const passRate = validationRuns.length ? Math.round((passCount / validationRuns.length) * 100) : 0;
 
   if (dashboardRunsToday) {
     dashboardRunsToday.textContent = String(runsToday);
@@ -562,7 +614,7 @@ function renderRecentRuns() {
     dashboardPassRate.textContent = `${passRate}%`;
   }
   if (dashboardPassRateMeta) {
-    dashboardPassRateMeta.textContent = totalRuns ? `${passCount} clean runs out of ${totalRuns}` : "No validation runs recorded";
+    dashboardPassRateMeta.textContent = validationRuns.length ? `${passCount} clean validation runs out of ${validationRuns.length}` : "No validation runs recorded";
   }
   if (dashboardOpenIssues) {
     dashboardOpenIssues.textContent = String(issueCount);
@@ -578,11 +630,11 @@ function renderRecentRuns() {
 
   dashboardRecentRunsBody.innerHTML = runs.map((run) => `
     <tr>
-      <td>${new Date(run.timestamp).toLocaleString()}</td>
-      <td>${run.type}</td>
-      <td>${JSON.stringify(run.summary || {})}</td>
-      <td>${Array.isArray(run.exportFiles) ? run.exportFiles.join(", ") : ""}</td>
-      <td><button type="button" class="btn-ghost" data-run-open="${run.reopenTab || run.type}">Open</button></td>
+      <td>${escapeHtml(new Date(run.timestamp).toLocaleString())}</td>
+      <td>${escapeHtml(run.type)}</td>
+      <td>${escapeHtml(formatRunSummary(run))}</td>
+      <td>${escapeHtml(Array.isArray(run.exportFiles) ? run.exportFiles.join(", ") : "")}</td>
+      <td><button type="button" class="btn-ghost" data-run-open="${escapeHtml(run.reopenTab || run.type)}">Open</button></td>
     </tr>
   `).join("");
 }
@@ -668,7 +720,7 @@ function wireBasicPanels() {
       Toasts.showWarning("Run validation before exporting results.");
       return;
     }
-    Exports.downloadJson(validationState.results, "validation_results.json");
+    Exports.downloadJson(validationState.results, "validation_results.json", { format: getExportFormat() });
   });
 
   diffExport?.addEventListener("click", () => {
@@ -676,7 +728,10 @@ function wireBasicPanels() {
       Toasts.showWarning("Run diff before exporting results.");
       return;
     }
-    Exports.downloadJson(diffState.result, "diff_results.json");
+    Exports.downloadJson({
+      diff: diffState.result,
+      duplicates: diffState.duplicates
+    }, "diff_results.json", { format: getExportFormat() });
   });
 
   diffCleanExport?.addEventListener("click", () => {
@@ -684,7 +739,7 @@ function wireBasicPanels() {
       Toasts.showWarning("Run diff before exporting the clean export.");
       return;
     }
-    Exports.downloadJson(diffState.cleanExport, "clean_export.json");
+    Exports.downloadJson(diffState.cleanExport, "clean_export.json", { format: getExportFormat() });
   });
 }
 
@@ -717,7 +772,6 @@ function bootstrap() {
   syncSettingsForm();
   renderRecentRuns();
   wireBasicPanels();
-  renderValidationOutput();
   renderDiffOutput();
 
   settingsSaveButton?.addEventListener("click", persistSettings);

@@ -56,8 +56,12 @@ const diffExportFilenames = {
   changedAndNew: "changed_and_new.json"
 };
 
-async function downloadJson(data, filename) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+function serializeJson(data, format = "pretty") {
+  return format === "minified" ? JSON.stringify(data) : JSON.stringify(data, null, 2);
+}
+
+async function downloadJson(data, filename, options = {}) {
+  const blob = new Blob([serializeJson(data, options.format)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -66,4 +70,4 @@ async function downloadJson(data, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-export { buildExportBundle, diffExportFilenames, downloadJson };
+export { buildExportBundle, diffExportFilenames, downloadJson, serializeJson };
