@@ -320,7 +320,7 @@ function renderDiffOutput() {
     { label: "Comparison records", value: diff.comparisonCount, helper: `Wrapper: ${diff.wrapper.comparison}` },
     { label: "Changed", value: diff.changedCount, helper: "Modified records" },
     { label: "New / Removed", value: `${diff.newCount} / ${diff.removedCount}`, helper: "Adds and deletes" },
-    { label: "Duplicate keys", value: duplicateCounts.baseline + duplicateCounts.comparison + duplicateCounts.cross, helper: `${duplicateCounts.baseline} baseline, ${duplicateCounts.comparison} comparison, ${duplicateCounts.cross} cross-file` }
+    { label: "Duplicate keys", value: duplicateCounts.baseline + duplicateCounts.comparison, helper: `${duplicateCounts.baseline} baseline, ${duplicateCounts.comparison} comparison, ${duplicateCounts.cross} cross-file matches` }
   ];
 
   diffOutput.innerHTML = `
@@ -343,7 +343,7 @@ function renderDiffOutput() {
       </div>
     </div>
     <div class="panel">
-      <div class="section-title"><h3>Duplicate key summary</h3><span class="badge ${duplicateCounts.baseline + duplicateCounts.comparison + duplicateCounts.cross ? "medium" : "good"}">${duplicateCounts.baseline + duplicateCounts.comparison + duplicateCounts.cross ? "Review duplicates" : "No duplicates"}</span></div>
+      <div class="section-title"><h3>Duplicate key summary</h3><span class="badge ${duplicateCounts.baseline + duplicateCounts.comparison ? "medium" : "good"}">${duplicateCounts.baseline + duplicateCounts.comparison ? "Review duplicates" : "No duplicates"}</span></div>
       <p class="helper">Baseline groups: ${duplicateCounts.baseline} | Comparison groups: ${duplicateCounts.comparison} | Cross-file key matches: ${duplicateCounts.cross}</p>
     </div>
     <div class="panel">
@@ -515,7 +515,7 @@ async function runDiffAnalysis() {
       changed: diff.changedCount,
       new: diff.newCount,
       removed: diff.removedCount,
-      duplicateGroups: duplicateCounts.baseline + duplicateCounts.comparison + duplicateCounts.cross
+      duplicateGroups: duplicateCounts.baseline + duplicateCounts.comparison
     },
     exportFiles: ["diff_results.json", "clean_export.json"],
     reopenTab: "diff",
