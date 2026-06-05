@@ -7,6 +7,14 @@ function initSidebar(options = {}) {
   const storageKey = options.storageKey || "dqct.ui.sidebarCollapsed.v1";
   const mobileBreakpoint = Number(options.mobileBreakpoint) || 768;
 
+  function isMobileViewport() {
+    return window.innerWidth < mobileBreakpoint;
+  }
+
+  function isMobileOpen() {
+    return shellElement?.classList.contains("sidebar-open") || false;
+  }
+
   function readCollapsedPreference() {
     try {
       return localStorage.getItem(storageKey) === "true";
@@ -23,14 +31,33 @@ function initSidebar(options = {}) {
     }
   }
 
+  function syncMobileButton(open) {
+    if (!(mobileButton instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    mobileButton.setAttribute("aria-expanded", open ? "true" : "false");
+    mobileButton.setAttribute("aria-label", open ? "Close sidebar" : "Open sidebar");
+    mobileButton.title = open ? "Close sidebar" : "Open sidebar";
+  }
+
   function syncCollapseButton(collapsed) {
     if (!(collapseButton instanceof HTMLButtonElement)) {
       return;
     }
 
-    collapseButton.textContent = collapsed ? "›" : "Collapse sidebar";
-    collapseButton.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
-    collapseButton.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+    const mobileOpen = isMobileViewport() && isMobileOpen();
+    const label = mobileOpen ? "Close sidebar" : collapsed ? "Expand sidebar" : "Collapse sidebar";
+    collapseButton.textContent = mobileOpen ? "Close sidebar" : collapsed ? "›" : "Collapse sidebar";
+    collapseButton.setAttribute("aria-label", label);
+    collapseButton.title = label;
+  }
+
+  function setMobileOpen(value) {
+    const open = !!value;
+    shellElement?.classList.toggle("sidebar-open", open);
+    syncMobileButton(open);
+    syncCollapseButton(shellElement?.classList.contains("is-collapsed") || false);
   }
 
   function setCollapsed(value) {
@@ -42,11 +69,16 @@ function initSidebar(options = {}) {
   }
 
   function toggleCollapsed() {
+    if (isMobileViewport() && isMobileOpen()) {
+      setMobileOpen(false);
+      return;
+    }
+
     setCollapsed(!shellElement?.classList.contains("is-collapsed"));
   }
 
   function toggleMobileOpen() {
-    shellElement?.classList.toggle("sidebar-open");
+    setMobileOpen(!isMobileOpen());
   }
 
   collapseButton?.addEventListener("click", toggleCollapsed);
@@ -59,11 +91,14 @@ function initSidebar(options = {}) {
 
   window.addEventListener("resize", () => {
     if (window.innerWidth >= mobileBreakpoint) {
-      shellElement?.classList.remove("sidebar-open");
+      setMobileOpen(false);
+    } else {
+      syncCollapseButton(shellElement?.classList.contains("is-collapsed") || false);
     }
   });
 
   setCollapsed(readCollapsedPreference());
+  syncMobileButton(isMobileOpen());
 
   return {
     setCollapsed,

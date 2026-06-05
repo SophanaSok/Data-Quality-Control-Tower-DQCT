@@ -1,6 +1,7 @@
 .panel,
 .card,
 .surface {
+  min-width: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   background: var(--color-surface);
@@ -145,6 +146,7 @@ label {
 .stack {
   display: grid;
   gap: var(--space-4);
+  min-width: 0;
 }
 
 .split,

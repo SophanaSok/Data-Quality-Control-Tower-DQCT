@@ -32,6 +32,7 @@
   display: grid;
   gap: var(--space-4);
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: 0;
 }
 
 .metric-card {
@@ -75,10 +76,15 @@
 .code-block,
 .json-preview,
 pre.dqct-json-viewer__code {
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
   padding: var(--space-4);
   border-radius: var(--radius-lg);
   background: var(--color-surface-2);
   color: var(--color-ink);
+  overflow: auto;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -95,10 +101,76 @@ pre.dqct-json-viewer__code {
 .dqct-json-diff-viewer {
   display: grid;
   gap: var(--space-4);
+  min-width: 0;
+}
+
+.dqct-json-viewer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .dqct-json-diff-viewer__grid {
   display: grid;
   gap: var(--space-4);
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.dqct-json-diff-viewer__grid > *,
+.dqct-diff-record-pane,
+.dqct-diff-record-content,
+.dqct-diff-record-card,
+.dqct-diff-field-table,
+.dqct-diff-field-table__row > * {
+  min-width: 0;
+}
+
+.dqct-diff-record-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.dqct-diff-record-json {
+  max-height: min(22rem, 60vh);
+}
+
+.dqct-diff-field-table {
+  display: grid;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.dqct-diff-field-table__head,
+.dqct-diff-field-table__row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) minmax(0, 2fr) minmax(0, 2fr);
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.dqct-diff-field-table__head {
+  background: var(--color-surface-2);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dqct-diff-field-table__row {
+  border-top: 1px solid var(--color-border);
+}
+
+.dqct-diff-field-name,
+.dqct-diff-field-value {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
