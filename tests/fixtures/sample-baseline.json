@@ -1,0 +1,22 @@
+{
+  "Export": [
+    {
+      "ProjectCode": "SRC0000000001",
+      "Title": "Original network services",
+      "BidStatus": "Open for Bidding",
+      "Created": "2026-01-01T00:00:00Z"
+    },
+    {
+      "ProjectCode": "SRC0000000001",
+      "Title": "Duplicate baseline row",
+      "BidStatus": "Open for Bidding",
+      "Created": "2026-01-01T00:00:00Z"
+    },
+    {
+      "ProjectCode": "SRC0000000003",
+      "Title": "Removed cabling services",
+      "BidStatus": "Closed",
+      "Created": "2026-01-01T00:00:00Z"
+    }
+  ]
+}

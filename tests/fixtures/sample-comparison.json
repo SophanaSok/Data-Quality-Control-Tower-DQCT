@@ -1,0 +1,16 @@
+{
+  "Export": [
+    {
+      "ProjectCode": "SRC0000000001",
+      "Title": "Updated network services",
+      "BidStatus": "Awarded",
+      "Created": "2026-02-01T00:00:00Z"
+    },
+    {
+      "ProjectCode": "SRC0000000002",
+      "Title": "New cloud services",
+      "BidStatus": "Open for Bidding",
+      "Created": "2026-02-01T00:00:00Z"
+    }
+  ]
+}
