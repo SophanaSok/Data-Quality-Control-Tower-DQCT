@@ -361,7 +361,7 @@ function renderDiffOutput() {
   diffTableController = Table.create({
     tableElement: document.getElementById("diffResultsTable"),
     bodyElement,
-    pageSize: 20,
+    pageSize: 100,
     onRowClick: (row) => {
       openDiffResult(row);
       if (viewerHost instanceof HTMLElement) {
