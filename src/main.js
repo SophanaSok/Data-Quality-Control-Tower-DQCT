@@ -276,6 +276,7 @@ function renderValidationOutput() {
           <tbody id="validationResultsBody"></tbody>
         </table>
       </div>
+      <div id="validationPagination" class="table-pagination"></div>
     </div>
   `;
 
@@ -284,7 +285,8 @@ function renderValidationOutput() {
   validationTableController = Table.create({
     tableElement,
     bodyElement,
-    pageSize: 20,
+    paginationElement: document.getElementById("validationPagination"),
+    pageSize: 50,
     onRowClick: openValidationResult,
     columns: [
       { key: "fileName", sortable: true },
@@ -341,6 +343,7 @@ function renderDiffOutput() {
           <tbody id="diffResultsBody"></tbody>
         </table>
       </div>
+      <div id="diffPagination" class="table-pagination"></div>
     </div>
     <div class="panel">
       <div class="section-title"><h3>Duplicate key summary</h3><span class="badge ${duplicateCounts.baseline + duplicateCounts.comparison ? "medium" : "good"}">${duplicateCounts.baseline + duplicateCounts.comparison ? "Review duplicates" : "No duplicates"}</span></div>
@@ -361,7 +364,8 @@ function renderDiffOutput() {
   diffTableController = Table.create({
     tableElement: document.getElementById("diffResultsTable"),
     bodyElement,
-    pageSize: 20,
+    paginationElement: document.getElementById("diffPagination"),
+    pageSize: 50,
     onRowClick: (row) => {
       openDiffResult(row);
       if (viewerHost instanceof HTMLElement) {

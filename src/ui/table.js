@@ -1,6 +1,6 @@
 /*
   Lightweight table controller used by validation results.
-  API: DQCTTable.create({ tableElement, bodyElement, columns, onRowClick, pageSize })
+  API: DQCTTable.create({ tableElement, bodyElement, columns, onRowClick, pageSize, paginationElement })
 */
 function escapeHtml(value) {
   return String(value ?? "")
@@ -21,6 +21,7 @@ function defaultSortValue(row, key) {
 function create(config) {
   const tableElement = config?.tableElement;
   const bodyElement = config?.bodyElement;
+  const paginationElement = config?.paginationElement instanceof HTMLElement ? config.paginationElement : null;
   const columns = Array.isArray(config?.columns) ? config.columns : [];
   const onRowClick = typeof config?.onRowClick === "function" ? config.onRowClick : null;
   const pageSize = Number.isFinite(Number(config?.pageSize)) ? Number(config.pageSize) : 25;
@@ -83,6 +84,31 @@ function create(config) {
       return sortState.direction === "desc" ? sorted.reverse() : sorted;
     }
 
+    function renderPagination(total, totalPages, start) {
+      if (!paginationElement) return;
+      if (totalPages <= 1) {
+        paginationElement.innerHTML = total > 0
+          ? `<span class="table-pagination__info">${total} record${total === 1 ? "" : "s"}</span>`
+          : "";
+        return;
+      }
+      const end = Math.min(start + pageSize, total);
+      paginationElement.innerHTML = `
+        <button class="secondary table-pagination__btn" data-pg-prev aria-label="Previous page"${currentPage === 1 ? " disabled" : ""}>&#8592; Prev</button>
+        <span class="table-pagination__info">
+          ${start + 1}–${end} of ${total}
+          <span class="table-pagination__pages">Page ${currentPage} / ${totalPages}</span>
+        </span>
+        <button class="secondary table-pagination__btn" data-pg-next aria-label="Next page"${currentPage === totalPages ? " disabled" : ""}>Next &#8594;</button>
+      `;
+      paginationElement.querySelector("[data-pg-prev]")?.addEventListener("click", () => {
+        if (currentPage > 1) { currentPage -= 1; render(); }
+      });
+      paginationElement.querySelector("[data-pg-next]")?.addEventListener("click", () => {
+        if (currentPage < totalPages) { currentPage += 1; render(); tableElement.scrollIntoView({ behavior: "smooth", block: "start" }); }
+      });
+    }
+
     function render() {
       const ordered = sortedRows();
       const totalPages = Math.max(1, Math.ceil(ordered.length / pageSize));
@@ -104,16 +130,20 @@ function create(config) {
           return `<tr data-row-index="${originalIndex}">${cells}</tr>`;
         })
         .join("");
+
+      renderPagination(ordered.length, totalPages, start);
     }
 
     return {
       update(nextRows) {
         rows = Array.isArray(nextRows) ? nextRows : [];
+        currentPage = 1;
         render();
       },
       clear() {
         rows = [];
         bodyElement.innerHTML = "";
+        if (paginationElement) paginationElement.innerHTML = "";
       }
     };
   }
