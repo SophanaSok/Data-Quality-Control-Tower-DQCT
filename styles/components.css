@@ -197,6 +197,66 @@ label {
   box-shadow: var(--shadow-1);
 }
 
+.table-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-1);
+}
+
+.table-pager[hidden] {
+  display: none;
+}
+
+.table-pager__info {
+  color: var(--color-ink-soft);
+  font-size: var(--text-sm);
+}
+
+.table-pager__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.table-pager__size {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-ink-soft);
+  font-size: var(--text-sm);
+}
+
+.table-pager__size select {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.table-pager__nav {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.table-pager__status {
+  min-width: 8ch;
+  text-align: center;
+  color: var(--color-ink-soft);
+  font-size: var(--text-sm);
+}
+
+.table-pager__nav button[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
