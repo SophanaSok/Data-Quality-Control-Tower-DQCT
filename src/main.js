@@ -285,6 +285,7 @@ function renderValidationOutput() {
     tableElement,
     bodyElement,
     pageSize: 20,
+    summaryLabel: "validation rows",
     onRowClick: openValidationResult,
     columns: [
       { key: "fileName", sortable: true },
@@ -362,6 +363,7 @@ function renderDiffOutput() {
     tableElement: document.getElementById("diffResultsTable"),
     bodyElement,
     pageSize: 20,
+    summaryLabel: "diff rows",
     onRowClick: (row) => {
       openDiffResult(row);
       if (viewerHost instanceof HTMLElement) {
